@@ -24,8 +24,11 @@
  */
 package com.oracle.svm.core.genscavenge.remset;
 
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.nodes.AssertionNode;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.struct.SizeOf;
@@ -82,6 +85,10 @@ final class UnalignedChunkRememberedSet {
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, objectIndex), "card must be dirty", "", "", 0L, 0L);
         } else {
+            DynamicHub hub = KnownIntrinsics.readHub(obj);
+            // ImageSingletons.lookup(CardDirtyMap.class).lastDirtyType.put(cardTableStart.toObjectNonNull(), hub);
+            ImageSingletons.lookup(CardDirtyMap.class).put(chunk, hub);
+
             CardTable.setDirty(cardTableStart, objectIndex);
         }
     }
