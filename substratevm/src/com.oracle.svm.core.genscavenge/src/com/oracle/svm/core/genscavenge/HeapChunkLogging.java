@@ -36,7 +36,7 @@ class HeapChunkLogging {
             int i = 0;
             AlignedHeapChunk.AlignedHeader chunk = firstChunk;
             while (chunk.isNonNull() && i < MAX_CHUNKS_TO_PRINT) {
-                log.newline().zhex(chunk).string(" (").zhex(AlignedHeapChunk.getObjectsStart(chunk)).string("-").zhex(HeapChunk.getTopPointer(chunk)).string(") ").zhex(chunk.getLastDirtyHubAddress());
+                log.newline().zhex(chunk).string(" (").zhex(AlignedHeapChunk.getObjectsStart(chunk)).string("-").zhex(HeapChunk.getTopPointer(chunk)).string(") ").string(HeapChunk.getLastDirtyHubName(chunk));
                 chunk = HeapChunk.getNext(chunk);
                 i++;
             }
@@ -56,7 +56,7 @@ class HeapChunkLogging {
             int i = 0;
             UnalignedHeapChunk.UnalignedHeader chunk = firstChunk;
             while (chunk.isNonNull() && i < MAX_CHUNKS_TO_PRINT) {
-                log.newline().zhex(chunk).string(" (").zhex(UnalignedHeapChunk.getObjectStart(chunk)).string("-").zhex(HeapChunk.getTopPointer(chunk)).string(")").zhex(chunk.getLastDirtyHubAddress());
+                log.newline().zhex(chunk).string(" (").zhex(UnalignedHeapChunk.getObjectStart(chunk)).string("-").zhex(HeapChunk.getTopPointer(chunk)).string(")").string(HeapChunk.getLastDirtyHubName(chunk));
                 chunk = HeapChunk.getNext(chunk);
                 i++;
             }

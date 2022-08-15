@@ -24,8 +24,10 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import java.util.Objects;
 import java.util.function.IntUnaryOperator;
 
+import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -253,6 +255,15 @@ public final class HeapChunk {
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static <T extends Header<T>> void setNext(Header<T> that, T newNext) {
         that.setOffsetToNextChunk(offsetFromPointer(that, newNext));
+    }
+
+    public static <T extends Header<T>>  String getLastDirtyHubName(Header<T> that) {
+        final Object hub = that.getLastDirtyHubAddress().toObject();
+        if (Objects.nonNull(hub)) {
+            return ((DynamicHub) hub).getName();
+        }
+
+        return "none";
     }
 
 //    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
