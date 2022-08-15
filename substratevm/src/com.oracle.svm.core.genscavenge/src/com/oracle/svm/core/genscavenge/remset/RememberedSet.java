@@ -26,6 +26,7 @@ package com.oracle.svm.core.genscavenge.remset;
 
 import java.util.List;
 
+import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -111,7 +112,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForAlignedObject(Object object, boolean verifyOnly);
+    void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID);
 
     /**
      * Marks an object as dirty. May only be called for objects for which remembered set tracking is
@@ -119,7 +120,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly);
+    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID);
 
     /**
      * Marks the {@code holderObject} as dirty if needed according to the location of

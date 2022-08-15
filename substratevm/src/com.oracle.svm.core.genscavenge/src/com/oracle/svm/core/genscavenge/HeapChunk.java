@@ -166,6 +166,15 @@ public final class HeapChunk {
         @RawField
         @UniqueLocationIdentity
         void setOffsetToNextChunk(SignedWord newNext);
+
+        /**
+         * Type identifier for the last type that marked the card dirty.
+         */
+        @RawField
+        int getLastDirtyTypeID();
+
+        @RawField
+        void setLastDirtyTypeID(int typeID);
     }
 
     public static void initialize(Header<?> chunk, Pointer objectsStart, UnsignedWord chunkSize) {
@@ -245,6 +254,11 @@ public final class HeapChunk {
     public static <T extends Header<T>> void setNext(Header<T> that, T newNext) {
         that.setOffsetToNextChunk(offsetFromPointer(that, newNext));
     }
+
+//    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+//    public static <T extends Header<T>> void setTypeID(Header<T> that, int typeID) {
+//        that.setLastDirtyTypeID(typeID);
+//    }
 
     /**
      * Converts from an offset to a pointer, where a zero offset translates to {@code NULL}. This is

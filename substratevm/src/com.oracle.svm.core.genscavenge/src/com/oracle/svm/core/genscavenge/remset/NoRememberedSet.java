@@ -26,6 +26,7 @@ package com.oracle.svm.core.genscavenge.remset;
 
 import java.util.List;
 
+import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -116,12 +117,12 @@ public final class NoRememberedSet implements RememberedSet {
     }
 
     @Override
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly) {
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID) {
         throw VMError.shouldNotReachHere();
     }
 
     @Override
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly) {
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID) {
         throw VMError.shouldNotReachHere();
     }
 

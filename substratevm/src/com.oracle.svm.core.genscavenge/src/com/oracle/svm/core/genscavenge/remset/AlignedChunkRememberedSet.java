@@ -26,6 +26,8 @@ package com.oracle.svm.core.genscavenge.remset;
 
 import java.util.List;
 
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.nodes.AssertionNode;
 import org.graalvm.compiler.word.Word;
@@ -113,7 +115,7 @@ final class AlignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object object, boolean verifyOnly) {
+    public static void dirtyCardForObject(Object object, boolean verifyOnly, int typeID) {
         Pointer objectPointer = Word.objectToUntrackedPointer(object);
         AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
         Pointer cardTableStart = getCardTableStart(chunk);
@@ -121,6 +123,14 @@ final class AlignedChunkRememberedSet {
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, index), "card must be dirty", "", "", 0L, 0L);
         } else {
+            // DynamicHub hub = KnownIntrinsics.readHub(object);
+            // final int typeID = hub.getTypeID();
+            // chunk.setLastDirtyTypeID(typeID);
+            // HeapChunk.setTypeID(chunk, typeID);
+
+            // chunk.setLastDirtyTypeID(hub.getTypeID());
+            chunk.setLastDirtyTypeID(typeID);
+
             CardTable.setDirty(cardTableStart, index);
         }
     }
@@ -166,6 +176,7 @@ final class AlignedChunkRememberedSet {
 
     @Fold
     static UnsignedWord getStructSize() {
+//        return WordFactory.unsigned(SizeOf.get(AlignedHeader.class)).add(getCardDirtyTypeIDSize());
         return WordFactory.unsigned(SizeOf.get(AlignedHeader.class));
     }
 
@@ -178,6 +189,11 @@ final class AlignedChunkRememberedSet {
         UnsignedWord alignment = WordFactory.unsigned(ConfigurationValues.getObjectLayout().getAlignment());
         return UnsignedUtils.roundUp(requiredSize, alignment);
     }
+
+//    @Fold
+//    static UnsignedWord getCardDirtyTypeIDSize() {
+//        return WordFactory.unsigned(4);
+//    }
 
     @Fold
     static UnsignedWord getFirstObjectTableSize() {

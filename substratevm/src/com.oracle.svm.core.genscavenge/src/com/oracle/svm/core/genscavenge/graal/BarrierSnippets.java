@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.oracle.svm.core.genscavenge.SerialGCOptions;
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.meta.SharedType;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.api.replacements.Snippet;
 import org.graalvm.compiler.api.replacements.Snippet.ConstantParameter;
@@ -87,7 +89,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
     }
 
     @Snippet
-    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly) {
+    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, int typeID) {
         counters().postWriteBarrier.inc();
 
         Object fixedObject = FixedValueAnchorNode.getObject(object);
@@ -114,13 +116,13 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             boolean unaligned = ObjectHeaderImpl.isUnalignedHeader(objectHeader);
             if (BranchProbabilityNode.probability(BranchProbabilityNode.NOT_LIKELY_PROBABILITY, unaligned)) {
                 counters().postWriteBarrierUnaligned.inc();
-                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly);
+                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, typeID);
                 return;
             }
         }
 
         counters().postWriteBarrierAligned.inc();
-        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly);
+        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, typeID);
     }
 
     private class PostWriteBarrierLowering implements NodeLoweringProvider<WriteBarrier> {
@@ -148,9 +150,11 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             assert baseType == null || !storedContinuationType.isAssignableFrom(baseType) : "StoredContinuation should be effectively immutable and references only be written by GC";
             boolean alwaysAlignedChunk = baseType != null && !baseType.isArray() && !baseType.isJavaLangObject() && !baseType.isInterface();
 
+            SharedType sharedType = (SharedType) baseType;
             args.add("object", address.getBase());
             args.addConst("alwaysAlignedChunk", alwaysAlignedChunk);
             args.addConst("verifyOnly", getVerifyOnly(barrier));
+            args.add("typeID", sharedType != null ? sharedType.getHub().getTypeID() : -1);
 
             template(barrier, args).instantiate(providers.getMetaAccess(), barrier, SnippetTemplate.DEFAULT_REPLACER, args);
         }

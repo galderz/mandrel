@@ -24,6 +24,8 @@
  */
 package com.oracle.svm.core.genscavenge.remset;
 
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.nodes.AssertionNode;
 import org.graalvm.nativeimage.Platform;
@@ -75,13 +77,21 @@ final class UnalignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object obj, boolean verifyOnly) {
+    public static void dirtyCardForObject(Object obj, boolean verifyOnly, int typeID) {
         UnalignedHeader chunk = UnalignedHeapChunk.getEnclosingChunk(obj);
         Pointer cardTableStart = getCardTableStart(chunk);
         UnsignedWord objectIndex = getObjectIndex();
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, objectIndex), "card must be dirty", "", "", 0L, 0L);
         } else {
+            // DynamicHub hub = KnownIntrinsics.readHub(obj);
+            // final int typeID = hub.getTypeID();
+            // chunk.setLastDirtyTypeID(typeID);
+            // HeapChunk.setTypeID(chunk, typeID);
+
+            // chunk.setLastDirtyTypeID(hub.getTypeID());
+            chunk.setLastDirtyTypeID(typeID);
+
             CardTable.setDirty(cardTableStart, objectIndex);
         }
     }

@@ -26,6 +26,8 @@ package com.oracle.svm.core.genscavenge.remset;
 
 import java.util.List;
 
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -119,14 +121,14 @@ public class CardTableBasedRememberedSet implements RememberedSet {
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly) {
-        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly);
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID) {
+        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, typeID);
     }
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly) {
-        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly);
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID) {
+        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, typeID);
     }
 
     @Override
@@ -154,10 +156,10 @@ public class CardTableBasedRememberedSet implements RememberedSet {
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(holderObject);
         if (hasRememberedSet(objectHeader)) {
             if (ObjectHeaderImpl.isAlignedObject(holderObject)) {
-                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false);
+                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object).getTypeID());
             } else {
                 assert ObjectHeaderImpl.isUnalignedObject(holderObject) : "sanity";
-                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false);
+                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object).getTypeID());
             }
         }
     }
