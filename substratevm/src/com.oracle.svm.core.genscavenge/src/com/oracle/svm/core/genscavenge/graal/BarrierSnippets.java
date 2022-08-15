@@ -51,6 +51,7 @@ import org.graalvm.compiler.replacements.SnippetTemplate;
 import org.graalvm.compiler.replacements.SnippetTemplate.Arguments;
 import org.graalvm.compiler.replacements.SnippetTemplate.SnippetInfo;
 import org.graalvm.compiler.replacements.Snippets;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.word.LocationIdentity;
@@ -89,7 +90,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
     }
 
     @Snippet
-    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, int typeID) {
+    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, DynamicHub objectHub) {
         counters().postWriteBarrier.inc();
 
         Object fixedObject = FixedValueAnchorNode.getObject(object);
@@ -116,13 +117,13 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             boolean unaligned = ObjectHeaderImpl.isUnalignedHeader(objectHeader);
             if (BranchProbabilityNode.probability(BranchProbabilityNode.NOT_LIKELY_PROBABILITY, unaligned)) {
                 counters().postWriteBarrierUnaligned.inc();
-                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, typeID);
+                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub);
                 return;
             }
         }
 
         counters().postWriteBarrierAligned.inc();
-        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, typeID);
+        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub);
     }
 
     private class PostWriteBarrierLowering implements NodeLoweringProvider<WriteBarrier> {
@@ -154,7 +155,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             args.add("object", address.getBase());
             args.addConst("alwaysAlignedChunk", alwaysAlignedChunk);
             args.addConst("verifyOnly", getVerifyOnly(barrier));
-            args.add("typeID", sharedType != null ? sharedType.getHub().getTypeID() : -1);
+            args.add("objectHub", sharedType != null ? sharedType.getHub() : null);
 
             template(barrier, args).instantiate(providers.getMetaAccess(), barrier, SnippetTemplate.DEFAULT_REPLACER, args);
         }

@@ -27,7 +27,6 @@ package com.oracle.svm.core.genscavenge.remset;
 import java.util.List;
 
 import com.oracle.svm.core.hub.DynamicHub;
-import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.nodes.AssertionNode;
 import org.graalvm.compiler.word.Word;
@@ -115,7 +114,7 @@ final class AlignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object object, boolean verifyOnly, int typeID) {
+    public static void dirtyCardForObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
         Pointer objectPointer = Word.objectToUntrackedPointer(object);
         AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
         Pointer cardTableStart = getCardTableStart(chunk);
@@ -129,7 +128,7 @@ final class AlignedChunkRememberedSet {
             // HeapChunk.setTypeID(chunk, typeID);
 
             // chunk.setLastDirtyTypeID(hub.getTypeID());
-            chunk.setLastDirtyTypeID(typeID);
+            chunk.setLastDirtyHubAddress(Word.objectToTrackedPointer(objectHub));
 
             CardTable.setDirty(cardTableStart, index);
         }

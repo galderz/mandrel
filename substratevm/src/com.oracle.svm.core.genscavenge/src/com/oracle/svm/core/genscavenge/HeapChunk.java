@@ -168,13 +168,13 @@ public final class HeapChunk {
         void setOffsetToNextChunk(SignedWord newNext);
 
         /**
-         * Type identifier for the last type that marked the card dirty.
+         * TODO
          */
         @RawField
-        int getLastDirtyTypeID();
+        Word getLastDirtyHubAddress();
 
         @RawField
-        void setLastDirtyTypeID(int typeID);
+        void setLastDirtyHubAddress(Word hubAddress);
     }
 
     public static void initialize(Header<?> chunk, Pointer objectsStart, UnsignedWord chunkSize) {

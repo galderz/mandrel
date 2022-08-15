@@ -28,6 +28,7 @@ import java.util.List;
 
 import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.struct.SizeOf;
@@ -117,12 +118,12 @@ public final class NoRememberedSet implements RememberedSet {
     }
 
     @Override
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID) {
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
         throw VMError.shouldNotReachHere();
     }
 
     @Override
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID) {
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
         throw VMError.shouldNotReachHere();
     }
 

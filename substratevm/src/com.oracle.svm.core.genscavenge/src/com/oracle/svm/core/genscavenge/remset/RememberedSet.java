@@ -29,6 +29,7 @@ import java.util.List;
 import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -112,7 +113,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID);
+    void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub);
 
     /**
      * Marks an object as dirty. May only be called for objects for which remembered set tracking is
@@ -120,7 +121,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID);
+    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub);
 
     /**
      * Marks the {@code holderObject} as dirty if needed according to the location of

@@ -29,6 +29,7 @@ import java.util.List;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.snippets.KnownIntrinsics;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.UnsignedWord;
@@ -121,14 +122,14 @@ public class CardTableBasedRememberedSet implements RememberedSet {
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, int typeID) {
-        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, typeID);
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub);
     }
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, int typeID) {
-        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, typeID);
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub);
     }
 
     @Override
@@ -156,10 +157,10 @@ public class CardTableBasedRememberedSet implements RememberedSet {
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(holderObject);
         if (hasRememberedSet(objectHeader)) {
             if (ObjectHeaderImpl.isAlignedObject(holderObject)) {
-                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object).getTypeID());
+                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object));
             } else {
                 assert ObjectHeaderImpl.isUnalignedObject(holderObject) : "sanity";
-                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object).getTypeID());
+                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object));
             }
         }
     }
