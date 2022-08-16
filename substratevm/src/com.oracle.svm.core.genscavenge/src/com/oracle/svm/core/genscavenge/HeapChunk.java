@@ -346,6 +346,10 @@ public final class HeapChunk {
         }
     }
 
+    public static void clearLastDirtyHubAddress(Header<?> that) {
+        that.setLastDirtyHubAddress(null);
+    }
+
     abstract static class MemoryWalkerAccessImpl<T extends HeapChunk.Header<?>> implements MemoryWalker.HeapChunkAccess<T> {
         @Platforms(Platform.HOSTED_ONLY.class)
         MemoryWalkerAccessImpl() {

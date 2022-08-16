@@ -322,6 +322,10 @@ final class HeapChunkProvider {
         return log;
     }
 
+    void clearLastDirtyHubAddresses() {
+        HeapChunkLogging.clearLastDirtyHubAddresses(unusedAlignedChunks.get());
+    }
+
     boolean walkHeapChunks(MemoryWalker.Visitor visitor) {
         assert VMOperation.isInProgressAtSafepoint();
         boolean continueVisiting = true;

@@ -159,6 +159,11 @@ public final class Space {
         return log;
     }
 
+    public void clearLastDirtyHubAddresses() {
+        HeapChunkLogging.clearLastDirtyHubAddresses(getFirstAlignedHeapChunk());
+        HeapChunkLogging.clearLastDirtyHubAddresses(getFirstUnalignedHeapChunk());
+    }
+
     /**
      * Allocate memory from an AlignedHeapChunk in this Space.
      */

@@ -114,6 +114,15 @@ public final class YoungGeneration extends Generation {
         return log;
     }
 
+    @Override
+    public void clearLastDirtyHubAddresses() {
+        getEden().clearLastDirtyHubAddresses();
+        for (int i = 0; i < maxSurvivorSpaces; i++) {
+            this.survivorFromSpaces[i].clearLastDirtyHubAddresses();
+            this.survivorToSpaces[i].clearLastDirtyHubAddresses();
+        }
+    }
+
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     Space getEden() {
         return eden;

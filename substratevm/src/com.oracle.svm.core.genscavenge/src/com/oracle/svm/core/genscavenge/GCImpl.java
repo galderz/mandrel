@@ -205,11 +205,17 @@ public final class GCImpl implements GC {
         printGCBefore(cause.getName());
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
         printGCAfter(cause.getName());
+        clearLastDirtyHubAddresses();
 
         finishCollection();
         timers.mutator.open();
 
         data.setOutOfMemory(outOfMemory);
+    }
+
+    private void clearLastDirtyHubAddresses() {
+        HeapImpl heap = HeapImpl.getHeapImpl();
+        heap.clearLastDirtyHubAddresses();
     }
 
     private boolean collectImpl(GCCause cause, long requestingNanoTime, boolean forceFullGC) {

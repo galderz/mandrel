@@ -346,6 +346,12 @@ public final class HeapImpl extends Heap {
         return classList;
     }
 
+    public void clearLastDirtyHubAddresses() {
+        getYoungGeneration().clearLastDirtyHubAddresses();
+        getOldGeneration().clearLastDirtyHubAddresses();
+        getChunkProvider().clearLastDirtyHubAddresses();
+    }
+
     private static class ClassListBuilderVisitor implements MemoryWalker.ImageHeapRegionVisitor, ObjectVisitor {
         private final List<Class<?>> list;
 

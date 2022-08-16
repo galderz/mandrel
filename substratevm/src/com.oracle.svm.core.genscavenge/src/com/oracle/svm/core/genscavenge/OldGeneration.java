@@ -123,6 +123,12 @@ public final class OldGeneration extends Generation {
         return log;
     }
 
+    @Override
+    public void clearLastDirtyHubAddresses() {
+        getFromSpace().clearLastDirtyHubAddresses();
+        getToSpace().clearLastDirtyHubAddresses();
+    }
+
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     Space getFromSpace() {
         return fromSpace;
