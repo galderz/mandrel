@@ -346,9 +346,11 @@ public final class HeapImpl extends Heap {
         return classList;
     }
 
-    public void clearLastDirtyHubAddresses() {
+    public void clearLastDirtyHubAddresses(boolean completeCollection) {
         getYoungGeneration().clearLastDirtyHubAddresses();
-        getOldGeneration().clearLastDirtyHubAddresses();
+        if (completeCollection) {
+            getOldGeneration().clearLastDirtyHubAddresses();
+        }
         getChunkProvider().clearLastDirtyHubAddresses();
     }
 

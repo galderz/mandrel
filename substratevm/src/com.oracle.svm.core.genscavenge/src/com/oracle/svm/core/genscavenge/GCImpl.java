@@ -215,7 +215,7 @@ public final class GCImpl implements GC {
 
     private void clearLastDirtyHubAddresses() {
         HeapImpl heap = HeapImpl.getHeapImpl();
-        heap.clearLastDirtyHubAddresses();
+        heap.clearLastDirtyHubAddresses(completeCollection);
     }
 
     private boolean collectImpl(GCCause cause, long requestingNanoTime, boolean forceFullGC) {
