@@ -28,6 +28,7 @@ package com.oracle.svm.core.jfr.traceid;
 
 import java.util.Arrays;
 
+import com.oracle.svm.core.log.Log;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
@@ -54,6 +55,7 @@ public class JfrTraceIdMap {
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public void initialize(int size) {
+        System.out.println("]JfrTraceIdMap] initialize " + size);
         traceIDs = new long[size];
         Arrays.fill(traceIDs, -1);
     }
@@ -70,6 +72,10 @@ public class JfrTraceIdMap {
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     long getId(Class<?> clazz) {
+        // System.out.println("]JfrTraceIdMap] get " + clazz);
+        // Log log = Log.log();
+        // log.string("]JfrTraceIdMap] get ").string(clazz.toString()).newline();
+
         long id = traceIDs[getIndex(clazz)];
         assert id != -1;
         return id;
@@ -77,6 +83,10 @@ public class JfrTraceIdMap {
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     void setId(Class<?> clazz, long id) {
+        // System.out.println("]JfrTraceIdMap] set " + clazz + " to " + id);
+        // Log log = Log.log();
+        // log.string("]JfrTraceIdMap] set ").string(clazz.toString()).string(" to ").unsigned(id).newline();
+
         traceIDs[getIndex(clazz)] = id;
     }
 

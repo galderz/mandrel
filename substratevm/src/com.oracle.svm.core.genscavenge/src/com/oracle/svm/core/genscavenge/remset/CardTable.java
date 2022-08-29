@@ -25,9 +25,18 @@
 package com.oracle.svm.core.genscavenge.remset;
 
 import java.lang.ref.Reference;
+import java.util.Arrays;
 
+import com.oracle.svm.core.annotate.AutomaticFeature;
+import com.oracle.svm.core.hub.DynamicHubSupport;
+import com.oracle.svm.core.util.Counter;
+import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.compiler.word.Word;
+import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.nativeimage.Platform;
+import org.graalvm.nativeimage.Platforms;
+import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
@@ -87,8 +96,10 @@ final class CardTable {
         UnmanagedMemoryUtil.fill(tableStart, size, (byte) CLEAN_ENTRY);
     }
 
-    public static void setDirty(Pointer table, UnsignedWord index) {
+    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID) {
+        chunk.setLastDirtyHubAddress(Word.objectToTrackedPointer(objectHub));
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
+        ImageSingletons.lookup(CardTableCounters.class).incrementClassWrite(typeID);
     }
 
     public static void setClean(Pointer table, UnsignedWord index) {

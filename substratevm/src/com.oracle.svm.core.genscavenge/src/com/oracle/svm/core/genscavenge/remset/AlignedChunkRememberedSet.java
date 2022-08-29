@@ -114,7 +114,7 @@ final class AlignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+    public static void dirtyCardForObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
         Pointer objectPointer = Word.objectToUntrackedPointer(object);
         AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
         Pointer cardTableStart = getCardTableStart(chunk);
@@ -122,15 +122,7 @@ final class AlignedChunkRememberedSet {
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, index), "card must be dirty", "", "", 0L, 0L);
         } else {
-            // DynamicHub hub = KnownIntrinsics.readHub(object);
-            // final int typeID = hub.getTypeID();
-            // chunk.setLastDirtyTypeID(typeID);
-            // HeapChunk.setTypeID(chunk, typeID);
-
-            // chunk.setLastDirtyTypeID(hub.getTypeID());
-            chunk.setLastDirtyHubAddress(Word.objectToTrackedPointer(objectHub));
-
-            CardTable.setDirty(cardTableStart, index);
+            CardTable.setDirty(cardTableStart, index, objectHub, chunk, typeID);
         }
     }
 

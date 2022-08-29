@@ -90,7 +90,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
     }
 
     @Snippet
-    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, DynamicHub objectHub) {
+    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, DynamicHub objectHub, @ConstantParameter int typeID) {
         counters().postWriteBarrier.inc();
 
         Object fixedObject = FixedValueAnchorNode.getObject(object);
@@ -117,13 +117,13 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             boolean unaligned = ObjectHeaderImpl.isUnalignedHeader(objectHeader);
             if (BranchProbabilityNode.probability(BranchProbabilityNode.NOT_LIKELY_PROBABILITY, unaligned)) {
                 counters().postWriteBarrierUnaligned.inc();
-                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub);
+                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub, typeID);
                 return;
             }
         }
 
         counters().postWriteBarrierAligned.inc();
-        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub);
+        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID);
     }
 
     private class PostWriteBarrierLowering implements NodeLoweringProvider<WriteBarrier> {
@@ -156,6 +156,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             args.addConst("alwaysAlignedChunk", alwaysAlignedChunk);
             args.addConst("verifyOnly", getVerifyOnly(barrier));
             args.add("objectHub", sharedType != null ? sharedType.getHub() : null);
+            args.addConst("typeID", sharedType != null ? sharedType.getHub().getTypeID() : -1);
 
             template(barrier, args).instantiate(providers.getMetaAccess(), barrier, SnippetTemplate.DEFAULT_REPLACER, args);
         }

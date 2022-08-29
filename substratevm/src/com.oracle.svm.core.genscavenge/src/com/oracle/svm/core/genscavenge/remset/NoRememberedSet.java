@@ -118,12 +118,12 @@ public final class NoRememberedSet implements RememberedSet {
     }
 
     @Override
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
         throw VMError.shouldNotReachHere();
     }
 
     @Override
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
         throw VMError.shouldNotReachHere();
     }
 

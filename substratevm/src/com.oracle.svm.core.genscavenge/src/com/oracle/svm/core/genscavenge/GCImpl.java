@@ -29,8 +29,10 @@ import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 
 import java.lang.ref.Reference;
 
+import com.oracle.svm.core.genscavenge.remset.CardTableCounters;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -205,12 +207,17 @@ public final class GCImpl implements GC {
         printGCBefore(cause.getName());
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
         printGCAfter(cause.getName());
+        printCardTableCounters();
         clearLastDirtyHubAddresses();
 
         finishCollection();
         timers.mutator.open();
 
         data.setOutOfMemory(outOfMemory);
+    }
+
+    private void printCardTableCounters() {
+        ImageSingletons.lookup(CardTableCounters.class).log(Log.log());
     }
 
     private void clearLastDirtyHubAddresses() {
