@@ -28,6 +28,7 @@ import java.lang.ref.Reference;
 
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.compiler.word.Word;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
@@ -87,8 +88,10 @@ final class CardTable {
         UnmanagedMemoryUtil.fill(tableStart, size, (byte) CLEAN_ENTRY);
     }
 
-    public static void setDirty(Pointer table, UnsignedWord index) {
+    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID) {
+        chunk.setLastDirtyHubAddress(Word.objectToTrackedPointer(objectHub));
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
+        CardTableCounters.get().incrementTypeWrite(typeID);
     }
 
     public static void setClean(Pointer table, UnsignedWord index) {
