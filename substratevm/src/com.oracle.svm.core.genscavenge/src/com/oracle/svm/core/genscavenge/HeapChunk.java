@@ -257,7 +257,7 @@ public final class HeapChunk {
         that.setOffsetToNextChunk(offsetFromPointer(that, newNext));
     }
 
-    public static <T extends Header<T>>  String getLastDirtyHubName(Header<T> that) {
+    public static <T extends Header<T>> String getLastDirtyHubName(Header<T> that) {
         final Object hub = that.getLastDirtyHubAddress().toObject();
         if (Objects.nonNull(hub)) {
             return ((DynamicHub) hub).getName();

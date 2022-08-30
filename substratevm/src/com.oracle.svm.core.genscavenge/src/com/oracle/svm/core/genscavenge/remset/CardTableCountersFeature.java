@@ -24,7 +24,14 @@ class CardTableCountersFeature implements Feature {
 //        RuntimeSupport runtime = RuntimeSupport.getRuntimeSupport();
 //        runtime.addStartupHook(this::initializeCardTable);
 //    }
-//
+
+    @Override
+    public void beforeAnalysis(BeforeAnalysisAccess access) {
+        RuntimeSupport runtime = RuntimeSupport.getRuntimeSupport();
+        final CardTableCounters counters = ImageSingletons.lookup(CardTableCounters.class);
+        runtime.addStartupHook(counters.startupHook());
+    }
+
 //    private void initializeCardTable(boolean isFirstIsolate) {
 //        Log log = Log.log();
 //        log.string("Initialize card table");

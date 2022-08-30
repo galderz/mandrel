@@ -1,36 +1,42 @@
 package com.oracle.svm.core.genscavenge.remset;
 
-import com.oracle.svm.core.annotate.Uninterruptible;
-import com.oracle.svm.core.annotate.UnknownObjectField;
+import com.oracle.svm.core.jdk.RuntimeSupport;
 import com.oracle.svm.core.log.Log;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-import java.util.Arrays;
-
 public class CardTableCounters {
-    // @UnknownObjectField(types = {long[].class}) private long[] classWriteCounters;
-    long[] classWriteCounters;
+    long[] typeWriteCounters;
+
+    @Platforms(Platform.HOSTED_ONLY.class)
+    public CardTableCounters() {
+        this.typeWriteCounters = new long[0];
+    }
 
     @Platforms(Platform.HOSTED_ONLY.class)
     void initialize(int classCount) {
-        System.out.printf("[%d] Called CardTableCounters.initialize()%n", System.identityHashCode(this));
-        classWriteCounters = new long[classCount];
-        System.out.printf("[%d] Set class write counters to array %d %n", System.identityHashCode(this), System.identityHashCode(classWriteCounters));
-        Arrays.fill(classWriteCounters, 0);
+        typeWriteCounters = new long[classCount];
     }
 
-//    @Fold
-//    public static CardTableCounters singleton() {
-//        return ImageSingletons.lookup(CardTableCounters.class);
-//    }
+    @Fold
+    public static CardTableCounters get() {
+        return ImageSingletons.lookup(CardTableCounters.class);
+    }
+
+    public RuntimeSupport.Hook startupHook() {
+        return isFirstIsolate -> {
+            Log log = Log.log();
+            log.string("Initialize card table counters").newline();
+            log.string("Size of type write counters array is ").unsigned(typeWriteCounters.length).newline();
+        };
+    }
 
     void incrementClassWrite(int typeID) {
         if (typeID >= 0) {
             // throw new RuntimeException(String.valueOf(System.identityHashCode(classWriteCounters)));
-            classWriteCounters[typeID] += 1;
+            typeWriteCounters[typeID] += 1;
         }
     }
 
@@ -42,12 +48,12 @@ public class CardTableCounters {
         log.string("Called CardTableCounters.log()");
         log.newline();
 
-        log.string("[");
-        log.signed(System.identityHashCode(this));
-        log.string("] ");
-        log.string("Query class write counter array ");
-        log.signed(System.identityHashCode(classWriteCounters));
-        log.newline();
+//        log.string("[");
+//        log.signed(System.identityHashCode(this));
+//        log.string("] ");
+//        log.string("Query class write counter array ");
+//        log.signed(System.identityHashCode(typeWriteCounters));
+//        log.newline();
 
         long total = 0;
         int maxNameLen = 30;
@@ -57,16 +63,15 @@ public class CardTableCounters {
 //            maxNameLen = Math.max(counter.name.length(), maxNameLen);
 //        }
 
-//        log.string("=== ");
-//        log.string("Card Table Class Write Counters ");
-//        log.unsigned(classWriteCounters == null ? 0 : classWriteCounters.length);
-//        log.string(" ===");
-//        log.newline();
-//        for (int i = 0; i < classWriteCounters.length; i++) {
-//            // final long classWriteCounter = classWriteCounters[i];
-//            log.string("  ").unsigned(i, maxNameLen, Log.RIGHT_ALIGN).string(":");
-//            // log.unsigned(classWriteCounter, 10, Log.RIGHT_ALIGN);
-//            log.newline();
-//        }
+        log.string("=== ");
+        log.string("Card Table Class Write Counters ");
+        log.string(" ===");
+        log.newline();
+        for (int i = 0; i < typeWriteCounters.length; i++) {
+            final long counter = typeWriteCounters[i];
+            log.string("  ").unsigned(i, maxNameLen, Log.RIGHT_ALIGN).string(":");
+            log.unsigned(counter, 10, Log.RIGHT_ALIGN);
+            log.newline();
+        }
     }
 }
