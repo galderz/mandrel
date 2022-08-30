@@ -217,7 +217,9 @@ public final class GCImpl implements GC {
     }
 
     private void printCardTableCounters() {
-        CardTableCounters.get().log(Log.log());
+        final CardTableCounters counters = CardTableCounters.get();
+        counters.log(Log.log());
+        counters.clearCounters();
     }
 
     private void clearLastDirtyHubAddresses() {

@@ -65,4 +65,10 @@ public class CardTableCounters {
             }
         }
     }
+
+    public void clearCounters() {
+        for (int i = 0; i < typeWriteCounters.length; i++) {
+            typeWriteCounters[i] = 0;
+        }
+    }
 }
