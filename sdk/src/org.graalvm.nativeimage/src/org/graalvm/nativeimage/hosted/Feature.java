@@ -424,6 +424,8 @@ public interface Feature {
          * @since 19.0
          */
         void registerAsImmutable(Object root, Predicate<Object> includeObject);
+
+        String[] getTypeNames();
     }
 
     /**

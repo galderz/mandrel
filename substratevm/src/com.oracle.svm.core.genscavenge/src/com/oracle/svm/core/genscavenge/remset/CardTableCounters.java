@@ -9,15 +9,19 @@ import org.graalvm.nativeimage.Platforms;
 
 public class CardTableCounters {
     long[] typeWriteCounters;
+    String[] typeNames;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public CardTableCounters() {
+        // TODO do I need these initializations?
         this.typeWriteCounters = new long[0];
+        this.typeNames = new String[0];
     }
 
     @Platforms(Platform.HOSTED_ONLY.class)
-    void initialize(int classCount) {
-        typeWriteCounters = new long[classCount];
+    void initialize(int classCount, String[] typeNames) {
+        this.typeWriteCounters = new long[classCount];
+        this.typeNames = typeNames;
     }
 
     @Fold
@@ -41,35 +45,16 @@ public class CardTableCounters {
     }
 
     public void log(Log log) {
-        // System.out.printf("[%d] Called CardTableCounters.log()%n", System.identityHashCode(this));
-        log.string("[");
-        log.signed(System.identityHashCode(this));
-        log.string("] ");
-        log.string("Called CardTableCounters.log()");
-        log.newline();
+        int maxNameLen = 0;
+        for (String typeName : typeNames) {
+            maxNameLen = Math.max(typeName.length(), maxNameLen);
+        }
 
-//        log.string("[");
-//        log.signed(System.identityHashCode(this));
-//        log.string("] ");
-//        log.string("Query class write counter array ");
-//        log.signed(System.identityHashCode(typeWriteCounters));
-//        log.newline();
-
-        long total = 0;
-        int maxNameLen = 30;
-
-//        for (Counter counter : counters) {
-//            total += counter.getValue();
-//            maxNameLen = Math.max(counter.name.length(), maxNameLen);
-//        }
-
-        log.string("=== ");
-        log.string("Card Table Class Write Counters ");
-        log.string(" ===");
-        log.newline();
+        log.string("=== Card Table Class Write Counters ===").newline();
         for (int i = 0; i < typeWriteCounters.length; i++) {
             final long counter = typeWriteCounters[i];
-            log.string("  ").unsigned(i, maxNameLen, Log.RIGHT_ALIGN).string(":");
+            final String typeName = typeNames[i];
+            log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
             log.unsigned(counter, 10, Log.RIGHT_ALIGN);
             log.newline();
         }
