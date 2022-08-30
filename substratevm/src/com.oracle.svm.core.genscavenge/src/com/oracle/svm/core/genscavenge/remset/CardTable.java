@@ -99,7 +99,7 @@ final class CardTable {
     public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID) {
         chunk.setLastDirtyHubAddress(Word.objectToTrackedPointer(objectHub));
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
-        ImageSingletons.lookup(CardTableCounters.class).incrementClassWrite(typeID);
+        CardTableCounters.get().incrementClassWrite(typeID);
     }
 
     public static void setClean(Pointer table, UnsignedWord index) {

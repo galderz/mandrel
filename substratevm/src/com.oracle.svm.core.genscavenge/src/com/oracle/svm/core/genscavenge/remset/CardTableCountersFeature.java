@@ -28,7 +28,7 @@ class CardTableCountersFeature implements Feature {
     @Override
     public void beforeAnalysis(BeforeAnalysisAccess access) {
         RuntimeSupport runtime = RuntimeSupport.getRuntimeSupport();
-        final CardTableCounters counters = ImageSingletons.lookup(CardTableCounters.class);
+        final CardTableCounters counters = CardTableCounters.get();
         runtime.addStartupHook(counters.startupHook());
     }
 
@@ -40,6 +40,6 @@ class CardTableCountersFeature implements Feature {
     @Override
     public void beforeCompilation(BeforeCompilationAccess access) {
         int classCount = ImageSingletons.lookup(DynamicHubSupport.class).getMaxTypeId();
-        ImageSingletons.lookup(CardTableCounters.class).initialize(classCount);
+        CardTableCounters.get().initialize(classCount);
     }
 }

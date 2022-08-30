@@ -217,7 +217,7 @@ public final class GCImpl implements GC {
     }
 
     private void printCardTableCounters() {
-        ImageSingletons.lookup(CardTableCounters.class).log(Log.log());
+        CardTableCounters.get().log(Log.log());
     }
 
     private void clearLastDirtyHubAddresses() {
