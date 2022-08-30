@@ -46,17 +46,23 @@ public class CardTableCounters {
 
     public void log(Log log) {
         int maxNameLen = 0;
-        for (String typeName : typeNames) {
-            maxNameLen = Math.max(typeName.length(), maxNameLen);
+        for (int i = 0; i < typeNames.length; i++) {
+            final long counter = typeWriteCounters[i];
+            if (counter > 0) {
+                final String name = typeNames[i];
+                maxNameLen = Math.max(name.length(), maxNameLen);
+            }
         }
 
         log.string("=== Card Table Class Write Counters ===").newline();
         for (int i = 0; i < typeWriteCounters.length; i++) {
             final long counter = typeWriteCounters[i];
-            final String typeName = typeNames[i];
-            log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
-            log.unsigned(counter, 10, Log.RIGHT_ALIGN);
-            log.newline();
+            if (counter > 0) {
+                final String typeName = typeNames[i];
+                log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
+                log.unsigned(counter, 10, Log.RIGHT_ALIGN);
+                log.newline();
+            }
         }
     }
 }
