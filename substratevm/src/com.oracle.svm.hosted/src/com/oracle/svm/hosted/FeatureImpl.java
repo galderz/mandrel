@@ -612,20 +612,6 @@ public class FeatureImpl {
             return hUniverse.getTypes();
         }
 
-//        public Collection<? extends DynamicHub> getHubs() {
-//            return getTypes().stream().map(SharedType::getHub).collect(Collectors.toList());
-//        }
-
-        public String[] getTypeNames() {
-            final Collection<? extends SharedType> types = getTypes();
-            final String[] typeNames = new String[types.size()];
-            for (SharedType type : getTypes()) {
-                final DynamicHub hub = type.getHub();
-                typeNames[hub.getTypeID()] = hub.getName();
-            }
-            return typeNames;
-        }
-
         public Collection<? extends SharedField> getFields() {
             return hUniverse.getFields();
         }

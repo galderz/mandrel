@@ -40,6 +40,6 @@ class CardTableCountersFeature implements Feature {
     @Override
     public void beforeCompilation(BeforeCompilationAccess access) {
         int classCount = ImageSingletons.lookup(DynamicHubSupport.class).getMaxTypeId();
-        CardTableCounters.get().initialize(classCount, access.getTypeNames());
+        CardTableCounters.get().initialize(classCount);
     }
 }
