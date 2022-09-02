@@ -122,14 +122,14 @@ public class CardTableBasedRememberedSet implements RememberedSet {
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
-        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID);
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace) {
+        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, isYoungSpace);
     }
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
-        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID);
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace) {
+        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, isYoungSpace);
     }
 
     @Override
@@ -139,7 +139,8 @@ public class CardTableBasedRememberedSet implements RememberedSet {
             return;
         }
         // We dirty the cards of ...
-        if (HeapParameters.getMaxSurvivorSpaces() != 0 && !GCImpl.getGCImpl().isCompleteCollection() && HeapImpl.getHeapImpl().getYoungGeneration().contains(object)) {
+        final boolean isYoungSpace = HeapImpl.getHeapImpl().getYoungGeneration().contains(object);
+        if (HeapParameters.getMaxSurvivorSpaces() != 0 && !GCImpl.getGCImpl().isCompleteCollection() && isYoungSpace) {
             /*
              * ...references from the old generation to the young generation, unless there cannot be
              * any such references if we do not use survivor spaces, or if we do but are doing a
@@ -157,10 +158,10 @@ public class CardTableBasedRememberedSet implements RememberedSet {
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(holderObject);
         if (hasRememberedSet(objectHeader)) {
             if (ObjectHeaderImpl.isAlignedObject(holderObject)) {
-                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID());
+                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace);
             } else {
                 assert ObjectHeaderImpl.isUnalignedObject(holderObject) : "sanity";
-                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID());
+                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace);
             }
         }
     }

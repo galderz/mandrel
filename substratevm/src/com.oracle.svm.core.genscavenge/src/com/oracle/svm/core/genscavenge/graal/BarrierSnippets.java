@@ -28,7 +28,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.oracle.svm.core.genscavenge.AlignedHeapChunk;
 import com.oracle.svm.core.genscavenge.SerialGCOptions;
+import com.oracle.svm.core.genscavenge.Space;
+import com.oracle.svm.core.genscavenge.UnalignedHeapChunk;
+import com.oracle.svm.core.genscavenge.UnalignedHeapChunk.UnalignedHeader;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.meta.SharedType;
 import org.graalvm.compiler.api.replacements.Fold;
@@ -37,6 +41,8 @@ import org.graalvm.compiler.api.replacements.Snippet.ConstantParameter;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.nodes.BreakpointNode;
 import org.graalvm.compiler.nodes.NamedLocationIdentity;
+import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.SnippetAnchorNode;
 import org.graalvm.compiler.nodes.extended.BranchProbabilityNode;
 import org.graalvm.compiler.nodes.extended.FixedValueAnchorNode;
 import org.graalvm.compiler.nodes.gc.SerialArrayRangeWriteBarrier;
@@ -55,6 +61,7 @@ import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.word.LocationIdentity;
+import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
 
 import com.oracle.svm.core.SubstrateOptions;
@@ -117,13 +124,18 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             boolean unaligned = ObjectHeaderImpl.isUnalignedHeader(objectHeader);
             if (BranchProbabilityNode.probability(BranchProbabilityNode.NOT_LIKELY_PROBABILITY, unaligned)) {
                 counters().postWriteBarrierUnaligned.inc();
-                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub, typeID);
+                final UnalignedHeader chunk = UnalignedHeapChunk.getEnclosingChunk(object);
+                final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
+                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace());
                 return;
             }
         }
 
         counters().postWriteBarrierAligned.inc();
-        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID);
+        Pointer objectPointer = Word.objectToUntrackedPointer(object);
+        AlignedHeapChunk.AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
+        final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
+        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace());
     }
 
     private class PostWriteBarrierLowering implements NodeLoweringProvider<WriteBarrier> {

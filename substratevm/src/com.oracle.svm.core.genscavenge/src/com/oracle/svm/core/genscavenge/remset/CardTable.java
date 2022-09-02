@@ -26,7 +26,11 @@ package com.oracle.svm.core.genscavenge.remset;
 
 import java.lang.ref.Reference;
 
+import com.oracle.svm.core.genscavenge.Space;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
+import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.SnippetAnchorNode;
+import org.graalvm.compiler.nodes.extended.GuardingNode;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
@@ -87,11 +91,23 @@ final class CardTable {
         UnmanagedMemoryUtil.fill(tableStart, size, (byte) CLEAN_ENTRY);
     }
 
-    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID) {
+    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID, boolean isYoungSpace) {
         final Word hubAddress = Word.objectToTrackedPointer(objectHub);
         chunk.setLastDirtyHubAddress(hubAddress);
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
-        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress);
+        // final boolean isYoungSpace = HeapChunk.getSpace(chunk).isYoungSpace();
+        // final boolean isYoungSpace = HeapChunk.getSpace(chunk).isYoungSpace();
+        // final boolean isYoungSpace = HeapChunk.getSpace(chunk);
+        // final boolean isYoungSpace = false;
+
+        // final Space nonNullChunk = (Space) PiNode.piCastNonNull(chunk, SnippetAnchorNode.anchor());
+        // final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
+
+//        final Space space = chunk.getSpace();
+//        final GuardingNode anchorNode = SnippetAnchorNode.anchor();
+//        final Space nonNullSpace = (Space) PiNode.piCastNonNull(space, anchorNode);
+//        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, nonNullSpace.isYoungSpace());
+        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, isYoungSpace);
     }
 
     public static void setClean(Pointer table, UnsignedWord index) {

@@ -113,7 +113,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID);
+    void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace);
 
     /**
      * Marks an object as dirty. May only be called for objects for which remembered set tracking is
@@ -121,7 +121,7 @@ public interface RememberedSet {
      * (from old generation to young generation, or from image heap to runtime heap).
      */
     @AlwaysInline("GC performance")
-    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID);
+    void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace);
 
     /**
      * Marks the {@code holderObject} as dirty if needed according to the location of
