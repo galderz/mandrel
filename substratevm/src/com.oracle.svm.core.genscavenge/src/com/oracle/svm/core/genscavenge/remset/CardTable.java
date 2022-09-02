@@ -91,7 +91,7 @@ final class CardTable {
         UnmanagedMemoryUtil.fill(tableStart, size, (byte) CLEAN_ENTRY);
     }
 
-    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID, boolean isYoungSpace) {
+    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID, int dirtyCounterType) {
         final Word hubAddress = Word.objectToTrackedPointer(objectHub);
         chunk.setLastDirtyHubAddress(hubAddress);
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
@@ -107,7 +107,7 @@ final class CardTable {
 //        final GuardingNode anchorNode = SnippetAnchorNode.anchor();
 //        final Space nonNullSpace = (Space) PiNode.piCastNonNull(space, anchorNode);
 //        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, nonNullSpace.isYoungSpace());
-        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, isYoungSpace);
+        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, dirtyCounterType);
     }
 
     public static void setClean(Pointer table, UnsignedWord index) {

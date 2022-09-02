@@ -122,14 +122,14 @@ public class CardTableBasedRememberedSet implements RememberedSet {
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace) {
-        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, isYoungSpace);
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, int dirtyCounterType) {
+        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, dirtyCounterType);
     }
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, boolean isYoungSpace) {
-        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, isYoungSpace);
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID, int dirtyCounterType) {
+        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID, dirtyCounterType);
     }
 
     @Override
@@ -158,10 +158,10 @@ public class CardTableBasedRememberedSet implements RememberedSet {
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(holderObject);
         if (hasRememberedSet(objectHeader)) {
             if (ObjectHeaderImpl.isAlignedObject(holderObject)) {
-                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace);
+                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace ? CardTableCounters.YOUNG_COUNTER : CardTableCounters.OLD_COUNTER);
             } else {
                 assert ObjectHeaderImpl.isUnalignedObject(holderObject) : "sanity";
-                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace);
+                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID(), isYoungSpace ? CardTableCounters.YOUNG_COUNTER : CardTableCounters.OLD_COUNTER);
             }
         }
     }

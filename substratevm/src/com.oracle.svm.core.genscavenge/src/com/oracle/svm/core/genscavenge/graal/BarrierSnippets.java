@@ -33,6 +33,7 @@ import com.oracle.svm.core.genscavenge.SerialGCOptions;
 import com.oracle.svm.core.genscavenge.Space;
 import com.oracle.svm.core.genscavenge.UnalignedHeapChunk;
 import com.oracle.svm.core.genscavenge.UnalignedHeapChunk.UnalignedHeader;
+import com.oracle.svm.core.genscavenge.remset.CardTableCounters;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.meta.SharedType;
 import org.graalvm.compiler.api.replacements.Fold;
@@ -126,7 +127,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
                 counters().postWriteBarrierUnaligned.inc();
                 final UnalignedHeader chunk = UnalignedHeapChunk.getEnclosingChunk(object);
                 final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
-                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace());
+                RememberedSet.get().dirtyCardForUnalignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace() ? CardTableCounters.YOUNG_COUNTER : CardTableCounters.OLD_COUNTER);
                 return;
             }
         }
@@ -134,8 +135,15 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
         counters().postWriteBarrierAligned.inc();
         Pointer objectPointer = Word.objectToUntrackedPointer(object);
         AlignedHeapChunk.AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
-        final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
-        RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace());
+        if (chunk.getSpace() != null) {
+            final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
+            RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace() ? CardTableCounters.YOUNG_COUNTER : CardTableCounters.OLD_COUNTER);
+        } else {
+            // TODO Need the check otherwise it's a seg fault on startup.
+            //      What to do if the chunk's space is null?
+            //      What assumptions can we make then?
+            RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, CardTableCounters.UNKNOWN_COUNTER);
+        }
     }
 
     private class PostWriteBarrierLowering implements NodeLoweringProvider<WriteBarrier> {
