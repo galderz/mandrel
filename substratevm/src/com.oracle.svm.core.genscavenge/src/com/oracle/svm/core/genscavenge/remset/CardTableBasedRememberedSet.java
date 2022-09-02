@@ -122,14 +122,14 @@ public class CardTableBasedRememberedSet implements RememberedSet {
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
-        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID);
+    public void dirtyCardForAlignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+        AlignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub);
     }
 
     @Override
     @AlwaysInline("GC performance")
-    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
-        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub, typeID);
+    public void dirtyCardForUnalignedObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
+        UnalignedChunkRememberedSet.dirtyCardForObject(object, verifyOnly, objectHub);
     }
 
     @Override
@@ -157,10 +157,10 @@ public class CardTableBasedRememberedSet implements RememberedSet {
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(holderObject);
         if (hasRememberedSet(objectHeader)) {
             if (ObjectHeaderImpl.isAlignedObject(holderObject)) {
-                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID());
+                AlignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object));
             } else {
                 assert ObjectHeaderImpl.isUnalignedObject(holderObject) : "sanity";
-                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object), KnownIntrinsics.readHub(object).getTypeID());
+                UnalignedChunkRememberedSet.dirtyCardForObject(holderObject, false, KnownIntrinsics.readHub(object));
             }
         }
     }

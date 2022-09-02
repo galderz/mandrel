@@ -28,6 +28,8 @@ import java.util.List;
 
 import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.compiler.api.replacements.Fold;
+import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.SnippetAnchorNode;
 import org.graalvm.compiler.replacements.nodes.AssertionNode;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
@@ -114,7 +116,7 @@ final class AlignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object object, boolean verifyOnly, DynamicHub objectHub, int typeID) {
+    public static void dirtyCardForObject(Object object, boolean verifyOnly, DynamicHub objectHub) {
         Pointer objectPointer = Word.objectToUntrackedPointer(object);
         AlignedHeader chunk = AlignedHeapChunk.getEnclosingChunkFromObjectPointer(objectPointer);
         Pointer cardTableStart = getCardTableStart(chunk);
@@ -122,7 +124,7 @@ final class AlignedChunkRememberedSet {
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, index), "card must be dirty", "", "", 0L, 0L);
         } else {
-            CardTable.setDirty(cardTableStart, index, objectHub, chunk, typeID);
+            CardTable.setDirty(cardTableStart, index, objectHub, chunk);
         }
     }
 

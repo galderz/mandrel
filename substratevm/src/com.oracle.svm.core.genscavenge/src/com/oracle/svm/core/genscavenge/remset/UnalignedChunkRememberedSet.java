@@ -77,14 +77,14 @@ final class UnalignedChunkRememberedSet {
      * Dirty the card corresponding to the given Object. This has to be fast, because it is used by
      * the post-write barrier.
      */
-    public static void dirtyCardForObject(Object obj, boolean verifyOnly, DynamicHub objectHub, int typeID) {
+    public static void dirtyCardForObject(Object obj, boolean verifyOnly, DynamicHub objectHub) {
         UnalignedHeader chunk = UnalignedHeapChunk.getEnclosingChunk(obj);
         Pointer cardTableStart = getCardTableStart(chunk);
         UnsignedWord objectIndex = getObjectIndex();
         if (verifyOnly) {
             AssertionNode.assertion(false, CardTable.isDirty(cardTableStart, objectIndex), "card must be dirty", "", "", 0L, 0L);
         } else {
-            CardTable.setDirty(cardTableStart, objectIndex, objectHub, chunk, typeID);
+            CardTable.setDirty(cardTableStart, objectIndex, objectHub, chunk);
         }
     }
 

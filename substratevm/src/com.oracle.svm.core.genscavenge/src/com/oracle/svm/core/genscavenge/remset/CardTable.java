@@ -27,6 +27,8 @@ package com.oracle.svm.core.genscavenge.remset;
 import java.lang.ref.Reference;
 
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
+import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.SnippetAnchorNode;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
@@ -87,10 +89,12 @@ final class CardTable {
         UnmanagedMemoryUtil.fill(tableStart, size, (byte) CLEAN_ENTRY);
     }
 
-    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk, int typeID) {
+    public static void setDirty(Pointer table, UnsignedWord index, DynamicHub objectHub, HeapChunk.Header<?> chunk) {
         final Word hubAddress = Word.objectToTrackedPointer(objectHub);
         chunk.setLastDirtyHubAddress(hubAddress);
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
+        DynamicHub hubNonNull = (DynamicHub) PiNode.piCastNonNull(objectHub, SnippetAnchorNode.anchor());
+        final int typeID = hubNonNull.getTypeID();
         CardTableCounters.get().incrementTypeWrite(typeID, hubAddress);
     }
 

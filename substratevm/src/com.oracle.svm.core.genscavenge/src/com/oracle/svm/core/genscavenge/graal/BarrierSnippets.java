@@ -37,6 +37,8 @@ import org.graalvm.compiler.api.replacements.Snippet.ConstantParameter;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.nodes.BreakpointNode;
 import org.graalvm.compiler.nodes.NamedLocationIdentity;
+import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.SnippetAnchorNode;
 import org.graalvm.compiler.nodes.extended.BranchProbabilityNode;
 import org.graalvm.compiler.nodes.extended.FixedValueAnchorNode;
 import org.graalvm.compiler.nodes.gc.SerialArrayRangeWriteBarrier;
@@ -90,8 +92,13 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
     }
 
     @Snippet
-    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, DynamicHub objectHub, @ConstantParameter int typeID) {
+    public static void postWriteBarrierSnippet(Object object, @ConstantParameter boolean alwaysAlignedChunk, @ConstantParameter boolean verifyOnly, DynamicHub objectHub) {
         counters().postWriteBarrier.inc();
+
+        // If piCastNonNull called here, no ClassCastException.
+        // Code makes further progress and does not work still, but at least no ClassCastException.
+        // DynamicHub hubNonNull = (DynamicHub) PiNode.piCastNonNull(objectHub, SnippetAnchorNode.anchor());
+        // final int typeID = hubNonNull.getTypeID();
 
         Object fixedObject = FixedValueAnchorNode.getObject(object);
         UnsignedWord objectHeader = ObjectHeaderImpl.readHeaderFromObject(fixedObject);
@@ -156,7 +163,7 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             args.addConst("alwaysAlignedChunk", alwaysAlignedChunk);
             args.addConst("verifyOnly", getVerifyOnly(barrier));
             args.add("objectHub", sharedType != null ? sharedType.getHub() : null);
-            args.addConst("typeID", sharedType != null ? sharedType.getHub().getTypeID() : -1);
+            // args.addConst("typeID", sharedType != null ? sharedType.getHub().getTypeID() : -1);
 
             template(barrier, args).instantiate(providers.getMetaAccess(), barrier, SnippetTemplate.DEFAULT_REPLACER, args);
         }
