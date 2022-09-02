@@ -35,11 +35,11 @@ public class CardTableCounters {
 
     void incrementTypeWrite(int typeID, Word typeAddress, boolean isYoungSpace) {
         if (typeID >= 0) {
-//            if (isYoungSpace) {
-//                youngGenTypeWriteCounters[typeID] += 1;
-//            } else {
-//                oldGenTypeWriteCounters[typeID] += 1;
-//            }
+            if (isYoungSpace) {
+                youngGenTypeWriteCounters[typeID] += 1;
+            } else {
+                oldGenTypeWriteCounters[typeID] += 1;
+            }
 
             typeAddresses[typeID] = typeAddress;
         }
