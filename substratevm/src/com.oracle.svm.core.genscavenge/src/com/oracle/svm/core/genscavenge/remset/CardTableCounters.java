@@ -95,8 +95,11 @@ public class CardTableCounters {
         return ((DynamicHub) typeAddresses[index].toObject()).getName();
     }
 
-    public void clearCounters() {
-        Arrays.fill(oldGenTypeWriteCounters, 0);
-        Arrays.fill(youngGenTypeWriteCounters, 0);
+    public void clearCounters(boolean isOld) {
+        if (isOld) {
+            Arrays.fill(oldGenTypeWriteCounters, 0);
+        } else {
+            Arrays.fill(youngGenTypeWriteCounters, 0);
+        }
     }
 }

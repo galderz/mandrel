@@ -206,6 +206,7 @@ public final class GCImpl implements GC {
         GCCause cause = GCCause.fromId(data.getCauseId());
         printGCBefore(cause.getName());
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
+        clearCardTableCounters(completeCollection);
         printGCAfter(cause.getName());
         clearLastDirtyHubAddresses();
 
@@ -213,6 +214,10 @@ public final class GCImpl implements GC {
         timers.mutator.open();
 
         data.setOutOfMemory(outOfMemory);
+    }
+
+    private void clearCardTableCounters(boolean completeCollection) {
+        CardTableCounters.get().clearCounters(completeCollection);
     }
 
     private void clearLastDirtyHubAddresses() {
