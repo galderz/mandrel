@@ -139,10 +139,9 @@ public class BarrierSnippets extends SubstrateTemplates implements Snippets {
             final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
             RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, nonNullSpace.isYoungSpace() ? CardTableCounters.YOUNG_COUNTER : CardTableCounters.OLD_COUNTER);
         } else {
-            // TODO Need the check otherwise it's a seg fault on startup.
-            //      What to do if the chunk's space is null?
-            //      What assumptions can we make then?
-            RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, CardTableCounters.UNKNOWN_COUNTER);
+            // A chunk's space is only set upon GC, so space could be null the very first time objects are created.
+            // So assume that if space is null, objects belong to young generation.
+            RememberedSet.get().dirtyCardForAlignedObject(fixedObject, verifyOnly, objectHub, typeID, CardTableCounters.YOUNG_COUNTER);
         }
     }
 

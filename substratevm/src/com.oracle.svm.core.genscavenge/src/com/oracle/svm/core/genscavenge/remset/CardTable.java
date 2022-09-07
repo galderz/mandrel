@@ -95,18 +95,6 @@ final class CardTable {
         final Word hubAddress = Word.objectToTrackedPointer(objectHub);
         chunk.setLastDirtyHubAddress(hubAddress);
         table.writeByte(indexToTableOffset(index), (byte) DIRTY_ENTRY, BarrierSnippets.CARD_REMEMBERED_SET_LOCATION);
-        // final boolean isYoungSpace = HeapChunk.getSpace(chunk).isYoungSpace();
-        // final boolean isYoungSpace = HeapChunk.getSpace(chunk).isYoungSpace();
-        // final boolean isYoungSpace = HeapChunk.getSpace(chunk);
-        // final boolean isYoungSpace = false;
-
-        // final Space nonNullChunk = (Space) PiNode.piCastNonNull(chunk, SnippetAnchorNode.anchor());
-        // final Space nonNullSpace = (Space) PiNode.piCastNonNull(chunk.getSpace(), SnippetAnchorNode.anchor());
-
-//        final Space space = chunk.getSpace();
-//        final GuardingNode anchorNode = SnippetAnchorNode.anchor();
-//        final Space nonNullSpace = (Space) PiNode.piCastNonNull(space, anchorNode);
-//        CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, nonNullSpace.isYoungSpace());
         CardTableCounters.get().incrementTypeWrite(typeID, hubAddress, dirtyCounterType);
     }
 
