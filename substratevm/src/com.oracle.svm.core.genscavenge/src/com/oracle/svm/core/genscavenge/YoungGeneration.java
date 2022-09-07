@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import com.oracle.svm.core.genscavenge.remset.CardTableCounters;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.UnsignedWord;
@@ -110,7 +111,9 @@ public final class YoungGeneration extends Generation {
                 log.newline();
             }
         }
-        log.redent(false).redent(false);
+        log.redent(false).newline();
+        CardTableCounters.get().log(true, log);
+        log.redent(false);
         return log;
     }
 

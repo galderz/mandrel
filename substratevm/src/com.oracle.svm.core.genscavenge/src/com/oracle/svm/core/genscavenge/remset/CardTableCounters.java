@@ -59,33 +59,34 @@ public class CardTableCounters {
         counter[typeID] += 1;
     }
 
-    public void log(Log log) {
+    public void log(boolean isYoung, Log log) {
+        if (isYoung) {
+            log(youngGenTypeWriteCounters, log);
+        } else {
+            log(oldGenTypeWriteCounters, log);
+        }
+    }
+
+    private void log(long[] counters, Log log) {
+        log.string("Card table write counters: ").newline();
+
         int maxNameLen = 0;
         for (int i = 0; i < typeAddresses.length; i++) {
-            if (oldGenTypeWriteCounters[i] > 0 || youngGenTypeWriteCounters[i] > 0) {
+            if (counters[i] > 0) {
                 final String name = getTypeName(i);
                 maxNameLen = Math.max(name.length(), maxNameLen);
             }
         }
 
-        log.string("=== Young Generation Card Table Class Write Counters ===").newline();
-        for (int i = 0; i < youngGenTypeWriteCounters.length; i++) {
-            final long counter = youngGenTypeWriteCounters[i];
-            if (counter > 0) {
-                final String typeName = getTypeName(i);
-                log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
-                log.unsigned(counter, 10, Log.RIGHT_ALIGN);
-                log.newline();
-            }
-        }
-        log.string("=== Old Generation Card Table Class Write Counters ===").newline();
-        for (int i = 0; i < oldGenTypeWriteCounters.length; i++) {
-            final long counter = oldGenTypeWriteCounters[i];
-            if (counter > 0) {
-                final String typeName = getTypeName(i);
-                log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
-                log.unsigned(counter, 10, Log.RIGHT_ALIGN);
-                log.newline();
+        if (maxNameLen > 0) {
+            for (int i = 0; i < counters.length; i++) {
+                final long counter = counters[i];
+                if (counter > 0) {
+                    final String typeName = getTypeName(i);
+                    log.string("  ").string(typeName, maxNameLen, Log.RIGHT_ALIGN).string(":");
+                    log.unsigned(counter, 10, Log.RIGHT_ALIGN);
+                    log.newline();
+                }
             }
         }
     }

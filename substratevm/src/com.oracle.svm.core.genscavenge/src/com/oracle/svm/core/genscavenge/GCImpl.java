@@ -207,19 +207,12 @@ public final class GCImpl implements GC {
         printGCBefore(cause.getName());
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
         printGCAfter(cause.getName());
-        printCardTableCounters();
         clearLastDirtyHubAddresses();
 
         finishCollection();
         timers.mutator.open();
 
         data.setOutOfMemory(outOfMemory);
-    }
-
-    private void printCardTableCounters() {
-        final CardTableCounters counters = CardTableCounters.get();
-        counters.log(Log.log());
-        counters.clearCounters();
     }
 
     private void clearLastDirtyHubAddresses() {

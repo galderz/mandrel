@@ -27,6 +27,7 @@ package com.oracle.svm.core.genscavenge;
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.EXTREMELY_SLOW_PATH_PROBABILITY;
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.probability;
 
+import com.oracle.svm.core.genscavenge.remset.CardTableCounters;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.UnsignedWord;
@@ -119,6 +120,7 @@ public final class OldGeneration extends Generation {
         log.string("Old generation: ").indent(true);
         getFromSpace().report(log, traceHeapChunks).newline();
         getToSpace().report(log, traceHeapChunks).newline();
+        CardTableCounters.get().log(false, log);
         log.redent(false);
         return log;
     }
