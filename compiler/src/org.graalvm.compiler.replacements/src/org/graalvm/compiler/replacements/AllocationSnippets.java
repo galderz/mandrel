@@ -63,6 +63,8 @@ public abstract class AllocationSnippets implements Snippets {
             emitPrefetchAllocate(newTop, false);
             result = formatObject(hub, size, top, fillContents, emitMemoryBarrier, constantSize, profilingData.snippetCounters);
         } else {
+            // TODO non-array allocating outside of tlab, track old object sample event
+            //      things to track allocation time, allocation stacktrace, thread id, type of object, memory address
             profilingData.snippetCounters.stub.inc();
             result = callNewInstanceStub(hub);
         }
@@ -98,6 +100,9 @@ public abstract class AllocationSnippets implements Snippets {
             result = formatArray(hub, allocationSize, length, top, fillContents, emitMemoryBarrier, fillStartOffset, maybeUnroll, supportsBulkZeroing, supportsOptimizedFilling,
                             profilingData.snippetCounters);
         } else {
+            // TODO array allocating outside of tlab, track old object sample event
+            //      things to track allocation time, allocation stacktrace, thread id, type of object, memory address
+            //      and array size
             profilingData.snippetCounters.stub.inc();
             result = callNewArrayStub(hub, length);
         }
