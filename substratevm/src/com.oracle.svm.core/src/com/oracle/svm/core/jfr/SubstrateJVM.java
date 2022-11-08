@@ -71,6 +71,7 @@ public class SubstrateJVM {
     private final JfrRecorderThread recorderThread;
 
     private final JfrLogging jfrLogging;
+    private final JfrOldObjectSampler oldObjectSampler;
 
     private boolean initialized;
     // We need this separate field for all JDK versions, i.e., even for versions where the field
@@ -110,6 +111,7 @@ public class SubstrateJVM {
         recorderThread = new JfrRecorderThread(globalMemory, unlockedChunkWriter);
 
         jfrLogging = new JfrLogging();
+        oldObjectSampler = new JfrOldObjectSampler();
 
         initialized = false;
         recording = false;
@@ -174,6 +176,11 @@ public class SubstrateJVM {
     @Fold
     public static JfrLogging getJfrLogging() {
         return get().jfrLogging;
+    }
+
+    @Fold
+    public static JfrOldObjectSampler getJfrOldObjectSampler() {
+        return get().oldObjectSampler;
     }
 
     public static Object getHandler(Class<? extends jdk.internal.event.Event> eventClass) {
@@ -333,6 +340,8 @@ public class SubstrateJVM {
         JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
         try {
             if (recording) {
+                finalizeCurrentChunk();
+
                 boolean existingFile = chunkWriter.hasOpenFile();
                 if (existingFile) {
                     chunkWriter.closeFile(metadataDescriptor, repositories);
@@ -352,6 +361,12 @@ public class SubstrateJVM {
         } finally {
             chunkWriter.unlock();
         }
+    }
+
+    // Guarded by unlocked chunk writer lock
+    private void finalizeCurrentChunk() {
+        // todo exclusive access on sampler?
+        oldObjectSampler.resolveStackTraces();
     }
 
     /** See {@link JVM#setFileNotification}. */
@@ -549,6 +564,11 @@ public class SubstrateJVM {
     public boolean setCutoff(long eventTypeId, long cutoffTicks) {
         eventSettings[NumUtil.safeToInt(eventTypeId)].setCutoffTicks(cutoffTicks);
         return true;
+    }
+
+    /** See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}. */
+    void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
+        oldObjectSampler.emit(cutoff, emitAll, skipBFS);
     }
 
     public boolean setConfiguration(Class<? extends Event> eventClass, Object configuration) {

@@ -128,7 +128,14 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
                     @ConstantParameter FillContent fillContents,
                     @ConstantParameter boolean emitMemoryBarrier,
                     @ConstantParameter AllocationProfilingData profilingData) {
+//        final long before = profilingData.snippetCounters.stub.value();
         Object result = allocateInstanceImpl(encodeAsTLABObjectHeader(hub), WordFactory.unsigned(size), fillContents, emitMemoryBarrier, true, profilingData);
+        JfrOldObjectSampleEvents.sampleOldObject(result, size);
+//        final long after = profilingData.snippetCounters.stub.value();
+//        if (after == before + 1) {
+//            // Allocated outside TLAB, track old object if enabled
+//            JfrOldObjectSampleEvents.sampleOldObject(result, size);
+//        }
         return piCastToSnippetReplaceeStamp(result);
     }
 

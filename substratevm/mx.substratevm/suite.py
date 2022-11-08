@@ -677,7 +677,7 @@ suite = {
             "os_arch": {
                 "darwin": {
                     "<others>": {
-                        "cflags": ["-ObjC", "-fPIC", "-O1", "-D_LITTLE_ENDIAN", "-ffunction-sections", "-fdata-sections", "-fvisibility=hidden", "-D_FORTIFY_SOURCE=0"],
+                        "cflags": ["-fno-objc-msgsend-selector-stubs", "-ObjC", "-fPIC", "-O1", "-D_LITTLE_ENDIAN", "-ffunction-sections", "-fdata-sections", "-fvisibility=hidden", "-D_FORTIFY_SOURCE=0"],
                     },
                 },
                 "<others>": {
