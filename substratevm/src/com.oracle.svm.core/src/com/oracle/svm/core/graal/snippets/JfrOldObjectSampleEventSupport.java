@@ -1,5 +1,6 @@
 package com.oracle.svm.core.graal.snippets;
 
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jfr.HasJfrSupport;
@@ -8,8 +9,10 @@ import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.nativeimage.ImageSingletons;
 
 final class JfrOldObjectSampleEventSupport {
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public void sampleOldObject(Object result, long size) {
-        if (SubstrateJVM.isRecording() && SubstrateJVM.get().isEnabled(JfrEvent.OldObjectSample)) {
+        // todo adding SubstrateJVM.get().isEnabled(JfrEvent.OldObjectSample) complains not being able to inline, workaround?
+        if (SubstrateJVM.isRecording()) {
             SubstrateJVM.getJfrOldObjectSampler().sample(result, size);
         }
     }

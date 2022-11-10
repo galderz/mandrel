@@ -1,21 +1,29 @@
 package com.oracle.svm.core.jfr;
 
-public class JfrOldObjectSamplePriorityQueue
+import org.graalvm.nativeimage.Platform;
+import org.graalvm.nativeimage.Platforms;
+
+final class JfrOldObjectSamplePriorityQueue
 {
     private static final int OBJECT_INDEX = 0;
     private static final int SPAN_INDEX = 1;
+    private static final int ALLOCATION_TIME_INDEX = 2;
+    private static final int PREV_INDEX = 3;
 
     private final Object[][] items;
+    private final SampleList list;
     private int count;
     private long total;
 
-    public JfrOldObjectSamplePriorityQueue(int size)
+    @Platforms(Platform.HOSTED_ONLY.class)
+    JfrOldObjectSamplePriorityQueue(int size)
     {
         this.items = new Object[size][];
         for (int i = 0; i < this.items.length; i++)
         {
-            this.items[i] = new Object[2];
+            this.items[i] = new Object[4];
         }
+        list = new SampleList();
     }
 
     /**
@@ -24,43 +32,43 @@ public class JfrOldObjectSamplePriorityQueue
      * This method does not check if the queue has enough capacity.
      * It's up to the caller decide how to deal with a full queue.
      */
-    void push(Object obj, long span)
+    void push(Object obj, long span, long allocationTime)
     {
-        assert span(items[count]) == null;
-
-        set(obj, span, items[count]);
+        set(obj, span, allocationTime, items[count]);
+//        list.prepend(items[count]);
         count++;
-        moveUp(count - 1);
-        total += span;
+//        moveUp(count - 1);
+//        total += span;
+
     }
 
     /**
-     * Retrieves and removes the head of the queue.
+     * Removes the head of the queue.
      * The head of the queue is the sample with the smallest span.
-     *
-     * @return a Sample or null if empty
      */
-    private Object[] poll()
+    void poll()
     {
         if (count == 0)
         {
-            return null;
+            return;
         }
 
         final Object[] head = items[0];
-        assert head != null;
         swap(0, count - 1);
         count--;
-        assert head == items[count];
         items[count] = null;
         moveDown(0);
         total -= span(head);
-        return head;
     }
 
     boolean isFull()
     {
         return count == items.length;
+    }
+
+    long peekSpan()
+    {
+        return count == 0 ? -1 : span(items[0]);
     }
 
     private void moveDown(int i)
@@ -131,14 +139,87 @@ public class JfrOldObjectSamplePriorityQueue
         return (i - 1) / 2;
     }
 
-    private static void set(Object obj, long span, Object[] sample)
+    private static void set(Object obj, long span, long allocationTime, Object[] sample)
     {
         sample[OBJECT_INDEX] = obj;
         sample[SPAN_INDEX] = span;
+        sample[ALLOCATION_TIME_INDEX] = allocationTime;
     }
 
     static Long span(Object[] sample)
     {
         return (Long) sample[SPAN_INDEX];
+    }
+
+    SampleList asList()
+    {
+        return list;
+    }
+
+    final class SampleList
+    {
+        Object[] head;
+        Object[] tail;
+
+        @Platforms(Platform.HOSTED_ONLY.class)
+        private SampleList() {
+        }
+
+        private void prepend(Object[] sample)
+        {
+            if (head == null)
+            {
+                head = sample;
+                tail = sample;
+                return;
+            }
+
+            Object[] tmp = head;
+            head = sample;
+            tmp[PREV_INDEX] = sample;
+
+        }
+
+        int firstIndex()
+        {
+            // Iterate to locate index of tail.
+            // Avoids the need the keep index in sample.
+            for (int i = 0; i < items.length; i++)
+            {
+                if (tail == items[i])
+                    return i;
+            }
+
+            return -1;
+        }
+
+        int prevIndex(int index)
+        {
+            final Object[] entry = items[index];
+            if (entry == null) {
+                return -1;
+            }
+
+            final Object prev = entry[PREV_INDEX];
+            // Iterate to locate index of prev.
+            // Avoids the need the keep index in sample.
+            for (int i = 0; i < items.length; i++)
+            {
+                if (prev == items[i])
+                    return i;
+            }
+
+            return -1;
+        }
+
+        long allocationTimeAt(int index)
+        {
+            final Object[] entry = items[index];
+            return entry == null ? -1 : (long) entry[ALLOCATION_TIME_INDEX];
+        }
+
+        Object objectAt(int index) {
+            return items[index][OBJECT_INDEX];
+        }
     }
 }

@@ -1,11 +1,19 @@
 package com.oracle.svm.core.jfr;
 
+import org.graalvm.nativeimage.Platform;
+import org.graalvm.nativeimage.Platforms;
+
 import java.util.HashMap;
 import java.util.Map;
 
 final class JfrEdgeStore {
-    private final Map<Object, StoredEdge> edges = new HashMap<>();
+    private final Map<Object, StoredEdge> edges;
     private long edgeIdCounter;
+
+    @Platforms(Platform.HOSTED_ONLY.class)
+    JfrEdgeStore() {
+        edges = new HashMap<>();
+    }
 
     void put(Object object) {
         edges.put(object, new StoredEdge(edgeIdCounter++, -1, null));

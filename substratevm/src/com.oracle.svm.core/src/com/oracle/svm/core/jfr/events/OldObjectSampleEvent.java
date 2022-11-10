@@ -1,5 +1,6 @@
 package com.oracle.svm.core.jfr.events;
 
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrNativeEventWriter;
 import com.oracle.svm.core.jfr.JfrNativeEventWriterData;
@@ -7,6 +8,7 @@ import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.nativeimage.StackValue;
 
 public class OldObjectSampleEvent {
+    @Uninterruptible(reason = "Accesses a JFR buffer.")
     public static void emit(long startTicks, long allocationTime, long objectId) {
         SubstrateJVM svm = SubstrateJVM.get();
         if (SubstrateJVM.isRecording() && svm.isEnabled(JfrEvent.OldObjectSample)) {
