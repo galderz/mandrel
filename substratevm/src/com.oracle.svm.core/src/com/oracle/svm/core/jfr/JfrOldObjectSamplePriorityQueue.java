@@ -35,10 +35,10 @@ final class JfrOldObjectSamplePriorityQueue
     void push(Object obj, long span, long allocationTime)
     {
         set(obj, span, allocationTime, items[count]);
-//        list.prepend(items[count]);
+        list.prepend(items[count]);
         count++;
-//        moveUp(count - 1);
-//        total += span;
+        moveUp(count - 1);
+        total += span;
 
     }
 
