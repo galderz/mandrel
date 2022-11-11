@@ -128,14 +128,7 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
                     @ConstantParameter FillContent fillContents,
                     @ConstantParameter boolean emitMemoryBarrier,
                     @ConstantParameter AllocationProfilingData profilingData) {
-//        final long before = profilingData.snippetCounters.stub.value();
         Object result = allocateInstanceImpl(encodeAsTLABObjectHeader(hub), WordFactory.unsigned(size), fillContents, emitMemoryBarrier, true, profilingData);
-        JfrOldObjectSampleEvents.sampleOldObject(result, size);
-//        final long after = profilingData.snippetCounters.stub.value();
-//        if (after == before + 1) {
-//            // Allocated outside TLAB, track old object if enabled
-//            JfrOldObjectSampleEvents.sampleOldObject(result, size);
-//        }
         return piCastToSnippetReplaceeStamp(result);
     }
 
@@ -466,8 +459,8 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
     }
 
     @Override
-    protected final Object callNewInstanceStub(Word objectHeader) {
-        return callSlowNewInstance(gcAllocationSupport().getNewInstanceStub(), objectHeader);
+    protected final Object callNewInstanceStub(Word objectHeader, UnsignedWord size) {
+        return callSlowNewInstance(gcAllocationSupport().getNewInstanceStub(), objectHeader, size);
     }
 
     @Override
@@ -481,7 +474,7 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
     }
 
     @NodeIntrinsic(value = ForeignCallNode.class)
-    private static native Object callSlowNewInstance(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub);
+    private static native Object callSlowNewInstance(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub, UnsignedWord size);
 
     @NodeIntrinsic(value = ForeignCallNode.class)
     private static native Object callSlowNewArray(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub, int length);

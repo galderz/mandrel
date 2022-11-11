@@ -1,4 +1,4 @@
-package com.oracle.svm.core.graal.snippets;
+package com.oracle.svm.core.genscavenge;
 
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;

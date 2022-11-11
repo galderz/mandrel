@@ -1,5 +1,6 @@
 package com.oracle.svm.core.jfr;
 
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.util.BoundedPriorityQueue;
 import jdk.jfr.internal.LogLevel;
@@ -28,6 +29,7 @@ public final class JfrOldObjectSampler {
         edgeStore = new JfrEdgeStore();
     }
 
+    @Uninterruptible(reason = "Accesses allocation sampler.")
     public void sample(Object object, long allocated) {
         // Not allowed
         // Logger.log(LogTag.JFR, LogLevel.TRACE, "SLOW ALLOCATION!!");

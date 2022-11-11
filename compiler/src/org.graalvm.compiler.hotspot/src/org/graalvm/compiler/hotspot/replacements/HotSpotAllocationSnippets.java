@@ -333,7 +333,7 @@ public class HotSpotAllocationSnippets extends AllocationSnippets {
     }
 
     @Override
-    protected final Object callNewInstanceStub(Word hub) {
+    protected final Object callNewInstanceStub(Word hub, UnsignedWord size) {
         KlassPointer klassPtr = KlassPointer.fromWord(hub);
         if (useNullAllocationStubs(INJECTED_VMCONFIG)) {
             return nonNullOrDeopt(newInstanceOrNull(NEW_INSTANCE_OR_NULL, klassPtr));
