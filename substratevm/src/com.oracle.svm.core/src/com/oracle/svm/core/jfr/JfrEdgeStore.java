@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 final class JfrEdgeStore {
-    private final Map<Object, StoredEdge> edges;
+    public final Map<Object, StoredEdge> edges;
     private long edgeIdCounter;
 
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -20,7 +20,9 @@ final class JfrEdgeStore {
     }
 
     long getObjectId(Object object) {
-        return edges.get(object).id;
+        final StoredEdge edge = edges.get(object);
+        // System.out.printf("Edge for %s is %s%n", object, edge);
+        return edge.id;
     }
 
     private static final class StoredEdge {

@@ -218,7 +218,6 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            Log.log().string("Slow path new instance, sample...");
             JfrOldObjectSampleEvents.sampleOldObject(result, size.rawValue());
             return result;
         } finally {

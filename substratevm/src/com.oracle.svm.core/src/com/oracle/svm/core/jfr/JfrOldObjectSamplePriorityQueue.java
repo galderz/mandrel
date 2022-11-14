@@ -13,7 +13,7 @@ final class JfrOldObjectSamplePriorityQueue
 
     private final Object[][] items;
     private final SampleList list;
-    private int count;
+    public int count;
     private long total;
 
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -199,8 +199,10 @@ final class JfrOldObjectSamplePriorityQueue
             // Avoids the need the keep index in sample.
             for (int i = 0; i < items.length; i++)
             {
-                if (tail == items[i])
+                if (tail == items[i]) {
+                    System.out.println("First index: " + i);
                     return i;
+                }
             }
 
             return -1;

@@ -86,13 +86,20 @@ public final class JfrOldObjectSampler {
         // todo add last sweep to sampler and handle !emitAll
         final long lastSweep = Long.MAX_VALUE;
 
+        if (samples == null) {
+            System.out.println("Samples is null");
+        } else {
+            System.out.printf("Samples is not null, contains %d elements%n", samples.count);
+        }
+
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
         final JfrOldObjectSamplePriorityQueue.SampleList sampleList = samples.asList();
         int current = sampleList.firstIndex();
         int count = 0;
         while (current >= 0) {
-            if (isAliveAndOlderThan(lastSweep, sampleList.allocationTimeAt(current))) {
+            final long allocationTime = sampleList.allocationTimeAt(current);
+            if (isAliveAndOlderThan(lastSweep, allocationTime)) {
                 linkSampleWithEdge(sampleList.objectAt(current));
                 count++;
             }
@@ -107,6 +114,12 @@ public final class JfrOldObjectSampler {
             // at the time old object sample events appear in the stream.
             // todo
 
+            if (edgeStore == null) {
+                System.out.println("Edge store is null");
+            } else {
+                System.out.printf("Edge store is not null, contains %d elements%n", edgeStore.edges.size());
+            }
+
             // A final pass to write the events
             current = sampleList.firstIndex();
             while (current >= 0) {
@@ -118,6 +131,8 @@ public final class JfrOldObjectSampler {
                 current = sampleList.prevIndex(current);
             }
         }
+
+        System.out.println("Emit completed");
     }
 
     private void linkSampleWithEdge(Object object) {

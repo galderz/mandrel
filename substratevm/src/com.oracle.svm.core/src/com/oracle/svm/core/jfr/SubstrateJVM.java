@@ -568,6 +568,7 @@ public class SubstrateJVM {
 
     /** See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}. */
     void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
+        System.out.printf("emitOldObjectSamples(%d, %b, %b)%n", cutoff, emitAll, skipBFS);
         oldObjectSampler.emit(cutoff, emitAll, skipBFS);
     }
 
