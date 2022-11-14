@@ -10,7 +10,8 @@ final class JfrOldObjectSamplePriorityQueue
     private static final int SPAN_INDEX = 1;
     private static final int ALLOCATION_TIME_INDEX = 2;
     private static final int THREAD_ID_INDEX = 3;
-    private static final int PREV_INDEX = 4;
+    private static final int STACKTRACE_ID_INDEX = 4;
+    private static final int PREV_INDEX = 5;
 
     private final Object[][] items;
     private final SampleList list;
@@ -23,7 +24,7 @@ final class JfrOldObjectSamplePriorityQueue
         this.items = new Object[size][];
         for (int i = 0; i < this.items.length; i++)
         {
-            this.items[i] = new Object[5];
+            this.items[i] = new Object[6];
         }
         list = new SampleList();
     }
@@ -35,9 +36,9 @@ final class JfrOldObjectSamplePriorityQueue
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(Object obj, long span, long allocationTime, long threadId)
+    void push(Object obj, long span, long allocationTime, long threadId, long stackTraceId)
     {
-        set(obj, span, allocationTime, threadId, items[count]);
+        set(obj, span, allocationTime, threadId, stackTraceId, items[count]);
         list.prepend(items[count]);
         count++;
         moveUp(count - 1);
@@ -151,12 +152,13 @@ final class JfrOldObjectSamplePriorityQueue
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private static void set(Object obj, long span, long allocationTime, long threadId, Object[] sample)
+    private static void set(Object obj, long span, long allocationTime, long threadId, long stackTraceId, Object[] sample)
     {
         sample[OBJECT_INDEX] = obj;
         sample[SPAN_INDEX] = span;
         sample[ALLOCATION_TIME_INDEX] = allocationTime;
         sample[THREAD_ID_INDEX] = threadId;
+        sample[STACKTRACE_ID_INDEX] = stackTraceId;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -231,8 +233,7 @@ final class JfrOldObjectSamplePriorityQueue
 
         long allocationTimeAt(int index)
         {
-            final Object[] entry = items[index];
-            return entry == null ? -1 : (long) entry[ALLOCATION_TIME_INDEX];
+            return longAt(index, ALLOCATION_TIME_INDEX);
         }
 
         Object objectAt(int index) {
@@ -240,8 +241,16 @@ final class JfrOldObjectSamplePriorityQueue
         }
 
         long threadIdAt(int index) {
+            return longAt(index, THREAD_ID_INDEX);
+        }
+
+        long stackTraceIdAt(int index) {
+            return longAt(index, STACKTRACE_ID_INDEX);
+        }
+
+        private long longAt(int index, int fieldIndex) {
             final Object[] entry = items[index];
-            return entry == null ? -1 : (long) entry[THREAD_ID_INDEX];
+            return entry == null ? -1 : (long) entry[fieldIndex];
         }
     }
 }

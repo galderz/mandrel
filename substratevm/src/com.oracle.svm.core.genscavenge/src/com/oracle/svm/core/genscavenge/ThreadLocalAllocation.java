@@ -28,6 +28,8 @@ import static com.oracle.svm.core.graal.snippets.SubstrateAllocationSnippets.TLA
 import static com.oracle.svm.core.graal.snippets.SubstrateAllocationSnippets.TLAB_TOP_IDENTITY;
 
 import com.oracle.svm.core.heap.Pod;
+import com.oracle.svm.core.jfr.JfrEvent;
+import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.thread.Continuation;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.AllocationSnippets.FillContent;

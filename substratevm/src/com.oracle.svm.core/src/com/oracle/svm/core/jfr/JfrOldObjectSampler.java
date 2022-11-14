@@ -70,8 +70,13 @@ public final class JfrOldObjectSampler {
         //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
         final Thread thread = Thread.currentThread();
         // Note: thread can be null during shutdown, don't remove thread null check
-        final long threadId = thread == null ? 0 : JavaThreads.getThreadId(thread);
-        samples.push(object, allocated, 0, threadId);
+        if (thread == null) {
+            samples.push(object, allocated, 0, 0, 0);
+        } else {
+            final long threadId = JavaThreads.getThreadId(thread);
+            final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
+            samples.push(object, allocated, 0, threadId, stackTraceId);
+        }
     }
 
     void emit(long cutoff, boolean emitAll, boolean skipBFS) {
@@ -133,7 +138,8 @@ public final class JfrOldObjectSampler {
                 if (isAliveAndOlderThan(lastSweep, allocationTime)) {
                     final long objectId = edgeStore.getObjectId(sampleList.objectAt(current));
                     final long threadId = sampleList.threadIdAt(current);
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId);
+                    final long stackTraceId = sampleList.stackTraceIdAt(current);
+                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId);
                 }
                 current = sampleList.prevIndex(current);
             }
