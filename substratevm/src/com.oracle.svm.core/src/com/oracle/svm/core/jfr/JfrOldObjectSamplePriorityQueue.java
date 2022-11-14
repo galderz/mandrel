@@ -9,7 +9,8 @@ final class JfrOldObjectSamplePriorityQueue
     private static final int OBJECT_INDEX = 0;
     private static final int SPAN_INDEX = 1;
     private static final int ALLOCATION_TIME_INDEX = 2;
-    private static final int PREV_INDEX = 3;
+    private static final int THREAD_ID_INDEX = 3;
+    private static final int PREV_INDEX = 4;
 
     private final Object[][] items;
     private final SampleList list;
@@ -22,7 +23,7 @@ final class JfrOldObjectSamplePriorityQueue
         this.items = new Object[size][];
         for (int i = 0; i < this.items.length; i++)
         {
-            this.items[i] = new Object[4];
+            this.items[i] = new Object[5];
         }
         list = new SampleList();
     }
@@ -34,9 +35,9 @@ final class JfrOldObjectSamplePriorityQueue
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(Object obj, long span, long allocationTime)
+    void push(Object obj, long span, long allocationTime, long threadId)
     {
-        set(obj, span, allocationTime, items[count]);
+        set(obj, span, allocationTime, threadId, items[count]);
         list.prepend(items[count]);
         count++;
         moveUp(count - 1);
@@ -150,11 +151,12 @@ final class JfrOldObjectSamplePriorityQueue
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private static void set(Object obj, long span, long allocationTime, Object[] sample)
+    private static void set(Object obj, long span, long allocationTime, long threadId, Object[] sample)
     {
         sample[OBJECT_INDEX] = obj;
         sample[SPAN_INDEX] = span;
         sample[ALLOCATION_TIME_INDEX] = allocationTime;
+        sample[THREAD_ID_INDEX] = threadId;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -235,6 +237,11 @@ final class JfrOldObjectSamplePriorityQueue
 
         Object objectAt(int index) {
             return items[index][OBJECT_INDEX];
+        }
+
+        long threadIdAt(int index) {
+            final Object[] entry = items[index];
+            return entry == null ? -1 : (long) entry[THREAD_ID_INDEX];
         }
     }
 }

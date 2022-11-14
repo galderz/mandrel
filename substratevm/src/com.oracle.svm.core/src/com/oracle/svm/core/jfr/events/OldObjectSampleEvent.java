@@ -10,7 +10,7 @@ import org.graalvm.nativeimage.StackValue;
 
 public class OldObjectSampleEvent {
     @Uninterruptible(reason = "Accesses a JFR buffer.")
-    public static void emit(long timestamp, long allocationTime, long objectId) {
+    public static void emit(long timestamp, long objectId, long allocationTime, long threadId) {
         SubstrateJVM svm = SubstrateJVM.get();
         if (SubstrateJVM.isRecording() && svm.isEnabled(JfrEvent.OldObjectSample)) {
             JfrNativeEventWriterData data = StackValue.get(JfrNativeEventWriterData.class);
@@ -19,6 +19,7 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.beginSmallEvent(data, JfrEvent.OldObjectSample);
             JfrNativeEventWriter.putLong(data, timestamp); // start time
             JfrNativeEventWriter.putLong(data, 0); // duration
+            JfrNativeEventWriter.putLong(data, threadId); // thread id
             JfrNativeEventWriter.putEventThread(data);
             JfrNativeEventWriter.putLong(data, 0); // todo stack trace enabled
             JfrNativeEventWriter.putLong(data, allocationTime);

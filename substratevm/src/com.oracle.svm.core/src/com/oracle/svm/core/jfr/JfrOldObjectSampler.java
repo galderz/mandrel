@@ -2,10 +2,13 @@ package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
+import com.oracle.svm.core.thread.JavaThreads;
+import com.oracle.svm.core.thread.PlatformThreads;
 import com.oracle.svm.core.util.BoundedPriorityQueue;
 import jdk.jfr.internal.LogLevel;
 import jdk.jfr.internal.LogTag;
 import jdk.jfr.internal.Logger;
+import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -65,7 +68,10 @@ public final class JfrOldObjectSampler {
 
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
         //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
-        samples.push(object, allocated, 0);
+        final Thread thread = Thread.currentThread();
+        // Note: thread can be null during shutdown, don't remove thread null check
+        final long threadId = thread == null ? 0 : JavaThreads.getThreadId(thread);
+        samples.push(object, allocated, 0, threadId);
     }
 
     void emit(long cutoff, boolean emitAll, boolean skipBFS) {
@@ -126,7 +132,8 @@ public final class JfrOldObjectSampler {
                 final long allocationTime = sampleList.allocationTimeAt(current);
                 if (isAliveAndOlderThan(lastSweep, allocationTime)) {
                     final long objectId = edgeStore.getObjectId(sampleList.objectAt(current));
-                    OldObjectSampleEvent.emit(timestamp, allocationTime, objectId);
+                    final long threadId = sampleList.threadIdAt(current);
+                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId);
                 }
                 current = sampleList.prevIndex(current);
             }
