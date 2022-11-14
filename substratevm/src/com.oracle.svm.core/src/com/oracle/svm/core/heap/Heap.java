@@ -245,4 +245,9 @@ public abstract class Heap {
     /** Consider all references in the given object as needing remembered set entries. */
     @Uninterruptible(reason = "Ensure that no GC can occur between modification of the object and this call.", callerMustBe = true)
     public abstract void dirtyAllReferencesOf(Object obj);
+
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    public abstract long getUsedAtLastGC();
+
+    public abstract void updateUsedAtGC();
 }

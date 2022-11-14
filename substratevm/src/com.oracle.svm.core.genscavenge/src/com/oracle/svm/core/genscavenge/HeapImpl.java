@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import java.lang.management.ManagementFactory;
 import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,6 +116,7 @@ public final class HeapImpl extends Heap {
 
     /** A cached list of all the classes, if someone asks for it. */
     private List<Class<?>> classList;
+    private long usedAtLastGC;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public HeapImpl(int pageSize) {
@@ -684,6 +686,17 @@ public final class HeapImpl extends Heap {
         if (obj != null) {
             ForcedSerialPostWriteBarrier.force(OffsetAddressNode.address(obj, 0), false);
         }
+    }
+
+    @Override
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    public long getUsedAtLastGC() {
+        return usedAtLastGC;
+    }
+
+    @Override
+    public void updateUsedAtGC() {
+        usedAtLastGC = getUsedBytes().rawValue();
     }
 
     static Pointer getImageHeapStart() {

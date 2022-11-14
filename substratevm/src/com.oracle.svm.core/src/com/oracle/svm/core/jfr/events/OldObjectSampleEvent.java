@@ -10,7 +10,7 @@ import org.graalvm.nativeimage.StackValue;
 
 public class OldObjectSampleEvent {
     @Uninterruptible(reason = "Accesses a JFR buffer.")
-    public static void emit(long timestamp, long objectId, long allocationTime, long threadId, long stackTraceId) {
+    public static void emit(long timestamp, long objectId, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC) {
         SubstrateJVM svm = SubstrateJVM.get();
         if (SubstrateJVM.isRecording() && svm.isEnabled(JfrEvent.OldObjectSample)) {
             JfrNativeEventWriterData data = StackValue.get(JfrNativeEventWriterData.class);
@@ -23,8 +23,8 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, stackTraceId); // stack trace id
             JfrNativeEventWriter.putLong(data, allocationTime); // allocation time
             JfrNativeEventWriter.putLong(data,timestamp - allocationTime); // object age
-            JfrNativeEventWriter.putLong(data, 0); // todo last known heap usage (cache ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() when gc completes?)
-            JfrNativeEventWriter.putLong(data, objectId);
+            JfrNativeEventWriter.putLong(data, usedAtLastGC); // used memory at last
+            JfrNativeEventWriter.putLong(data, objectId); // todo fix?
             JfrNativeEventWriter.putInt(data, Integer.MIN_VALUE); // todo arrays
             JfrNativeEventWriter.putLong(data,0); // todo gc roots
             JfrNativeEventWriter.endSmallEvent(data);

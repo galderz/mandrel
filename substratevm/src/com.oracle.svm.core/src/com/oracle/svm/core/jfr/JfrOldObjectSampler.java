@@ -1,20 +1,11 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaThreads;
-import com.oracle.svm.core.thread.PlatformThreads;
-import com.oracle.svm.core.util.BoundedPriorityQueue;
-import jdk.jfr.internal.LogLevel;
-import jdk.jfr.internal.LogTag;
-import jdk.jfr.internal.Logger;
-import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
-
-import java.util.Optional;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
@@ -69,13 +60,14 @@ public final class JfrOldObjectSampler {
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
         //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
         final Thread thread = Thread.currentThread();
+        final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            samples.push(object, allocated, 0, 0, 0);
+            samples.push(object, allocated, 0, 0, 0, usedAtLastGC);
         } else {
             final long threadId = JavaThreads.getThreadId(thread);
             final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
-            samples.push(object, allocated, 0, threadId, stackTraceId);
+            samples.push(object, allocated, 0, threadId, stackTraceId, usedAtLastGC);
         }
     }
 
@@ -139,7 +131,8 @@ public final class JfrOldObjectSampler {
                     final long objectId = edgeStore.getObjectId(sampleList.objectAt(current));
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId);
+                    final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
+                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
                 }
                 current = sampleList.prevIndex(current);
             }

@@ -29,6 +29,7 @@ import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 
 import java.lang.ref.Reference;
 
+import com.oracle.svm.core.heap.Heap;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
@@ -1150,6 +1151,7 @@ public final class GCImpl implements GC {
     }
 
     private void finishCollection() {
+        Heap.getHeap().updateUsedAtGC();
         assert collectionInProgress;
         collectionInProgress = false;
     }

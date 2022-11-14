@@ -11,7 +11,8 @@ final class JfrOldObjectSamplePriorityQueue
     private static final int ALLOCATION_TIME_INDEX = 2;
     private static final int THREAD_ID_INDEX = 3;
     private static final int STACKTRACE_ID_INDEX = 4;
-    private static final int PREV_INDEX = 5;
+    private static final int USED_AT_GC_INDEX = 5;
+    private static final int PREV_INDEX = 6;
 
     private final Object[][] items;
     private final SampleList list;
@@ -24,7 +25,7 @@ final class JfrOldObjectSamplePriorityQueue
         this.items = new Object[size][];
         for (int i = 0; i < this.items.length; i++)
         {
-            this.items[i] = new Object[6];
+            this.items[i] = new Object[7];
         }
         list = new SampleList();
     }
@@ -36,9 +37,9 @@ final class JfrOldObjectSamplePriorityQueue
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(Object obj, long span, long allocationTime, long threadId, long stackTraceId)
+    void push(Object obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC)
     {
-        set(obj, span, allocationTime, threadId, stackTraceId, items[count]);
+        set(obj, span, allocationTime, threadId, stackTraceId, usedAtLastGC, items[count]);
         list.prepend(items[count]);
         count++;
         moveUp(count - 1);
@@ -152,13 +153,14 @@ final class JfrOldObjectSamplePriorityQueue
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private static void set(Object obj, long span, long allocationTime, long threadId, long stackTraceId, Object[] sample)
+    private static void set(Object obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC, Object[] sample)
     {
         sample[OBJECT_INDEX] = obj;
         sample[SPAN_INDEX] = span;
         sample[ALLOCATION_TIME_INDEX] = allocationTime;
         sample[THREAD_ID_INDEX] = threadId;
         sample[STACKTRACE_ID_INDEX] = stackTraceId;
+        sample[USED_AT_GC_INDEX] = usedAtLastGC;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -246,6 +248,11 @@ final class JfrOldObjectSamplePriorityQueue
 
         long stackTraceIdAt(int index) {
             return longAt(index, STACKTRACE_ID_INDEX);
+        }
+
+
+        long usedAtLastGCAt(int index) {
+            return longAt(index, USED_AT_GC_INDEX);
         }
 
         private long longAt(int index, int fieldIndex) {
