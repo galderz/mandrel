@@ -21,8 +21,8 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, 0); // duration
             JfrNativeEventWriter.putLong(data, threadId); // thread id
             JfrNativeEventWriter.putLong(data, stackTraceId); // stack trace id
-            JfrNativeEventWriter.putLong(data, allocationTime);
-            JfrNativeEventWriter.putLong(data,timestamp - allocationTime);
+            JfrNativeEventWriter.putLong(data, allocationTime); // allocation time
+            JfrNativeEventWriter.putLong(data,timestamp - allocationTime); // object age
             JfrNativeEventWriter.putLong(data, 0); // todo last known heap usage (cache ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() when gc completes?)
             JfrNativeEventWriter.putLong(data, objectId);
             JfrNativeEventWriter.putInt(data, Integer.MIN_VALUE); // todo arrays
