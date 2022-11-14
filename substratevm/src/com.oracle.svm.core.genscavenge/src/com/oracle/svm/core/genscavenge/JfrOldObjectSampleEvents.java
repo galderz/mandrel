@@ -5,12 +5,9 @@ import org.graalvm.nativeimage.ImageSingletons;
 
 final class JfrOldObjectSampleEvents {
     static void sampleOldObject(Object result, long size) {
-        // todo temporarily removed check
-        // if (hasJfrSupport()) {
-        //     jfrSupport().sampleOldObject(result, size);
-        // }
-
-        jfrSupport().sampleOldObject(result, size);
+         if (hasJfrSupport()) {
+             jfrSupport().sampleOldObject(result, size);
+         }
     }
 
     @Fold
