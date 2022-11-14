@@ -20,7 +20,6 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, timestamp); // start time
             JfrNativeEventWriter.putLong(data, 0); // duration
             JfrNativeEventWriter.putLong(data, threadId); // thread id
-            JfrNativeEventWriter.putEventThread(data);
             JfrNativeEventWriter.putLong(data, 0); // todo stack trace enabled
             JfrNativeEventWriter.putLong(data, allocationTime);
             JfrNativeEventWriter.putLong(data,timestamp - allocationTime);
