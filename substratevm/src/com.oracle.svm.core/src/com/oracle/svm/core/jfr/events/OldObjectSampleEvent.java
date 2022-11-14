@@ -17,8 +17,8 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriterDataAccess.initializeThreadLocalNativeBuffer(data);
 
             JfrNativeEventWriter.beginSmallEvent(data, JfrEvent.OldObjectSample);
-            JfrNativeEventWriter.putLong(data, timestamp);
-            JfrNativeEventWriter.putLong(data, 0);
+            JfrNativeEventWriter.putLong(data, timestamp); // start time
+            JfrNativeEventWriter.putLong(data, 0); // duration
             JfrNativeEventWriter.putEventThread(data);
             JfrNativeEventWriter.putLong(data, 0); // todo stack trace enabled
             JfrNativeEventWriter.putLong(data, allocationTime);
