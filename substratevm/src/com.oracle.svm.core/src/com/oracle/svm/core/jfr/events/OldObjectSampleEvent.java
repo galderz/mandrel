@@ -23,8 +23,8 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, stackTraceId); // stack trace id
             JfrNativeEventWriter.putLong(data, allocationTime); // allocation time
             JfrNativeEventWriter.putLong(data,timestamp - allocationTime); // object age
-            JfrNativeEventWriter.putLong(data, usedAtLastGC); // used memory at last
-            JfrNativeEventWriter.putLong(data, objectId); // todo fix?
+            JfrNativeEventWriter.putLong(data, usedAtLastGC); // used memory at last gc
+            JfrNativeEventWriter.putLong(data, objectId); // object id
             JfrNativeEventWriter.putInt(data, Integer.MIN_VALUE); // todo arrays
             JfrNativeEventWriter.putLong(data,0); // todo gc roots
             JfrNativeEventWriter.endSmallEvent(data);
