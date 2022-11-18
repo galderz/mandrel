@@ -14,13 +14,11 @@ public final class JfrOldObjectSampler {
     // Not allowed to be access from allocation snippet, it triggers stackoverflow - todo find a more lightweight version
     // private final BoundedPriorityQueue<JfrOldObjectSample> samples = new BoundedPriorityQueue<>(SAMPLER_SIZE, JfrOldObjectSample.Comparator.INSTANCE);
     private final JfrOldObjectSamplePriorityQueue samples;
-    private final JfrEdgeStore edgeStore;
     private long totalAllocated;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
         samples = new JfrOldObjectSamplePriorityQueue(SAMPLER_SIZE);
-        edgeStore = new JfrEdgeStore();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -71,29 +69,25 @@ public final class JfrOldObjectSampler {
         }
     }
 
-    void emit(long cutoff, boolean emitAll, boolean skipBFS) {
+    void emit(long cutoff, boolean emitAll, boolean skipBFS, JfrChunkWriter chunkWriter) {
         // todo do we need exclusive access on object sampler instance?
         //      (For operations that require exclusive access (non-safepoint))
 
         if (cutoff <= 0) {
             // No reference chains
             final long timestamp = JfrTicks.elapsedTicks();
-            writeEvents(timestamp, emitAll);
+            writeEvents(timestamp, emitAll, chunkWriter);
             return;
         }
 
         // todo: with reference chains
     }
 
-    private void writeEvents(long timestamp, boolean emitAll) {
+    private void writeEvents(long timestamp, boolean emitAll, JfrChunkWriter chunkWriter) {
         // todo add last sweep to sampler and handle !emitAll
         final long lastSweep = Long.MAX_VALUE;
 
-        if (samples == null) {
-            System.out.println("Samples is null");
-        } else {
-            System.out.printf("Samples is not null, contains %d elements%n", samples.count);
-        }
+        final JfrOldObjectRepository oldObjectRepo = SubstrateJVM.getOldObjectRepository();
 
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
@@ -103,7 +97,7 @@ public final class JfrOldObjectSampler {
         while (current >= 0) {
             final long allocationTime = sampleList.allocationTimeAt(current);
             if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                linkSampleWithEdge(sampleList.objectAt(current));
+                oldObjectRepo.addOldObject(sampleList.objectAt(current));
                 count++;
             }
             current = sampleList.prevIndex(current);
@@ -115,20 +109,15 @@ public final class JfrOldObjectSampler {
             // These need to be serialized before writing the events,
             // to ensure that constants are available for resolution
             // at the time old object sample events appear in the stream.
-            // todo
-
-            if (edgeStore == null) {
-                System.out.println("Edge store is null");
-            } else {
-                System.out.printf("Edge store is not null, contains %d elements%n", edgeStore.edges.size());
-            }
+            // oldObjectRepo.write(chunkWriter);
+            chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
             current = sampleList.firstIndex();
             while (current >= 0) {
                 final long allocationTime = sampleList.allocationTimeAt(current);
                 if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                    final long objectId = edgeStore.getObjectId(sampleList.objectAt(current));
+                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
@@ -139,11 +128,6 @@ public final class JfrOldObjectSampler {
         }
 
         System.out.println("Emit completed");
-    }
-
-    private void linkSampleWithEdge(Object object) {
-        // todo check if object already associated with an edge, during heap traversal?
-        edgeStore.put(object);
     }
 
     private boolean isAliveAndOlderThan(long lastSweep, long allocationTime) {

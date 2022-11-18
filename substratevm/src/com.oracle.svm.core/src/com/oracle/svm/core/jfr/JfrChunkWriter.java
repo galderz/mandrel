@@ -73,12 +73,14 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
     private RawFileOperationSupport.RawFileDescriptor fd;
     private long chunkStartTicks;
     private long chunkStartNanos;
+    private SignedWord lastCheckpointOffset;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrChunkWriter(JfrGlobalMemory globalMemory) {
         this.lock = new ReentrantLock();
         this.compressedInts = true;
         this.globalMemory = globalMemory;
+        this.lastCheckpointOffset = WordFactory.zero();
     }
 
     @Override
@@ -146,6 +148,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
      * Write all the in-memory data to the file.
      */
     public void closeFile(byte[] metadataDescriptor, JfrConstantPool[] repositories) {
+        System.out.println("closeFile");
         assert lock.isHeldByCurrentThread();
 
         /*
@@ -198,10 +201,11 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
 
     private SignedWord writeCheckpointEvent(JfrConstantPool[] repositories) {
         SignedWord start = beginEvent();
+        long delta = lastCheckpointOffset.equal(WordFactory.zero()) ? 0L : lastCheckpointOffset.subtract(start).rawValue();
         writeCompressedLong(CONSTANT_POOL_TYPE_ID);
         writeCompressedLong(JfrTicks.elapsedTicks());
         writeCompressedLong(0); // duration
-        writeCompressedLong(0); // deltaToNext
+        writeCompressedLong(delta); // deltaToNext
         writeBoolean(true); // flush
 
         SignedWord poolCountPos = getFileSupport().position(fd);
@@ -214,7 +218,34 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
         getFileSupport().seek(fd, currentPos);
         endEvent(start);
 
+        lastCheckpointOffset = start;
         return start;
+    }
+
+    public void writeSingleCheckpointEvent(JfrConstantPool repository) {
+        System.out.println("writeSingleCheckpointEvent lastCheckpointOffset=" + lastCheckpointOffset.rawValue());
+        SignedWord start = beginEvent();
+        long delta = lastCheckpointOffset.equal(WordFactory.zero()) ? 0L : lastCheckpointOffset.subtract(start).rawValue();
+
+        writeCompressedLong(CONSTANT_POOL_TYPE_ID);
+        writeCompressedLong(JfrTicks.elapsedTicks());
+        writeCompressedLong(0); // duration
+        writeCompressedLong(delta); // deltaToNext
+        writeBoolean(true); // flush
+
+        SignedWord poolCountPos = getFileSupport().position(fd);
+        getFileSupport().writeInt(fd, 0); // We'll patch this later.
+//        JfrConstantPool[] serializers = JfrSerializerSupport.get().getSerializers();
+//        int poolCount = writeConstantPools(serializers) + writeConstantPools(repositories);
+        repository.write(this);
+        SignedWord currentPos = getFileSupport().position(fd);
+        getFileSupport().seek(fd, poolCountPos);
+        getFileSupport().writeInt(fd, makePaddedInt(1));
+        getFileSupport().seek(fd, currentPos);
+        endEvent(start);
+
+        lastCheckpointOffset = start;
+        System.out.println("update lastCheckpointOffset=" + lastCheckpointOffset.rawValue());
     }
 
     private int writeConstantPools(JfrConstantPool[] constantPools) {

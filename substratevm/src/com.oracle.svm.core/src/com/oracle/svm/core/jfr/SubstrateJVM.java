@@ -63,6 +63,7 @@ public class SubstrateJVM {
     private final JfrThreadRepository threadRepo;
     private final JfrStackTraceRepository stackTraceRepo;
     private final JfrMethodRepository methodRepo;
+    private final JfrOldObjectRepository oldObjectRepo;
     private final JfrConstantPool[] repositories;
 
     private final JfrThreadLocal threadLocal;
@@ -98,6 +99,7 @@ public class SubstrateJVM {
         threadRepo = new JfrThreadRepository();
         stackTraceRepo = new JfrStackTraceRepository();
         methodRepo = new JfrMethodRepository();
+        oldObjectRepo = new JfrOldObjectRepository();
         /*
          * The ordering in the array dictates the writing order of constant pools in the recording.
          * Current rules: 1. methodRepo should be after stackTraceRepo; 2. typeRepo should be after
@@ -181,6 +183,11 @@ public class SubstrateJVM {
     @Fold
     public static JfrOldObjectSampler getJfrOldObjectSampler() {
         return get().oldObjectSampler;
+    }
+
+    @Fold
+    public static JfrOldObjectRepository getOldObjectRepository() {
+        return get().oldObjectRepo;
     }
 
     public static Object getHandler(Class<? extends jdk.internal.event.Event> eventClass) {
@@ -568,8 +575,13 @@ public class SubstrateJVM {
 
     /** See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}. */
     void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
-        System.out.printf("emitOldObjectSamples(%d, %b, %b)%n", cutoff, emitAll, skipBFS);
-        oldObjectSampler.emit(cutoff, emitAll, skipBFS);
+        System.out.println("emitOldObjectSamples");
+        JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
+        try {
+            oldObjectSampler.emit(cutoff, emitAll, skipBFS, chunkWriter);
+        } finally {
+            chunkWriter.unlock();
+        }
     }
 
     public boolean setConfiguration(Class<? extends Event> eventClass, Object configuration) {
