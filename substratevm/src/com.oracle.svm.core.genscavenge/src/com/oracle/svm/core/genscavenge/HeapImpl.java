@@ -29,6 +29,7 @@ import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.oracle.svm.core.thread.VMOperationListenerSupport;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
@@ -696,7 +697,13 @@ public final class HeapImpl extends Heap {
 
     @Override
     public void updateUsedAtGC() {
-        usedAtLastGC = getUsedBytes().rawValue();
+        if (!VMOperation.isGCInProgress()) {
+            // todo calling getUsedBytes() with direct System.gc() calls
+            //        because it thinks gc is in progress,
+            //        even if GC itself has already finished.
+            //      how do we handle direct System.gc() calls?
+            usedAtLastGC = getUsedBytes().rawValue();
+        }
     }
 
     static Pointer getImageHeapStart() {
