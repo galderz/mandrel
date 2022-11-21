@@ -148,7 +148,6 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
      * Write all the in-memory data to the file.
      */
     public void closeFile(byte[] metadataDescriptor, JfrConstantPool[] repositories) {
-        System.out.println("closeFile");
         assert lock.isHeldByCurrentThread();
 
         /*
@@ -218,7 +217,8 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
         getFileSupport().seek(fd, currentPos);
         endEvent(start);
 
-        lastCheckpointOffset = start;
+        // Last constant pools in file written, reset the checkpoint offset.
+        lastCheckpointOffset = WordFactory.zero();
         return start;
     }
 
