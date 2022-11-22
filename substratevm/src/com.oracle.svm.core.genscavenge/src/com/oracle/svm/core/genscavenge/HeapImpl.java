@@ -272,6 +272,10 @@ public final class HeapImpl extends Heap {
         return getOldGeneration().getChunkBytes().add(getHeapImpl().getAccounting().getYoungUsedBytes());
     }
 
+    private UnsignedWord getUncheckedUsedBytes() {
+        return getOldGeneration().getUncheckedChunkBytes().add(getHeapImpl().getAccounting().getUncheckedYoungUsedBytes());
+    }
+
     @Uninterruptible(reason = "Necessary to return a reasonably consistent value (a GC can change the queried values).")
     public UnsignedWord getCommittedBytes() {
         return getUsedBytes().add(getChunkProvider().getBytesInUnusedChunks());
@@ -697,13 +701,7 @@ public final class HeapImpl extends Heap {
 
     @Override
     public void updateUsedAtGC() {
-        if (!VMOperation.isGCInProgress()) {
-            // todo calling getUsedBytes() with direct System.gc() calls
-            //        because it thinks gc is in progress,
-            //        even if GC itself has already finished.
-            //      how do we handle direct System.gc() calls?
-            usedAtLastGC = getUsedBytes().rawValue();
-        }
+        usedAtLastGC = getUncheckedUsedBytes().rawValue();
     }
 
     static Pointer getImageHeapStart() {

@@ -158,6 +158,12 @@ public final class OldGeneration extends Generation {
         return fromBytes.add(toBytes);
     }
 
+    UnsignedWord getUncheckedChunkBytes() {
+        UnsignedWord fromBytes = getFromSpace().getUncheckedChunkBytes();
+        UnsignedWord toBytes = getToSpace().getUncheckedChunkBytes();
+        return fromBytes.add(toBytes);
+    }
+
     @SuppressWarnings("static-method")
     AlignedHeapChunk.AlignedHeader requestAlignedChunk() {
         assert VMOperation.isGCInProgress() : "Should only be called from the collector.";

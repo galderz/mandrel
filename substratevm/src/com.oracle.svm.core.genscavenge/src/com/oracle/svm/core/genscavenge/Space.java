@@ -480,6 +480,11 @@ public final class Space {
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    UnsignedWord getUncheckedChunkBytes() {
+        return getAlignedChunkBytes().add(accounting.getUnalignedChunkBytes());
+    }
+
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     UnsignedWord getAlignedChunkBytes() {
         return accounting.getAlignedChunkBytes();
     }
