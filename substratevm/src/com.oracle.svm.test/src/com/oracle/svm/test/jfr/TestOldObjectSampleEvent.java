@@ -4,18 +4,18 @@ import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrType;
 import com.oracle.svm.test.jfr.utils.poolparsers.ConstantPoolParser;
 import jdk.jfr.DataAmount;
+import jdk.jfr.MemoryAddress;
 import jdk.jfr.Timestamp;
 import jdk.jfr.Unsigned;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedObject;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TestOldObjectSampleEvent extends JfrTest {
@@ -52,52 +52,23 @@ public class TestOldObjectSampleEvent extends JfrTest {
 
         final List<ValueDescriptor> fields = event.getFields();
         Assert.assertEquals(fields.stream().map(ValueDescriptor::getName).collect(Collectors.toList()).toString(), 10, fields.size());
+
         final long allocationTime = event.getLong("allocationTime");
-        Assert.assertTrue("Allocation time: " + allocationTime, allocationTime > 0);
+        Assert.assertTrue(allocationTime > 0);
         final long startTime = event.getLong("startTime");
-        Assert.assertTrue("Start time: " + startTime, startTime > 0);
-
-        // todo rest of fields
-
+        Assert.assertTrue(startTime > 0);
         Assert.assertTrue(String.format("Allocation time (%d) should be earlier or same time as event start time (%d)", allocationTime, startTime), allocationTime <= startTime);
 
-        for (ValueDescriptor field : fields) {
-            switch (field.getName()) {
-                case "allocationTime":
-                    break;
-                case "startTime":
-                    break;
-                case "objectAge":
-                    break;
-                case "lastKnownHeapUsage":
-                    break;
-                case "object":
-                    break;
-                case "arrayElements":
-                    break;
-                case "root":
-                    break;
-                case "duration":
-                case "eventThread":
-                case "stackTrace":
-                    // Common event field already checked
-                    break;
-                default:
-                    Assert.fail("Unexpected field: " + field.getName());
-            }
-        }
-    }
+        final RecordedObject object = event.getValue("object");
+        Assert.assertNotNull(object);
+        final String objectTypeName = object.getClass("type").getName();
+        Assert.assertTrue(objectTypeName, objectTypeName.contains("TestOldObjectSampleEvent$Node") || objectTypeName.contains("TestOldObjectSampleEvent$Big"));
 
-    //    @Override
-//    protected void checkTestedEvents(Set<RecordedEvent> seenEvents) {
-//        seenEvents.stream()
-//                .filter(e -> e.getEventType().getName().equals(JfrEvent.OldObjectSample.getName()))
-//                .forEach(TestOldObjectSampleEvent::checkEventContent);
-//    }
-//
-//    private static void checkEventContent(RecordedEvent event) {
-//        Assert.assertTrue(event.getStartTime().toEpochMilli() != 0);
-//    }
+        Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
+        Assert.assertTrue(event.getLong("lastKnownHeapUsage") > 0);
+        Assert.assertTrue(event.getLong("objectAge") > 0);
+        Assert.assertNull(event.getValue("root"));
+    }
 
     static void blackhole(Object obj) {
         if (obj.hashCode() == System.nanoTime()) {
@@ -122,9 +93,10 @@ public class TestOldObjectSampleEvent extends JfrTest {
     public static class TestFeature implements Feature {
         @Override
         public void beforeAnalysis(BeforeAnalysisAccess access) {
-            RuntimeProxyCreation.register(Unsigned.class);
-            RuntimeProxyCreation.register(Timestamp.class);
             RuntimeProxyCreation.register(DataAmount.class);
+            RuntimeProxyCreation.register(MemoryAddress.class);
+            RuntimeProxyCreation.register(Timestamp.class);
+            RuntimeProxyCreation.register(Unsigned.class);
         }
     }
 }
