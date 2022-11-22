@@ -55,7 +55,7 @@ public abstract class ConstantPoolParser {
         foundIds.add(id);
     }
 
-    protected static void addExpectedId(JfrType typeId, long id) {
+    public static void addExpectedId(JfrType typeId, long id) {
         ConstantPoolParser poolParser = JfrFileParser.getSupportedConstantPools().get(typeId.getId());
         poolParser.expectedIds.add(id);
     }

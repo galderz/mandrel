@@ -50,22 +50,18 @@ public final class JfrOldObjectSampler {
             samples.poll();
         }
 
-        // todo add thread id
-        // todo add thread
-        // todo add stacktrace id
-        // todo add heap used at last gc
-
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
         //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
+        final long now = JfrTicks.elapsedTicks();
         final Thread thread = Thread.currentThread();
         final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            samples.push(object, allocated, 0, 0, 0, usedAtLastGC);
+            samples.push(object, allocated, now, 0, 0, usedAtLastGC);
         } else {
             final long threadId = JavaThreads.getThreadId(thread);
             final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
-            samples.push(object, allocated, 0, threadId, stackTraceId, usedAtLastGC);
+            samples.push(object, allocated, now, threadId, stackTraceId, usedAtLastGC);
         }
     }
 

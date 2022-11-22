@@ -29,6 +29,8 @@ package com.oracle.svm.test.jfr;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.hosted.Feature;
@@ -97,22 +99,27 @@ public abstract class JfrTest {
     }
 
     private void checkEvents() {
-        HashSet<String> seenEvents = new HashSet<>();
+        Set<RecordedEvent> seenEvents = new HashSet<>();
         try (RecordingFile recordingFile = new RecordingFile(recording.getDestination())) {
             while (recordingFile.hasMoreEvents()) {
-                RecordedEvent event = recordingFile.readEvent();
-                String eventName = event.getEventType().getName();
-                seenEvents.add(eventName);
+                seenEvents.add(recordingFile.readEvent());
             }
         } catch (Exception e) {
             Assert.fail("Failed to read events: " + e.getMessage());
         }
 
         for (String name : getTestedEvents()) {
-            if (!seenEvents.contains(name)) {
+            final Optional<RecordedEvent> event = seenEvents.stream().filter(e -> e.getEventType().getName().contains(name)).findAny();
+            if (event.isEmpty()) {
                 Assert.fail("Event: " + name + " not found in recording!");
+            } else {
+                checkEvent(event.get());
             }
         }
+    }
+
+    protected void checkEvent(RecordedEvent event) {
+        Assert.assertTrue(event.getStartTime().toEpochMilli() != 0);
     }
 
     private void checkRecording() throws AssertionError {
@@ -122,6 +129,7 @@ public abstract class JfrTest {
             /* Check if all event are there. */
             checkEvents();
         } catch (Exception e) {
+            e.printStackTrace();
             Assert.fail("Failed to parse recording: " + e.getMessage());
         }
     }
