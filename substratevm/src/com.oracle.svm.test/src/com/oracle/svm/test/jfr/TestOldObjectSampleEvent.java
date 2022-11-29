@@ -2,8 +2,13 @@ package com.oracle.svm.test.jfr;
 
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrType;
+import com.oracle.svm.core.sampler.SamplerBuffer;
+import com.oracle.svm.core.sampler.SamplerBufferAccess;
+import com.oracle.svm.core.sampler.SamplerBuffersAccess;
+import com.oracle.svm.core.sampler.SamplerThreadLocal;
 import com.oracle.svm.test.jfr.utils.poolparsers.ConstantPoolParser;
 import jdk.jfr.DataAmount;
+import jdk.jfr.EventSettings;
 import jdk.jfr.MemoryAddress;
 import jdk.jfr.Timestamp;
 import jdk.jfr.Unsigned;
@@ -12,6 +17,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedObject;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
+import org.graalvm.word.WordFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -28,27 +34,50 @@ public class TestOldObjectSampleEvent extends JfrTest {
         };
     }
 
+    @Override
+    protected void configure(String eventName, EventSettings settings) {
+        // settings.withStackTrace().with("cutoff", "0 h");
+        settings.withStackTrace();
+    }
+
     @Test
     public void testAllocateObject() {
-        Node node = new Node();
-        leak = node;
-        for (int i = 0; i < 1_000_000; i++) {
-            node.value = new Big();
-            node.left = new Node();
-            node.right = new Node();
-            node = node.right;
-        }
+        SamplerBuffer buffer = SamplerBufferAccess.allocate(WordFactory.unsigned(1024));
+        SamplerThreadLocal.setThreadLocalBuffer(buffer);
 
-        blackhole(leak);
+        try {
+            Node node = new Node();
+            leak = node;
+            for (int i = 0; i < 1_000_000; i++) {
+                node.value = new Big();
+                node.left = new Node();
+                node.right = new Node();
+                node = node.right;
+            }
+
+            blackhole(leak);
+
+            /* Call manually buffer processing. */
+            SamplerBuffersAccess.processSamplerBuffer(buffer);
+        } finally {
+            /* We need to free memory manually as well afterward. */
+            SamplerBufferAccess.free(buffer);
+        }
     }
 
     @Override
     protected void checkEvent(RecordedEvent event) {
         super.checkEvent(event);
         System.out.println("Check event: " + event);
+//        try {
+//            Thread.sleep(Long.MAX_VALUE);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();  // TODO: Customise this generated block
+//        }
+
         Assert.assertEquals(0, event.getDuration().toMillis()); // Duration.
         ConstantPoolParser.addExpectedId(JfrType.Thread, event.getThread().getId()); // ThreadId.
-        Assert.assertNull(event.getStackTrace()); // todo why null? is stacktrace disabled by default?
+        Assert.assertNotNull(event.getStackTrace()); // todo why null? is stacktrace disabled by default?
 
         final List<ValueDescriptor> fields = event.getFields();
         Assert.assertEquals(fields.stream().map(ValueDescriptor::getName).collect(Collectors.toList()).toString(), 10, fields.size());

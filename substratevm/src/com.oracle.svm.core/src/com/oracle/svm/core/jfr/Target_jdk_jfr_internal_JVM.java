@@ -239,6 +239,7 @@ public final class Target_jdk_jfr_internal_JVM {
     /** See {@link JVM#setStackTraceEnabled}. */
     @Substitute
     public void setStackTraceEnabled(long eventTypeId, boolean enabled) {
+        System.out.printf("Set stacktrace enabled(%b) for %d%n", enabled, eventTypeId);
         SubstrateJVM.get().setStackTraceEnabled(eventTypeId, enabled);
     }
 

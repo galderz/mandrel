@@ -266,6 +266,7 @@ public class SubstrateJVM {
         if (isStackTraceEnabled(eventTypeId)) {
             return getStackTraceId(skipCount);
         } else {
+            assert false : "Stack trace should be enabled";
             return 0L;
         }
     }

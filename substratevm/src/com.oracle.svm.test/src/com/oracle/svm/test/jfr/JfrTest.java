@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import jdk.jfr.EventSettings;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.junit.After;
@@ -93,9 +94,15 @@ public abstract class JfrTest {
         String[] events = getTestedEvents();
         if (events != null) {
             for (String event : events) {
-                recording.enable(event);
+                configure(event, recording.enable(event));
             }
         }
+    }
+
+    /**
+     * Override to configure an event type's settings.
+     */
+    protected void configure(String eventName, EventSettings settings) {
     }
 
     private void checkEvents() {

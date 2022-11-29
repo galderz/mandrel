@@ -4,6 +4,9 @@ import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaThreads;
+import jdk.jfr.internal.LogLevel;
+import jdk.jfr.internal.LogTag;
+import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -116,6 +119,7 @@ public final class JfrOldObjectSampler {
                     final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
+                    System.out.println("writeEvents, stack trace id: " + stackTraceId);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
                     OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
                 }
