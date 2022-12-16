@@ -225,6 +225,7 @@ public class JfrStackTraceRepository implements JfrConstantPool {
 
     @Override
     public int write(JfrChunkWriter writer) {
+        System.out.println("JfrStackTraceRepository.write()");
         JfrStackTraceEpochData epochData = getEpochData(true);
         int count = writeStackTraces(writer, epochData);
         epochData.clear();
@@ -233,6 +234,7 @@ public class JfrStackTraceRepository implements JfrConstantPool {
 
     private static int writeStackTraces(JfrChunkWriter writer, JfrStackTraceEpochData epochData) {
         if (epochData.numberOfSerializedStackTraces == 0) {
+            System.out.println("JfrStackTraceRepository.writeStackTraces() returns EMPTY");
             return EMPTY;
         }
 
