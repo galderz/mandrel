@@ -1,27 +1,15 @@
 package com.oracle.svm.test.jfr;
 
 import com.oracle.svm.core.jfr.JfrEvent;
-import com.oracle.svm.core.jfr.JfrStackTraceRepository;
-import com.oracle.svm.core.jfr.JfrType;
-import com.oracle.svm.core.sampler.SamplerBuffer;
-import com.oracle.svm.core.sampler.SamplerBufferAccess;
-import com.oracle.svm.core.sampler.SamplerBuffersAccess;
-import com.oracle.svm.core.sampler.SamplerThreadLocal;
-import com.oracle.svm.test.jfr.utils.poolparsers.ConstantPoolParser;
 import jdk.jfr.DataAmount;
-import jdk.jfr.EventSettings;
 import jdk.jfr.MemoryAddress;
 import jdk.jfr.Timestamp;
 import jdk.jfr.Unsigned;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedObject;
-import org.graalvm.nativeimage.StackValue;
-import org.graalvm.nativeimage.c.type.CIntPointer;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
-import org.graalvm.word.Pointer;
-import org.graalvm.word.WordFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,59 +26,21 @@ public class TestOldObjectSampleEvent extends JfrTest {
         };
     }
 
-    @Override
-    protected void configure(String eventName, EventSettings settings) {
-        // settings.withStackTrace().with("cutoff", "0 h");
-        settings.withStackTrace();
-    }
-
     @Test
-    public void testAllocateObject() {
-        SamplerBuffer buffer = SamplerBufferAccess.allocate(WordFactory.unsigned(1024));
-        SamplerThreadLocal.setThreadLocalBuffer(buffer);
-
-        try {
-            Node node = new Node();
-            leak = node;
-            for (int i = 0; i < 1_000_000; i++) {
-                node.value = new Big();
-                node.left = new Node();
-                node.right = new Node();
-                node = node.right;
-            }
-
-            blackhole(leak);
-
-//            Pointer end = buffer.getPos();
-//            Pointer current = SamplerBufferAccess.getDataStart(buffer);
-//            System.out.println("current.belowThan(end) = " + current.belowThan(end));
-
-//            CIntPointer status = StackValue.get(CIntPointer.class);
-//            System.out.println("JfrStackTraceRepository.JfrStackTraceTableEntryStatus.get(status, JfrStackTraceRepository.JfrStackTraceTableEntryStatus.SERIALIZED) = " + JfrStackTraceRepository.JfrStackTraceTableEntryStatus.get(status, JfrStackTraceRepository.JfrStackTraceTableEntryStatus.SERIALIZED));
-
-            /* Call manually buffer processing. */
-            SamplerBuffersAccess.processSamplerBuffer(buffer);
-        } finally {
-            /* We need to free memory manually as well afterward. */
-            SamplerBufferAccess.free(buffer);
-        }
+    public void testPlainObjectLeak() {
+        PlainObjectLeak.test();
     }
 
     @Override
     protected void checkEvent(RecordedEvent event) {
         super.checkEvent(event);
         System.out.println("Check event: " + event);
-//        try {
-//            Thread.sleep(Long.MAX_VALUE);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();  // TODO: Customise this generated block
-//        }
 
         Assert.assertEquals(0, event.getDuration().toMillis()); // Duration.
-        ConstantPoolParser.addExpectedId(JfrType.Thread, event.getThread().getId()); // ThreadId.
+        Assert.assertNull(event.getStackTrace()); // todo assert stack traces
 
-        // Assert.assertNotNull(event.getStackTrace()); // todo why null? is stacktrace disabled by default?
-        Assert.assertNull(event.getStackTrace()); // todo it shouldn't be null - stacktraces are enabled and stacktrace id is written but no stacktrace constant pools are
+        final RecordedObject object = event.getValue("object");
+        Assert.assertNotNull(object);
 
         final List<ValueDescriptor> fields = event.getFields();
         Assert.assertEquals(fields.stream().map(ValueDescriptor::getName).collect(Collectors.toList()).toString(), 10, fields.size());
@@ -101,35 +51,55 @@ public class TestOldObjectSampleEvent extends JfrTest {
         Assert.assertTrue(startTime > 0);
         Assert.assertTrue(String.format("Allocation time (%d) should be earlier or same time as event start time (%d)", allocationTime, startTime), allocationTime <= startTime);
 
-        final RecordedObject object = event.getValue("object");
-        Assert.assertNotNull(object);
-        final String objectTypeName = object.getClass("type").getName();
-        Assert.assertTrue(objectTypeName, objectTypeName.contains("TestOldObjectSampleEvent$Node") || objectTypeName.contains("TestOldObjectSampleEvent$Big"));
-
-        Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
         Assert.assertTrue(event.getLong("lastKnownHeapUsage") > 0);
         Assert.assertTrue(event.getLong("objectAge") > 0);
         Assert.assertNull(event.getValue("root"));
+
+        final String objectTypeName = object.getClass("type").getName();
+        if (objectTypeName.contains("PlainObjectLeak")) {
+            PlainObjectLeak.checkEvent(event);
+        } else {
+            throw new RuntimeException("Unknown event: " + event);
+        }
     }
 
-    static void blackhole(Object obj) {
+    private static void blackhole(Object obj) {
         if (obj.hashCode() == System.nanoTime()) {
             System.out.println(obj);
         }
     }
 
-    static class Node {
-        Node left;
-        Node right;
-        Object value;
-    }
+    static class PlainObjectLeak {
+        static void test() {
+            Node node = new Node();
+            leak = node;
+            for (int i = 0; i < 1_000_000; i++) {
+                node.value = new Any();
+                node.left = new Node();
+                node.right = new Node();
+                node = node.right;
+            }
 
-    static class Big {
-        public long value1;
-        public Object value2;
-        float value3;
-        int value4;
-        double value5;
+            blackhole(leak);
+        }
+
+        public static void checkEvent(RecordedEvent event) {
+            Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
+        }
+
+        static class Node {
+            Node left;
+            Node right;
+            Object value;
+        }
+
+        static class Any {
+            public long value1;
+            public Object value2;
+            float value3;
+            int value4;
+            double value5;
+        }
     }
 
     public static class TestFeature implements Feature {
