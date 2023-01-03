@@ -1,6 +1,7 @@
-package com.oracle.svm.test.jfr;
+package com.oracle.svm.test.jfr.oldobject;
 
 import com.oracle.svm.core.jfr.JfrEvent;
+import com.oracle.svm.test.jfr.JfrTest;
 import jdk.jfr.DataAmount;
 import jdk.jfr.MemoryAddress;
 import jdk.jfr.Timestamp;
@@ -16,7 +17,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TestOldObjectSampleEvent extends JfrTest {
+public class TestPlainObjectLeak extends JfrTest {
     static Object leak;
 
     @Override
@@ -28,7 +29,16 @@ public class TestOldObjectSampleEvent extends JfrTest {
 
     @Test
     public void testPlainObjectLeak() {
-        PlainObjectLeak.test();
+        Node node = new Node();
+        leak = node;
+        for (int i = 0; i < 1_000_000; i++) {
+            node.value = new Any();
+            node.left = new Node();
+            node.right = new Node();
+            node = node.right;
+        }
+
+        blackhole(leak);
     }
 
     @Override
@@ -54,13 +64,7 @@ public class TestOldObjectSampleEvent extends JfrTest {
         Assert.assertTrue(event.getLong("lastKnownHeapUsage") > 0);
         Assert.assertTrue(event.getLong("objectAge") > 0);
         Assert.assertNull(event.getValue("root"));
-
-        final String objectTypeName = object.getClass("type").getName();
-        if (objectTypeName.contains("PlainObjectLeak")) {
-            PlainObjectLeak.checkEvent(event);
-        } else {
-            throw new RuntimeException("Unknown event: " + event);
-        }
+        Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
     }
 
     private static void blackhole(Object obj) {
@@ -69,37 +73,18 @@ public class TestOldObjectSampleEvent extends JfrTest {
         }
     }
 
-    static class PlainObjectLeak {
-        static void test() {
-            Node node = new Node();
-            leak = node;
-            for (int i = 0; i < 1_000_000; i++) {
-                node.value = new Any();
-                node.left = new Node();
-                node.right = new Node();
-                node = node.right;
-            }
+    static class Node {
+        Node left;
+        Node right;
+        Object value;
+    }
 
-            blackhole(leak);
-        }
-
-        public static void checkEvent(RecordedEvent event) {
-            Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
-        }
-
-        static class Node {
-            Node left;
-            Node right;
-            Object value;
-        }
-
-        static class Any {
-            public long value1;
-            public Object value2;
-            float value3;
-            int value4;
-            double value5;
-        }
+    static class Any {
+        public long value1;
+        public Object value2;
+        float value3;
+        int value4;
+        double value5;
     }
 
     public static class TestFeature implements Feature {
