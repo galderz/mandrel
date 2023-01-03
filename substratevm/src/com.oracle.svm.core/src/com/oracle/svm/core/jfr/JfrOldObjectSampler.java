@@ -63,7 +63,12 @@ public final class JfrOldObjectSampler {
             samples.push(object, allocated, now, 0, 0, usedAtLastGC);
         } else {
             final long threadId = JavaThreads.getThreadId(thread);
-            final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
+
+            // todo see if segfaults for retrieving stacktrace id go away
+            //      https://gist.github.com/galderz/51020f04735ace36610cab1dd8c27c2c
+            // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
+            final long stackTraceId = 1;
+
             samples.push(object, allocated, now, threadId, stackTraceId, usedAtLastGC);
         }
     }
