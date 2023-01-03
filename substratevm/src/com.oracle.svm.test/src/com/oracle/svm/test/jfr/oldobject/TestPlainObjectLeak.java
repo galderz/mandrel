@@ -15,7 +15,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TestPlainObjectLeak extends JfrTest {
     static Object leak;
@@ -32,7 +31,7 @@ public class TestPlainObjectLeak extends JfrTest {
         Node node = new Node();
         leak = node;
         for (int i = 0; i < 1_000_000; i++) {
-            node.value = new Any();
+            node.value = new Node();
             node.left = new Node();
             node.right = new Node();
             node = node.right;
@@ -51,9 +50,11 @@ public class TestPlainObjectLeak extends JfrTest {
 
         final RecordedObject object = event.getValue("object");
         Assert.assertNotNull(object);
+        final String objectTypeName = object.getClass("type").getName();
+        Assert.assertEquals(Node.class.getName(), objectTypeName);
 
         final List<ValueDescriptor> fields = event.getFields();
-        Assert.assertEquals(fields.stream().map(ValueDescriptor::getName).collect(Collectors.toList()).toString(), 10, fields.size());
+        Assert.assertEquals(10, fields.size());
 
         final long allocationTime = event.getLong("allocationTime");
         Assert.assertTrue(allocationTime > 0);
@@ -77,14 +78,6 @@ public class TestPlainObjectLeak extends JfrTest {
         Node left;
         Node right;
         Object value;
-    }
-
-    static class Any {
-        public long value1;
-        public Object value2;
-        float value3;
-        int value4;
-        double value5;
     }
 
     public static class TestFeature implements Feature {
