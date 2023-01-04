@@ -30,7 +30,7 @@ public class TestPlainObjectLeak extends JfrTest {
     public void testPlainObjectLeak() {
         Node node = new Node();
         leak = node;
-        for (int i = 0; i < 1_000_000; i++) {
+        for (int i = 0; i < 4_000_000; i++) {
             node.value = new Node();
             node.left = new Node();
             node.right = new Node();
