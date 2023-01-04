@@ -107,7 +107,6 @@ public final class JfrOldObjectSampler {
             current = sampleList.prevIndex(current);
         }
 
-
         if (count > 0) {
             // Second pass that serializes checkpoints and potential chains.
             // These need to be serialized before writing the events,
@@ -124,7 +123,6 @@ public final class JfrOldObjectSampler {
                     final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
-                    System.out.println("writeEvents, stack trace id: " + stackTraceId);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
                     OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
                 }
@@ -132,7 +130,7 @@ public final class JfrOldObjectSampler {
             }
         }
 
-        System.out.println("Emit completed");
+        System.out.printf("Emit completed for %d samples%n", count);
     }
 
     private boolean isAliveAndOlderThan(long lastSweep, long allocationTime) {

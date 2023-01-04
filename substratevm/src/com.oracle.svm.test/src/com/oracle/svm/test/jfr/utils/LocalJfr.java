@@ -57,7 +57,6 @@ public class LocalJfr implements Jfr {
 
         Path destination = File.createTempFile(name + "-" + id, ".jfr").toPath();
         recording.setDestination(destination);
-        System.out.println("Local jfr recording destination: " + destination);
 
         return recording;
     }
