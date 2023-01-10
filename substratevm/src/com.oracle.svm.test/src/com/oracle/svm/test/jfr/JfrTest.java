@@ -29,8 +29,10 @@ package com.oracle.svm.test.jfr;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import jdk.jfr.EventSettings;
 import org.graalvm.nativeimage.ImageInfo;
@@ -116,11 +118,11 @@ public abstract class JfrTest {
         }
 
         for (String name : getTestedEvents()) {
-            final Optional<RecordedEvent> event = seenEvents.stream().filter(e -> e.getEventType().getName().contains(name)).findAny();
-            if (event.isEmpty()) {
+            final List<RecordedEvent> seenEventsForType = seenEvents.stream().filter(e -> e.getEventType().getName().contains(name)).collect(Collectors.toList());
+            if (seenEventsForType.isEmpty()) {
                 Assert.fail("Event: " + name + " not found in recording!");
             } else {
-                checkEvent(event.get());
+                seenEventsForType.forEach(this::checkEvent);
             }
         }
     }

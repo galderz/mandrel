@@ -9,8 +9,6 @@ import java.util.List;
 
 public class OldObjectAsserts {
     static void assertEvent(RecordedEvent event) {
-        System.out.println("Check event: " + event);
-
         Assert.assertEquals(0, event.getDuration().toMillis());
         Assert.assertNull(event.getStackTrace()); // todo assert stack traces
 
