@@ -7,12 +7,13 @@ import com.oracle.svm.core.jfr.HasJfrSupport;
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.word.Pointer;
 
 final class JfrOldObjectSampleEventSupport {
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sampleOldObject(Object result, long size) {
+    public void sampleOldObject(Pointer address, long size) {
         if (SubstrateJVM.isRecording() && SubstrateJVM.get().isEnabled(JfrEvent.OldObjectSample)) {
-            SubstrateJVM.getJfrOldObjectSampler().sample(result, size);
+            SubstrateJVM.getJfrOldObjectSampler().sample(address, size);
         }
     }
 }

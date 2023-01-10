@@ -2,11 +2,12 @@ package com.oracle.svm.core.genscavenge;
 
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.word.Pointer;
 
 final class JfrOldObjectSampleEvents {
-    static void sampleOldObject(Object result, long size) {
+    static void sampleOldObject(Pointer address, long size) {
          if (hasJfrSupport()) {
-             jfrSupport().sampleOldObject(result, size);
+             jfrSupport().sampleOldObject(address, size);
          }
     }
 

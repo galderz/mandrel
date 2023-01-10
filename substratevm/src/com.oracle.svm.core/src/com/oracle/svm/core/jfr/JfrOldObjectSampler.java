@@ -2,13 +2,12 @@ package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaThreads;
-import jdk.jfr.internal.LogLevel;
-import jdk.jfr.internal.LogTag;
-import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.word.Pointer;
 
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
@@ -25,7 +24,7 @@ public final class JfrOldObjectSampler {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sample(Object object, long allocated) {
+    public void sample(Pointer pointer, long allocated) {
         // Not allowed
         // Logger.log(LogTag.JFR, LogLevel.TRACE, "SLOW ALLOCATION!!");
 
@@ -60,7 +59,7 @@ public final class JfrOldObjectSampler {
         final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            samples.push(object, allocated, now, 0, 0, usedAtLastGC);
+            samples.push(pointer, allocated, now, 0, 0, usedAtLastGC);
         } else {
             final long threadId = JavaThreads.getThreadId(thread);
 
@@ -69,7 +68,7 @@ public final class JfrOldObjectSampler {
             // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
             final long stackTraceId = 1;
 
-            samples.push(object, allocated, now, threadId, stackTraceId, usedAtLastGC);
+            samples.push(pointer, allocated, now, threadId, stackTraceId, usedAtLastGC);
         }
     }
 
@@ -100,8 +99,9 @@ public final class JfrOldObjectSampler {
         int count = 0;
         while (current >= 0) {
             final long allocationTime = sampleList.allocationTimeAt(current);
-            if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                oldObjectRepo.addOldObject(sampleList.objectAt(current));
+            final Pointer pointer = sampleList.addressAt(current);
+            if (isAliveAndOlderThan(lastSweep, pointer, allocationTime)) {
+                oldObjectRepo.addOldObject(pointer);
                 count++;
             }
             current = sampleList.prevIndex(current);
@@ -119,8 +119,9 @@ public final class JfrOldObjectSampler {
             current = sampleList.firstIndex();
             while (current >= 0) {
                 final long allocationTime = sampleList.allocationTimeAt(current);
-                if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
+                final Pointer pointer = sampleList.addressAt(current);
+                if (isAliveAndOlderThan(lastSweep, pointer, allocationTime)) {
+                    final long objectId = oldObjectRepo.getOldObjectId(pointer);
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
@@ -133,9 +134,8 @@ public final class JfrOldObjectSampler {
         System.out.printf("Emit completed for %d samples%n", count);
     }
 
-    private boolean isAliveAndOlderThan(long lastSweep, long allocationTime) {
-        // todo add not dead check
-        return allocationTime < lastSweep;
+    private boolean isAliveAndOlderThan(long lastSweep, Pointer pointer, long allocationTime) {
+        return Heap.getHeap().getObjectHeader().pointsToObjectHeader(pointer) && allocationTime < lastSweep;
     }
 
     // Resolve stacktraces from their ids for checkpointing

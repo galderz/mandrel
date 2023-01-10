@@ -8,16 +8,14 @@ import org.junit.Assert;
 import java.util.List;
 
 public class OldObjectAsserts {
-    static void assertEvent(RecordedEvent event) {
-        System.out.println("Check event: " + event);
-
+    static void assertEvent(String expectedTypeName, RecordedEvent event) {
         Assert.assertEquals(0, event.getDuration().toMillis());
         Assert.assertNull(event.getStackTrace()); // todo assert stack traces
 
         final RecordedObject object = event.getValue("object");
         Assert.assertNotNull(object);
         final String objectTypeName = object.getClass("type").getName();
-        Assert.assertEquals(TestPlainObjectLeak.Node.class.getName(), objectTypeName);
+        Assert.assertEquals(expectedTypeName, objectTypeName);
 
         final List<ValueDescriptor> fields = event.getFields();
         Assert.assertEquals(10, fields.size());

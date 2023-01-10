@@ -220,7 +220,6 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            JfrOldObjectSampleEvents.sampleOldObject(result, size.rawValue());
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
@@ -320,7 +319,9 @@ public final class ThreadLocalAllocation {
     private static Object allocateInstanceInNewTlab(DynamicHub hub, AlignedHeader newTlabChunk) {
         UnsignedWord size = LayoutEncoding.getPureInstanceSize(hub.getLayoutEncoding());
         Pointer memory = allocateRawMemoryInNewTlab(size, newTlabChunk);
-        return FormatObjectNode.formatObject(memory, DynamicHub.toClass(hub), false, FillContent.WITH_ZEROES, true);
+        final Object result = FormatObjectNode.formatObject(memory, DynamicHub.toClass(hub), false, FillContent.WITH_ZEROES, true);
+        JfrOldObjectSampleEvents.sampleOldObject(memory, size.rawValue());
+        return result;
     }
 
     @Uninterruptible(reason = "Holds uninitialized memory.")
