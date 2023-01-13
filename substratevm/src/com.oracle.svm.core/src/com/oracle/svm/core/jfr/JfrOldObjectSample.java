@@ -1,33 +1,54 @@
 package com.oracle.svm.core.jfr;
 
-final class JfrOldObjectSample {
-    private final Object object; // todo make weak reference? or manually clean these upon a gc event (like in hotspot)
-    private final long allocationSize;
-    private final long stackTraceId = 0;
+import com.oracle.svm.core.c.struct.PinnedObjectField;
+import org.graalvm.nativeimage.c.struct.RawField;
+import org.graalvm.nativeimage.c.struct.RawStructure;
+import org.graalvm.word.Pointer;
+import org.graalvm.word.PointerBase;
 
-    JfrOldObjectSample(Object object, long allocationSize) {
-        this.object = object;
-        this.allocationSize = allocationSize;
-    }
+@RawStructure
+interface JfrOldObjectSample extends PointerBase {
+    @RawField
+    Pointer getOldObject();
 
-    public Object getObject() {
-        return object;
-    }
+    @RawField
+    void setOldObject(Pointer pointer);
 
-    public long getAllocationSize() {
-        return allocationSize;
-    }
+    @PinnedObjectField
+    @RawField
+    Class<?> getOldObjectClass();
 
-    public boolean hasStackTraceId() {
-        return stackTraceId != 0;
-    }
+    @PinnedObjectField
+    @RawField
+    void setOldObjectClass(Class<?> clazz);
 
-    static final class Comparator implements java.util.Comparator<JfrOldObjectSample> {
-        static final Comparator INSTANCE = new Comparator();
+    @RawField
+    long getSpan();
 
-        @Override
-        public int compare(JfrOldObjectSample o1, JfrOldObjectSample o2) {
-            return Long.compare(o1.allocationSize, o2.allocationSize);
-        }
-    }
+    @RawField
+    void setSpan(long span);
+
+    @RawField
+    long getAllocationTime();
+
+    @RawField
+    void setAllocationTime(long allocationTime);
+
+    @RawField
+    long getThreadId();
+
+    @RawField
+    void setThreadId(long threadId);
+
+    @RawField
+    long getStackTraceId();
+
+    @RawField
+    void setStackTraceId(long stacktraceId);
+
+    @RawField
+    long getUsedAtGC();
+
+    @RawField
+    void setUsedAtGC(long usedAtGC);
 }

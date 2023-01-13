@@ -4,11 +4,9 @@ import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaThreads;
-import jdk.jfr.internal.LogLevel;
-import jdk.jfr.internal.LogTag;
-import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.word.Pointer;
 
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
@@ -25,7 +23,7 @@ public final class JfrOldObjectSampler {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sample(Object object, long allocated) {
+    public void sample(Pointer pointer, Class<?> clazz, long allocated) {
         // Not allowed
         // Logger.log(LogTag.JFR, LogLevel.TRACE, "SLOW ALLOCATION!!");
 
@@ -60,7 +58,7 @@ public final class JfrOldObjectSampler {
         final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            samples.push(object, allocated, now, 0, 0, usedAtLastGC);
+            samples.push(pointer, clazz, allocated, now, 0, 0, usedAtLastGC);
         } else {
             final long threadId = JavaThreads.getThreadId(thread);
 
@@ -69,7 +67,7 @@ public final class JfrOldObjectSampler {
             // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
             final long stackTraceId = 1;
 
-            samples.push(object, allocated, now, threadId, stackTraceId, usedAtLastGC);
+            samples.push(pointer, clazz, allocated, now, threadId, stackTraceId, usedAtLastGC);
         }
     }
 
@@ -95,16 +93,17 @@ public final class JfrOldObjectSampler {
 
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
-        final JfrOldObjectSamplePriorityQueue.SampleList sampleList = samples.asList();
-        int current = sampleList.firstIndex();
+        final JfrOldObjectSample[] sampleArray = samples.getArray();
         int count = 0;
-        while (current >= 0) {
-            final long allocationTime = sampleList.allocationTimeAt(current);
-            if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                oldObjectRepo.addOldObject(sampleList.objectAt(current));
-                count++;
+        for (int i = 0; i < sampleArray.length; i++) {
+            final JfrOldObjectSample sample = sampleArray[i];
+            if (sample.isNonNull()) {
+                final long allocationTime = sample.getAllocationTime();
+                if (isAliveAndOlderThan(lastSweep, allocationTime)) {
+                    oldObjectRepo.addOldObject(sample.getOldObject(), sample.getOldObjectClass());
+                    count++;
+                }
             }
-            current = sampleList.prevIndex(current);
         }
 
         if (count > 0) {
@@ -116,17 +115,18 @@ public final class JfrOldObjectSampler {
             chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
-            current = sampleList.firstIndex();
-            while (current >= 0) {
-                final long allocationTime = sampleList.allocationTimeAt(current);
-                if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
-                    final long threadId = sampleList.threadIdAt(current);
-                    final long stackTraceId = sampleList.stackTraceIdAt(current);
-                    final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
+            for (int i = 0; i < sampleArray.length; i++) {
+                final JfrOldObjectSample sample = sampleArray[i];
+                if (sample.isNonNull()) {
+                    final long allocationTime = sample.getAllocationTime();
+                    if (isAliveAndOlderThan(lastSweep, allocationTime)) {
+                        final long objectId = oldObjectRepo.getOldObjectId(sample.getOldObject());
+                        final long threadId = sample.getThreadId();
+                        final long stackTraceId = sample.getStackTraceId();
+                        final long usedAtLastGC = sample.getUsedAtGC();
+                        OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
+                    }
                 }
-                current = sampleList.prevIndex(current);
             }
         }
 

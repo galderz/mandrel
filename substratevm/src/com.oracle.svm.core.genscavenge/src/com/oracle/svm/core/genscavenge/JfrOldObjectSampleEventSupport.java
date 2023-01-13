@@ -6,13 +6,17 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jfr.HasJfrSupport;
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.SubstrateJVM;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.word.Pointer;
+import org.graalvm.word.UnsignedWord;
+import org.graalvm.word.WordFactory;
 
 final class JfrOldObjectSampleEventSupport {
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sampleOldObject(Object result, long size) {
+    public void sampleOldObject(Object obj, UnsignedWord size) {
         if (SubstrateJVM.isRecording() && SubstrateJVM.get().isEnabled(JfrEvent.OldObjectSample)) {
-            SubstrateJVM.getJfrOldObjectSampler().sample(result, size);
+            SubstrateJVM.getJfrOldObjectSampler().sample(Word.objectToUntrackedPointer(obj), obj.getClass(), size.rawValue());
         }
     }
 }

@@ -208,6 +208,7 @@ public final class ThreadLocalAllocation {
     }
 
     @SubstrateForeignCallTarget(stubCallingConvention = false)
+    // todo is size needed?
     private static Object slowPathNewInstance(Word objectHeader, UnsignedWord size) {
         /*
          * Avoid stack overflow errors while producing memory chunks, because that could leave the
@@ -220,7 +221,7 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            JfrOldObjectSampleEvents.sampleOldObject(result, size.rawValue());
+            JfrOldObjectSampleEvents.sampleOldObject(result, size);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();

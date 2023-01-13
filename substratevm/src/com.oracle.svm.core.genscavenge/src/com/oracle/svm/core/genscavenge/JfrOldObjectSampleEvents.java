@@ -1,12 +1,16 @@
 package com.oracle.svm.core.genscavenge;
 
+import com.oracle.svm.core.Uninterruptible;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.word.Pointer;
+import org.graalvm.word.UnsignedWord;
 
 final class JfrOldObjectSampleEvents {
-    static void sampleOldObject(Object result, long size) {
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    static void sampleOldObject(Object obj, UnsignedWord size) {
          if (hasJfrSupport()) {
-             jfrSupport().sampleOldObject(result, size);
+             jfrSupport().sampleOldObject(obj, size);
          }
     }
 
