@@ -4,9 +4,6 @@ import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaThreads;
-import jdk.jfr.internal.LogLevel;
-import jdk.jfr.internal.LogTag;
-import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -102,8 +99,10 @@ public final class JfrOldObjectSampler {
         int count = 0;
         while (current >= 0) {
             final long allocationTime = sampleList.allocationTimeAt(current);
-            if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                oldObjectRepo.addOldObject(sampleList.objectAt(current).get());
+            final Object obj = sampleList.objectAt(current).get();
+            if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
+                oldObjectRepo.addOldObject(obj);
                 count++;
             }
             current = sampleList.prevIndex(current);
@@ -121,8 +120,10 @@ public final class JfrOldObjectSampler {
             current = sampleList.firstIndex();
             while (current >= 0) {
                 final long allocationTime = sampleList.allocationTimeAt(current);
-                if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current).get());
+                final Object obj = sampleList.objectAt(current).get();
+                if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                    final long objectId = oldObjectRepo.getOldObjectId(obj);
+                    // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
@@ -132,12 +133,13 @@ public final class JfrOldObjectSampler {
             }
         }
 
+        oldObjectRepo.clear();
+
         System.out.printf("Emit completed for %d samples%n", count);
     }
 
-    private boolean isAliveAndOlderThan(long lastSweep, long allocationTime) {
-        // todo add not dead check
-        return allocationTime < lastSweep;
+    private boolean isAliveAndOlderThan(Object obj, long lastSweep, long allocationTime) {
+        return obj != null && allocationTime < lastSweep;
     }
 
     // Resolve stacktraces from their ids for checkpointing

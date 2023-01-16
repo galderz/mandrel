@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 
 final class JfrOldObjectRepository implements JfrConstantPool {
+    // TODO key on weak refs rather than obj to avoid leaks
     public final Map<Object, OldObjectInfo> oldObjects = new HashMap<>();
     private long idCounter;
 //    private JfrBuffer oldObjectBuffer;
@@ -71,6 +72,10 @@ final class JfrOldObjectRepository implements JfrConstantPool {
     long getOldObjectId(Object object) {
         final OldObjectInfo info = oldObjects.get(object);
         return Objects.isNull(info) ? 0 : info.id;
+    }
+
+    void clear() {
+        oldObjects.clear();
     }
 
 //    @Uninterruptible(reason = "Accesses a JFR buffer.")

@@ -223,7 +223,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
     }
 
     public void writeSingleCheckpointEvent(JfrConstantPool repository) {
-        System.out.println("writeSingleCheckpointEvent lastCheckpointOffset=" + lastCheckpointOffset.rawValue());
+        System.out.printf("[%s] [JfrChunkWriter.writeSingleCheckpointEvent]  lastCheckpointOffset=%d%n", Thread.currentThread().getName(), lastCheckpointOffset.rawValue());
         SignedWord start = beginEvent();
         long delta = lastCheckpointOffset.equal(WordFactory.zero()) ? 0L : lastCheckpointOffset.subtract(start).rawValue();
 
