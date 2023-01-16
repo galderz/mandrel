@@ -20,9 +20,9 @@ final class JfrOldObjectSamplePriorityQueue
     private long total;
 
     @Platforms(Platform.HOSTED_ONLY.class)
-    JfrOldObjectSamplePriorityQueue(int size)
+    JfrOldObjectSamplePriorityQueue(int capacity)
     {
-        this.items = new Object[size][];
+        this.items = new Object[capacity][];
         for (int i = 0; i < this.items.length; i++)
         {
             this.items[i] = new Object[USED_AT_GC_INDEX + 1];
@@ -165,45 +165,45 @@ final class JfrOldObjectSamplePriorityQueue
         sample[USED_AT_GC_INDEX] = usedAtLastGC;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    Object[][] getArray() {
-        return items;
+    int getCapacity() {
+        return items.length;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    WeakReference<?> reference(Object[] sample) {
-        return (WeakReference<?>) sample[REF_INDEX];
+    WeakReference<?> getReferenceAt(int index) {
+        return (WeakReference<?>) items[index][REF_INDEX];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static long span(Object[] sample)
+    long getAllocationTimeAt(int index)
     {
-        return longAt(SPAN_INDEX, sample);
+        return longAt(index, ALLOCATION_TIME_INDEX);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    long allocationTime(Object[] sample)
+    long getThreadIdAt(int index) {
+        return longAt(index, THREAD_ID_INDEX);
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long getStackTraceIdAt(int index) {
+        return longAt(index, STACKTRACE_ID_INDEX);
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long getUsedAtLastGCAt(int index) {
+        return longAt(index, USED_AT_GC_INDEX);
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    private static long span(Object[] sample)
     {
-        return longAt(ALLOCATION_TIME_INDEX, sample);
+        return sample == null ? - 1 : (long) sample[SPAN_INDEX];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    long threadId(Object[] sample) {
-        return longAt(THREAD_ID_INDEX, sample);
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    long stackTraceId(Object[] sample) {
-        return longAt(STACKTRACE_ID_INDEX, sample);
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    long usedAtLastGC(Object[] sample) {
-        return longAt(USED_AT_GC_INDEX, sample);
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    private static long longAt(int fieldIndex, Object[] sample) {
-        return sample == null ? -1 : (long) sample[fieldIndex];
+    private long longAt(int index, int fieldIndex) {
+        final Object[] entry = items[index];
+        return entry == null ? -1 : (long) entry[fieldIndex];
     }
 }

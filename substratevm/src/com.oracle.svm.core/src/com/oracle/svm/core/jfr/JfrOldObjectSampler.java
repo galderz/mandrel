@@ -91,17 +91,16 @@ public final class JfrOldObjectSampler {
         final long lastSweep = Long.MAX_VALUE;
 
         final JfrOldObjectRepository oldObjectRepo = SubstrateJVM.getOldObjectRepository();
+        final int queueCapacity = samples.getCapacity();
 
         int count = 0;
 
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
-        Object[][] samplesArray = samples.getArray();
-        for (int i = 0; i < samplesArray.length; i++) {
-            final Object[] sample = samplesArray[i];
-            final WeakReference<?> ref = samples.reference(sample);
+        for (int i = 0; i < queueCapacity; i++) {
+            final WeakReference<?> ref = samples.getReferenceAt(i);
             if (ref != null) {
-                final long allocationTime = samples.allocationTime(sample);
+                final long allocationTime = samples.getAllocationTimeAt(i);
                 final Object obj = ref.get();
                 if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
                     System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
@@ -120,19 +119,17 @@ public final class JfrOldObjectSampler {
             chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
-            samplesArray = samples.getArray();
-            for (int i = 0; i < samplesArray.length; i++) {
-                final Object[] sample = samplesArray[i];
-                final WeakReference<?> ref = samples.reference(sample);
+            for (int i = 0; i < queueCapacity; i++) {
+                final WeakReference<?> ref = samples.getReferenceAt(i);
                 if (ref != null) {
-                    final long allocationTime = samples.allocationTime(sample);
+                    final long allocationTime = samples.getAllocationTimeAt(i);
                     final Object obj = ref.get();
                     if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
                         final long objectId = oldObjectRepo.getOldObjectId(obj);
                         System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
-                        final long threadId = samples.threadId(sample);
-                        final long stackTraceId = samples.stackTraceId(sample);
-                        final long usedAtLastGC = samples.usedAtLastGC(sample);
+                        final long threadId = samples.getThreadIdAt(i);
+                        final long stackTraceId = samples.getStackTraceIdAt(i);
+                        final long usedAtLastGC = samples.getUsedAtLastGCAt(i);
                         OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
                     }
                 }
