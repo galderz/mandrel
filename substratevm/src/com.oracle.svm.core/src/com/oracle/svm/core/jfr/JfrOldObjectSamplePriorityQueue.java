@@ -4,6 +4,8 @@ import com.oracle.svm.core.Uninterruptible;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
+import java.lang.ref.WeakReference;
+
 final class JfrOldObjectSamplePriorityQueue
 {
     private static final int OBJECT_INDEX = 0;
@@ -37,7 +39,7 @@ final class JfrOldObjectSamplePriorityQueue
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(Object obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC)
+    void push(WeakReference<Object> obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC)
     {
         set(obj, span, allocationTime, threadId, stackTraceId, usedAtLastGC, items[count]);
         list.prepend(items[count]);
@@ -275,8 +277,8 @@ final class JfrOldObjectSamplePriorityQueue
             return longAt(index, ALLOCATION_TIME_INDEX);
         }
 
-        Object objectAt(int index) {
-            return items[index][OBJECT_INDEX];
+        WeakReference<Object> objectAt(int index) {
+            return (WeakReference<Object>) items[index][OBJECT_INDEX];
         }
 
         long threadIdAt(int index) {

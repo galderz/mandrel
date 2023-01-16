@@ -10,6 +10,8 @@ import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
+import java.lang.ref.WeakReference;
+
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
@@ -25,7 +27,7 @@ public final class JfrOldObjectSampler {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sample(Object object, long allocated) {
+    public void sample(WeakReference<Object> object, long allocated) {
         // Not allowed
         // Logger.log(LogTag.JFR, LogLevel.TRACE, "SLOW ALLOCATION!!");
 
@@ -101,7 +103,7 @@ public final class JfrOldObjectSampler {
         while (current >= 0) {
             final long allocationTime = sampleList.allocationTimeAt(current);
             if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                oldObjectRepo.addOldObject(sampleList.objectAt(current));
+                oldObjectRepo.addOldObject(sampleList.objectAt(current).get());
                 count++;
             }
             current = sampleList.prevIndex(current);
@@ -120,7 +122,7 @@ public final class JfrOldObjectSampler {
             while (current >= 0) {
                 final long allocationTime = sampleList.allocationTimeAt(current);
                 if (isAliveAndOlderThan(lastSweep, allocationTime)) {
-                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current));
+                    final long objectId = oldObjectRepo.getOldObjectId(sampleList.objectAt(current).get());
                     final long threadId = sampleList.threadIdAt(current);
                     final long stackTraceId = sampleList.stackTraceIdAt(current);
                     final long usedAtLastGC = sampleList.usedAtLastGCAt(current);

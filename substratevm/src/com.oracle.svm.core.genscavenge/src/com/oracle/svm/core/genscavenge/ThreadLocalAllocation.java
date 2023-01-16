@@ -76,6 +76,8 @@ import com.oracle.svm.core.threadlocal.FastThreadLocalFactory;
 import com.oracle.svm.core.threadlocal.FastThreadLocalWord;
 import com.oracle.svm.core.util.VMError;
 
+import java.lang.ref.WeakReference;
+
 /**
  * Bump-pointer allocation from thread-local top and end Pointers. Many of these methods are called
  * from allocation snippets, so they can not do anything fancy.
