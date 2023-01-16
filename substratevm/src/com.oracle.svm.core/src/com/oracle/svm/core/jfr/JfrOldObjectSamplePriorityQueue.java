@@ -8,16 +8,14 @@ import java.lang.ref.WeakReference;
 
 final class JfrOldObjectSamplePriorityQueue
 {
-    private static final int OBJECT_INDEX = 0;
+    private static final int REF_INDEX = 0;
     private static final int SPAN_INDEX = 1;
     private static final int ALLOCATION_TIME_INDEX = 2;
     private static final int THREAD_ID_INDEX = 3;
     private static final int STACKTRACE_ID_INDEX = 4;
     private static final int USED_AT_GC_INDEX = 5;
-    private static final int PREVIOUS = 6;
 
     private final Object[][] items;
-    private final SampleList list;
     public int count;
     private long total;
 
@@ -27,9 +25,8 @@ final class JfrOldObjectSamplePriorityQueue
         this.items = new Object[size][];
         for (int i = 0; i < this.items.length; i++)
         {
-            this.items[i] = new Object[7];
+            this.items[i] = new Object[USED_AT_GC_INDEX + 1];
         }
-        list = new SampleList();
     }
 
     /**
@@ -39,10 +36,9 @@ final class JfrOldObjectSamplePriorityQueue
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(WeakReference<Object> obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC)
+    void push(WeakReference<?> obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC)
     {
         set(obj, span, allocationTime, threadId, stackTraceId, usedAtLastGC, items[count]);
-        list.prepend(items[count]);
         count++;
         moveUp(count - 1);
         total += span;
@@ -63,7 +59,6 @@ final class JfrOldObjectSamplePriorityQueue
         final Object[] head = items[0];
         swap(0, count - 1);
         count--;
-        list.remove(items[count]);
         clearItem(items[count]);
         moveDown(0);
         total -= span(head);
@@ -73,7 +68,6 @@ final class JfrOldObjectSamplePriorityQueue
     private void clearItem(Object[] item)
     {
         set(null, 0, 0, 0, 0, 0, item);
-        item[PREVIOUS] = null;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -152,8 +146,6 @@ final class JfrOldObjectSamplePriorityQueue
         final Object[] tmp = items[i];
         items[i] = items[j];
         items[j] = tmp;
-        // items[i].index = i;
-        // items[j].index = j;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -163,9 +155,9 @@ final class JfrOldObjectSamplePriorityQueue
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private static void set(Object obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC, Object[] sample)
+    private static void set(WeakReference<?> obj, long span, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC, Object[] sample)
     {
-        sample[OBJECT_INDEX] = obj;
+        sample[REF_INDEX] = obj;
         sample[SPAN_INDEX] = span;
         sample[ALLOCATION_TIME_INDEX] = allocationTime;
         sample[THREAD_ID_INDEX] = threadId;
@@ -174,129 +166,44 @@ final class JfrOldObjectSamplePriorityQueue
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static Long span(Object[] sample)
-    {
-        return (Long) sample[SPAN_INDEX];
+    Object[][] getArray() {
+        return items;
     }
 
-    SampleList asList()
-    {
-        return list;
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    WeakReference<?> reference(Object[] sample) {
+        return (WeakReference<?>) sample[REF_INDEX];
     }
 
-    final class SampleList
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    static long span(Object[] sample)
     {
-        Object[] head;
-        Object[] tail;
+        return longAt(SPAN_INDEX, sample);
+    }
 
-        @Platforms(Platform.HOSTED_ONLY.class)
-        private SampleList() {
-        }
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long allocationTime(Object[] sample)
+    {
+        return longAt(ALLOCATION_TIME_INDEX, sample);
+    }
 
-        @Uninterruptible(reason = "Accesses allocation sampler.")
-        private void prepend(Object[] sample)
-        {
-            if (head == null)
-            {
-                head = sample;
-                tail = sample;
-                return;
-            }
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long threadId(Object[] sample) {
+        return longAt(THREAD_ID_INDEX, sample);
+    }
 
-            Object[] tmp = head;
-            head = sample;
-            tmp[PREVIOUS] = sample;
-        }
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long stackTraceId(Object[] sample) {
+        return longAt(STACKTRACE_ID_INDEX, sample);
+    }
 
-        @Uninterruptible(reason = "Accesses allocation sampler.")
-        private void remove(Object[] item) {
-            if (tail == item) {
-                // If item is tail, update tail to be item's prev
-                tail = (Object[]) item[PREVIOUS];
-                return;
-            }
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    long usedAtLastGC(Object[] sample) {
+        return longAt(USED_AT_GC_INDEX, sample);
+    }
 
-            // Else, find an element whose previous is item; iow, find item's next element.
-            // Note: Iterate to locate index of next.
-            //       Avoids the need the keep index in sample.
-            Object[] next = null;
-            for (int i = 0; i < items.length; i++) {
-                if (items[i][PREVIOUS] == item) {
-                    next = items[i];
-                    break;
-                }
-            }
-
-            assert next != null;
-
-            // Then set that next's previous to item's previous
-            next[PREVIOUS] = item[PREVIOUS];
-
-            // If the element removed is head, update it to item's next.
-            if (head == item) {
-                head = next;
-            }
-        }
-
-        int firstIndex()
-        {
-            // Note: Iterate to locate index of tail.
-            //       Avoids the need the keep index in sample.
-            for (int i = 0; i < items.length; i++)
-            {
-                if (tail == items[i]) {
-                    System.out.println("First index: " + i);
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        int prevIndex(int index)
-        {
-            final Object[] entry = items[index];
-            if (entry == null) {
-                return -1;
-            }
-
-            final Object prev = entry[PREVIOUS];
-            // Note: Iterate to locate index of prev.
-            //       Avoids the need the keep index in sample.
-            for (int i = 0; i < items.length; i++)
-            {
-                if (prev == items[i])
-                    return i;
-            }
-
-            return -1;
-        }
-
-        long allocationTimeAt(int index)
-        {
-            return longAt(index, ALLOCATION_TIME_INDEX);
-        }
-
-        WeakReference<Object> objectAt(int index) {
-            return (WeakReference<Object>) items[index][OBJECT_INDEX];
-        }
-
-        long threadIdAt(int index) {
-            return longAt(index, THREAD_ID_INDEX);
-        }
-
-        long stackTraceIdAt(int index) {
-            return longAt(index, STACKTRACE_ID_INDEX);
-        }
-
-
-        long usedAtLastGCAt(int index) {
-            return longAt(index, USED_AT_GC_INDEX);
-        }
-
-        private long longAt(int index, int fieldIndex) {
-            final Object[] entry = items[index];
-            return entry == null ? -1 : (long) entry[fieldIndex];
-        }
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    private static long longAt(int fieldIndex, Object[] sample) {
+        return sample == null ? -1 : (long) sample[fieldIndex];
     }
 }

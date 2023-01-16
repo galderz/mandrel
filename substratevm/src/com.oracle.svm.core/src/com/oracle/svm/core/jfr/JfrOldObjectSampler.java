@@ -92,20 +92,23 @@ public final class JfrOldObjectSampler {
 
         final JfrOldObjectRepository oldObjectRepo = SubstrateJVM.getOldObjectRepository();
 
+        int count = 0;
+
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
-        final JfrOldObjectSamplePriorityQueue.SampleList sampleList = samples.asList();
-        int current = sampleList.firstIndex();
-        int count = 0;
-        while (current >= 0) {
-            final long allocationTime = sampleList.allocationTimeAt(current);
-            final Object obj = sampleList.objectAt(current).get();
-            if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
-                oldObjectRepo.addOldObject(obj);
-                count++;
+        Object[][] samplesArray = samples.getArray();
+        for (int i = 0; i < samplesArray.length; i++) {
+            final Object[] sample = samplesArray[i];
+            final WeakReference<?> ref = samples.reference(sample);
+            if (ref != null) {
+                final long allocationTime = samples.allocationTime(sample);
+                final Object obj = ref.get();
+                if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                    System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
+                    oldObjectRepo.addOldObject(obj);
+                    count++;
+                }
             }
-            current = sampleList.prevIndex(current);
         }
 
         if (count > 0) {
@@ -117,19 +120,22 @@ public final class JfrOldObjectSampler {
             chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
-            current = sampleList.firstIndex();
-            while (current >= 0) {
-                final long allocationTime = sampleList.allocationTimeAt(current);
-                final Object obj = sampleList.objectAt(current).get();
-                if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                    final long objectId = oldObjectRepo.getOldObjectId(obj);
-                    // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
-                    final long threadId = sampleList.threadIdAt(current);
-                    final long stackTraceId = sampleList.stackTraceIdAt(current);
-                    final long usedAtLastGC = sampleList.usedAtLastGCAt(current);
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
+            samplesArray = samples.getArray();
+            for (int i = 0; i < samplesArray.length; i++) {
+                final Object[] sample = samplesArray[i];
+                final WeakReference<?> ref = samples.reference(sample);
+                if (ref != null) {
+                    final long allocationTime = samples.allocationTime(sample);
+                    final Object obj = ref.get();
+                    if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                        final long objectId = oldObjectRepo.getOldObjectId(obj);
+                        System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
+                        final long threadId = samples.threadId(sample);
+                        final long stackTraceId = samples.stackTraceId(sample);
+                        final long usedAtLastGC = samples.usedAtLastGC(sample);
+                        OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
+                    }
                 }
-                current = sampleList.prevIndex(current);
             }
         }
 
