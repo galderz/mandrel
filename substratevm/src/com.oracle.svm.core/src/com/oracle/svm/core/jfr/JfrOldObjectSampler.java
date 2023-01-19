@@ -73,8 +73,8 @@ public final class JfrOldObjectSampler {
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict(Object[] sample)
     {
-        list.remove(sample);
         queue.poll();
+        list.remove(sample);
         setReference(null, sample);
         setSpan(0L, sample);
         setAllocationTime(0L, sample);
