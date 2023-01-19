@@ -9,25 +9,37 @@ import org.graalvm.nativeimage.Platforms;
 
 import java.lang.ref.WeakReference;
 
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getAllocationTime;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getReference;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getSpan;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setAllocationTime;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setArrayLength;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setPrevious;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setReference;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setSpan;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setStackTraceId;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setThreadId;
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setUsedAtGC;
+
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
     // private final Lock lock = new ReentrantLock();
-    // Not allowed to be access from allocation snippet, it triggers stackoverflow - todo find a more lightweight version
-    // private final BoundedPriorityQueue<JfrOldObjectSample> samples = new BoundedPriorityQueue<>(SAMPLER_SIZE, JfrOldObjectSample.Comparator.INSTANCE);
-    private final JfrOldObjectSamplePriorityQueue samples;
+
+    final JfrOldObjectSampleArray samples;
+    final JfrOldObjectSamplePriorityQueue queue;
+    final JfrOldObjectSampleList list;
     private long totalAllocated;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
-        samples = new JfrOldObjectSamplePriorityQueue(SAMPLER_SIZE);
+        this.samples = new JfrOldObjectSampleArray(SAMPLER_SIZE);
+        this.queue = new JfrOldObjectSamplePriorityQueue(this.samples);
+        this.list = new JfrOldObjectSampleList();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sample(WeakReference<Object> object, long allocated) {
-        // Not allowed
-        // Logger.log(LogTag.JFR, LogLevel.TRACE, "SLOW ALLOCATION!!");
-
+    public void sample(WeakReference<Object> ref, long allocatedSize) {
         // Not allowed. tryLock() throwing:
         // Fatal error: org.graalvm.compiler.java.BytecodeParser$BytecodeParserError: org.graalvm.compiler.debug.GraalError:
         // Cannot use an assertion within the context of an intrinsic: AnalysisField<Thread.$assertionsDisabled accessed: 0 reads: false written: 0 folded: 0>
@@ -40,36 +52,72 @@ public final class JfrOldObjectSampler {
         // todo: if tryLock not allowed, maybe a volatile boolean can be used?
         // todo: check if dead samples are present and clean those up?
 
-        totalAllocated += allocated;
+        totalAllocated += allocatedSize;
 
-        if (samples.isFull()) {
-            if (samples.peekSpan() > allocated) {
-                // Sample will not fit, return early
+        if (queue.isFull())
+        {
+            final Object[] head = queue.peek();
+            if (getSpan(head) > allocatedSize)
+            {
                 return;
             }
-            // Offered element has a higher priority,
-            // vacate from the lowest priority one and insert the element.
-            samples.poll();
+
+            evict(head);
         }
 
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
         //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
-        final long now = JfrTicks.elapsedTicks();
+        store(ref, allocatedSize, JfrTicks.elapsedTicks());
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    private void evict(Object[] sample)
+    {
+        list.remove(sample);
+        queue.poll();
+        setReference(null, sample);
+        setSpan(0L, sample);
+        setAllocationTime(0L, sample);
+        setThreadId(0L, sample);
+        setStackTraceId(0L, sample);
+        setUsedAtGC(0L, sample);
+        setArrayLength(0, sample);
+        // todo move the setPrevious to list.remove() end for consistency?
+        setPrevious(null, sample);
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    private void store(WeakReference<?> ref, long allocatedSize, long allocatedTime)
+    {
+        final int index = queue.getCount();
+        final Object[] sample = samples.getSample(index);
+
         final Thread thread = Thread.currentThread();
+        // todo rename to heapUsedAtLastGC for consistency
         final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
+
+        setReference(ref, sample);
+        setSpan(allocatedSize, sample);
+        setAllocationTime(allocatedTime, sample);
+        setUsedAtGC(usedAtLastGC, sample);
+        setArrayLength(0, sample);
+
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            samples.push(object, allocated, now, 0, 0, usedAtLastGC);
+            setThreadId(0L, sample);
+            setStackTraceId(0L, sample);
         } else {
-            final long threadId = JavaThreads.getThreadId(thread);
-
             // todo see if segfaults for retrieving stacktrace id go away
             //      https://gist.github.com/galderz/51020f04735ace36610cab1dd8c27c2c
             // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
             final long stackTraceId = 1;
 
-            samples.push(object, allocated, now, threadId, stackTraceId, usedAtLastGC);
+            setThreadId(JavaThreads.getThreadId(thread), sample);
+            setStackTraceId(stackTraceId, sample);
         }
+
+        queue.push(sample);
+        list.prepend(sample);
     }
 
     void emit(long cutoff, boolean emitAll, boolean skipBFS, JfrChunkWriter chunkWriter) {
@@ -91,23 +139,23 @@ public final class JfrOldObjectSampler {
         final long lastSweep = Long.MAX_VALUE;
 
         final JfrOldObjectRepository oldObjectRepo = SubstrateJVM.getOldObjectRepository();
-        final int queueCapacity = samples.getCapacity();
 
+        Object[] current;
         int count = 0;
 
         // First pass to associate a live sample with its immediate edge,
         // in preparation for writing checkpoint information.
-        for (int i = 0; i < queueCapacity; i++) {
-            final WeakReference<?> ref = samples.getReferenceAt(i);
-            if (ref != null) {
-                final long allocationTime = samples.getAllocationTimeAt(i);
-                final Object obj = ref.get();
-                if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                    System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
-                    oldObjectRepo.addOldObject(obj);
-                    count++;
-                }
+        current = list.head();
+        while (current != null) {
+            final long allocationTime = getAllocationTime(current);
+            final Object obj = getReference(current).get();
+            if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
+                oldObjectRepo.addOldObject(obj);
+                count++;
             }
+
+            current = list.next(current);
         }
 
         if (count > 0) {
@@ -119,20 +167,20 @@ public final class JfrOldObjectSampler {
             chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
-            for (int i = 0; i < queueCapacity; i++) {
-                final WeakReference<?> ref = samples.getReferenceAt(i);
-                if (ref != null) {
-                    final long allocationTime = samples.getAllocationTimeAt(i);
-                    final Object obj = ref.get();
-                    if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                        final long objectId = oldObjectRepo.getOldObjectId(obj);
-                        System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
-                        final long threadId = samples.getThreadIdAt(i);
-                        final long stackTraceId = samples.getStackTraceIdAt(i);
-                        final long usedAtLastGC = samples.getUsedAtLastGCAt(i);
-                        OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
-                    }
+            current = list.head();
+            while (current != null) {
+                final long allocationTime = getAllocationTime(current);
+                final Object obj = getReference(current).get();
+                if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                    final long objectId = oldObjectRepo.getOldObjectId(obj);
+                    System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
+                    final long threadId = JfrOldObjectSampleArray.getThreadId(current);
+                    final long stackTraceId = JfrOldObjectSampleArray.getStackTraceId(current);
+                    final long usedAtLastGC = JfrOldObjectSampleArray.getUsedAtGC(current);
+                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
                 }
+
+                current = list.next(current);
             }
         }
 
