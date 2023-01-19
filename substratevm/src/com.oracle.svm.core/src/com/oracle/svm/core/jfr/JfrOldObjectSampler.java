@@ -55,13 +55,12 @@ public final class JfrOldObjectSampler {
 
         if (queue.isFull())
         {
-            final Object[] head = queue.peek();
-            if (getSpan(head) > allocatedSize)
+            if (getSpan(queue.peek()) > allocatedSize)
             {
                 return;
             }
 
-            evict(head);
+            evict();
         }
 
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
@@ -70,17 +69,10 @@ public final class JfrOldObjectSampler {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private void evict(Object[] sample)
-    {
-        queue.poll();
-        list.remove(sample);
-        setReference(null, sample);
-        setSpan(0L, sample);
-        setAllocationTime(0L, sample);
-        setThreadId(0L, sample);
-        setStackTraceId(0L, sample);
-        setUsedAtGC(0L, sample);
-        setArrayLength(0, sample);
+    private void evict() {
+        final Object[] head = queue.poll();
+        list.remove(head);
+        samples.clear(head);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")

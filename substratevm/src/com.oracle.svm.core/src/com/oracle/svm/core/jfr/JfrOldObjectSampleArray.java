@@ -151,6 +151,17 @@ public class JfrOldObjectSampleArray {
         return (long) samples[index][SPAN_SLOT];
     }
 
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    void clear(Object[] sample) {
+        setReference(null, sample);
+        setSpan(0L, sample);
+        setAllocationTime(0L, sample);
+        setThreadId(0L, sample);
+        setStackTraceId(0L, sample);
+        setUsedAtGC(0L, sample);
+        setArrayLength(0, sample);
+    }
+
 //    void setSpan(long value, int index)
 //    {
 //        samples[index][SPAN_SLOT] = value;

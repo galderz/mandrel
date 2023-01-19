@@ -47,13 +47,13 @@ final class JfrOldObjectSamplePriorityQueue {
     }
 
     /**
-     * Removes the head of the queue.
+     * Removes and return the head of the queue.
      * The head of the queue is the sample with the smallest span.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void poll() {
+    Object[] poll() {
         if (count == 0) {
-            return;
+            return EMPTY;
         }
 
         final Object[] head = peek();
@@ -61,6 +61,7 @@ final class JfrOldObjectSamplePriorityQueue {
         count--;
         moveDown(0);
         total -= getSpan(head);
+        return head;
     }
 
     /**
