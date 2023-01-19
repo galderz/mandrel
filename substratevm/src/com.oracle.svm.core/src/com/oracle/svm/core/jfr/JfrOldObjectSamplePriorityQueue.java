@@ -4,6 +4,7 @@ import com.oracle.svm.core.Uninterruptible;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
+import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.EMPTY;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getSpan;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setSpan;
 
@@ -42,7 +43,7 @@ final class JfrOldObjectSamplePriorityQueue {
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     Object[] peek() {
-        return count == 0 ? null : samples.getSample(0);
+        return count == 0 ? EMPTY : samples.getSample(0);
     }
 
     /**
