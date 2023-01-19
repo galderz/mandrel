@@ -51,23 +51,23 @@ public class JfrOldObjectSampleList {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void remove(Object[] item) {
-        if (head == item) {
+    void remove(Object[] sample) {
+        if (head == sample) {
             // If item is head, update head to be item's prev
-            head = getPrevious(item);
+            head = getPrevious(sample);
             return;
         }
 
         // Else, find an element whose previous is item; iow, find item's next element.
-        Object[] next = findNext(item);
+        Object[] next = findNext(sample);
 
         assert next != null;
 
         // Then set that next's previous to item's previous
-        setPrevious(getPrevious(item), next);
+        setPrevious(getPrevious(sample), next);
 
         // If the element removed is tail, update it to item's next.
-        if (tail == item) {
+        if (tail == sample) {
             tail = next;
         }
     }
