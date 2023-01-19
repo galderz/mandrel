@@ -63,6 +63,20 @@ final class JfrOldObjectSamplePriorityQueue {
         total -= getSpan(head);
     }
 
+    /**
+     * Removes a sample from the queue.
+     * It moves the sample all the way to the top to become the head,
+     * then it polls it to remove it.
+     */
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    void remove(Object[] sample) {
+        final long span = getSpan(sample);
+        setSpan(0L, sample);
+        moveUp(samples.getIndexOf(sample));
+        setSpan(span, sample);
+        poll();
+    }
+
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void moveUp(int i) {
         int parent = parent(i);
@@ -112,14 +126,5 @@ final class JfrOldObjectSamplePriorityQueue {
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private static int right(int i) {
         return 2 * i + 2;
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    void remove(Object[] sample) {
-        final long span = getSpan(sample);
-        setSpan(0L, sample);
-        moveUp(samples.getIndexOf(sample));
-        setSpan(span, sample);
-        poll();
     }
 }
