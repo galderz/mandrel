@@ -55,6 +55,7 @@ public class JfrOldObjectSampleList {
         if (head == sample) {
             // If item is head, update head to be item's prev
             head = getPrevious(sample);
+            setPrevious(null, sample);
             return;
         }
 
@@ -70,6 +71,8 @@ public class JfrOldObjectSampleList {
         if (tail == sample) {
             tail = next;
         }
+
+        setPrevious(null, sample);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")

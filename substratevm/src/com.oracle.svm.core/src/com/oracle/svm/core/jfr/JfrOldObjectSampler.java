@@ -14,7 +14,6 @@ import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getReference;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getSpan;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setAllocationTime;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setArrayLength;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setPrevious;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setReference;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setSpan;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setStackTraceId;
@@ -82,8 +81,6 @@ public final class JfrOldObjectSampler {
         setStackTraceId(0L, sample);
         setUsedAtGC(0L, sample);
         setArrayLength(0, sample);
-        // todo move the setPrevious to list.remove() end for consistency?
-        setPrevious(null, sample);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
