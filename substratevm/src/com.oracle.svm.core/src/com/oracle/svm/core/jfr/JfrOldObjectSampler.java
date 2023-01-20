@@ -12,13 +12,6 @@ import java.lang.ref.WeakReference;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getAllocationTime;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getReference;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getSpan;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setAllocationTime;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setArrayLength;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setReference;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setSpan;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setStackTraceId;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setThreadId;
-import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setUsedAtGC;
 
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
@@ -85,24 +78,16 @@ public final class JfrOldObjectSampler {
         // todo rename to heapUsedAtLastGC for consistency
         final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
 
-        setReference(ref, sample);
-        setSpan(allocatedSize, sample);
-        setAllocationTime(allocatedTime, sample);
-        setUsedAtGC(usedAtLastGC, sample);
-        setArrayLength(0, sample);
-
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            setThreadId(0L, sample);
-            setStackTraceId(0L, sample);
+            samples.set(ref, allocatedSize, allocatedTime, 0L, 0L, usedAtLastGC, 0, sample);
         } else {
             // todo see if segfaults for retrieving stacktrace id go away
             //      https://gist.github.com/galderz/51020f04735ace36610cab1dd8c27c2c
             // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
             final long stackTraceId = 1;
-
-            setThreadId(JavaThreads.getThreadId(thread), sample);
-            setStackTraceId(stackTraceId, sample);
+            final long threadId = JavaThreads.getThreadId(thread);
+            samples.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, usedAtLastGC, 0, sample);
         }
 
         queue.push(sample);

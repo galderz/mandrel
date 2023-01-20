@@ -62,13 +62,13 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setReference(WeakReference<?> value, Object[] sample) {
-        sample[REF_SLOT] = value;
+    static long getSpan(Object[] sample) {
+        return (long) sample[SPAN_SLOT];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static long getSpan(Object[] sample) {
-        return (long) sample[SPAN_SLOT];
+    long getSpan(int index) {
+        return (long) samples[index][SPAN_SLOT];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -82,18 +82,8 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setAllocationTime(long value, Object[] sample) {
-        sample[ALLOCATION_TIME_SLOT] = value;
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
     static long getThreadId(Object[] sample) {
         return (long) sample[THREAD_ID_SLOT];
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setThreadId(long value, Object[] sample) {
-        sample[THREAD_ID_SLOT] = value;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -102,28 +92,13 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setStackTraceId(long value, Object[] sample) {
-        sample[STACKTRACE_ID_SLOT] = value;
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
     static long getUsedAtGC(Object[] sample) {
         return (long) sample[USED_AT_GC_SLOT];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setUsedAtGC(long value, Object[] sample) {
-        sample[USED_AT_GC_SLOT] = value;
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
     static int getArrayLength(Object[] sample) {
         return (int) sample[ARRAY_LENGTH_SLOT];
-    }
-
-    @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setArrayLength(long value, Object[] sample) {
-        sample[ARRAY_LENGTH_SLOT] = value;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -135,7 +110,6 @@ public class JfrOldObjectSampleArray {
     static void setPrevious(Object[] value, Object[] sample) {
         sample[PREVIOUS_SLOT] = value;
     }
-
 //    WeakReference<?> getReference(int index)
 //    {
 //        return (WeakReference<?>) samples[index][REF_SLOT];
@@ -144,22 +118,31 @@ public class JfrOldObjectSampleArray {
 //    void setReference(WeakReference<?> value, int index)
 //    {
 //        samples[index][REF_SLOT] = value;
+
 //    }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    long getSpan(int index) {
-        return (long) samples[index][SPAN_SLOT];
+    // todo make static
+    void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
+        sample[REF_SLOT] = ref;
+        sample[SPAN_SLOT] = allocatedSize;
+        sample[ALLOCATION_TIME_SLOT] = allocatedTime;
+        sample[THREAD_ID_SLOT] = threadId;
+        sample[STACKTRACE_ID_SLOT] = stackTraceId;
+        sample[USED_AT_GC_SLOT] = usedAtGC;
+        sample[ARRAY_LENGTH_SLOT] = arrayLength;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
+    // todo make static
     void clear(Object[] sample) {
-        setReference(null, sample);
-        setSpan(0L, sample);
-        setAllocationTime(0L, sample);
-        setThreadId(0L, sample);
-        setStackTraceId(0L, sample);
-        setUsedAtGC(0L, sample);
-        setArrayLength(0, sample);
+        sample[REF_SLOT] = null;
+        sample[SPAN_SLOT] = 0;
+        sample[ALLOCATION_TIME_SLOT] = 0;
+        sample[THREAD_ID_SLOT] = 0;
+        sample[STACKTRACE_ID_SLOT] = 0;
+        sample[USED_AT_GC_SLOT] = 0;
+        sample[ARRAY_LENGTH_SLOT] = 0;
     }
 
 //    void setSpan(long value, int index)
