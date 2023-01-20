@@ -122,8 +122,7 @@ public class JfrOldObjectSampleArray {
 //    }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    // todo make static
-    void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
+    static void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
         sample[REF_SLOT] = ref;
         sample[SPAN_SLOT] = allocatedSize;
         sample[ALLOCATION_TIME_SLOT] = allocatedTime;
@@ -134,8 +133,7 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    // todo make static
-    void clear(Object[] sample) {
+    static void clear(Object[] sample) {
         sample[REF_SLOT] = null;
         sample[SPAN_SLOT] = 0;
         sample[ALLOCATION_TIME_SLOT] = 0;
