@@ -143,6 +143,7 @@ public class JfrOldObjectSampleArray {
         sample[STACKTRACE_ID_SLOT] = 0;
         sample[USED_AT_GC_SLOT] = 0;
         sample[ARRAY_LENGTH_SLOT] = 0;
+        sample[PREVIOUS_SLOT] = null;
     }
 
 //    void setSpan(long value, int index)

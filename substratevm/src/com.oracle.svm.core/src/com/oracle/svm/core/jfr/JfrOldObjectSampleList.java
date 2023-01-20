@@ -55,22 +55,21 @@ public class JfrOldObjectSampleList {
         if (head == sample) {
             // If item is head, update head to be item's prev
             head = getPrevious(sample);
-        } else {
-            // Else, find an element whose previous is item; iow, find item's next element.
-            Object[] next = findNext(sample);
-
-            assert next != null;
-
-            // Then set that next's previous to item's previous
-            setPrevious(getPrevious(sample), next);
-
-            // If the element removed is tail, update it to item's next.
-            if (tail == sample) {
-                tail = next;
-            }
+            return;
         }
 
-        setPrevious(null, sample);
+        // Else, find an element whose previous is item; iow, find item's next element.
+        Object[] next = findNext(sample);
+
+        assert next != null;
+
+        // Then set that next's previous to item's previous
+        setPrevious(getPrevious(sample), next);
+
+        // If the element removed is tail, update it to item's next.
+        if (tail == sample) {
+            tail = next;
+        }
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
