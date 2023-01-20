@@ -12,7 +12,7 @@ public class JfrOldObjectSampleArray {
     private static final int ALLOCATION_TIME_SLOT = 2;
     private static final int THREAD_ID_SLOT = 3;
     private static final int STACKTRACE_ID_SLOT = 4;
-    private static final int USED_AT_GC_SLOT = 5;
+    private static final int HEAP_USED_AT_LAST_GC_SLOT = 5;
     private static final int ARRAY_LENGTH_SLOT = 6;
     private static final int PREVIOUS_SLOT = 7;
 
@@ -92,8 +92,8 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static long getUsedAtGC(Object[] sample) {
-        return (long) sample[USED_AT_GC_SLOT];
+    static long getHeapUsedAtLastGC(Object[] sample) {
+        return (long) sample[HEAP_USED_AT_LAST_GC_SLOT];
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -122,13 +122,13 @@ public class JfrOldObjectSampleArray {
 //    }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void setSample(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
+    static void setSample(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength, Object[] sample) {
         sample[REF_SLOT] = ref;
         sample[SPAN_SLOT] = allocatedSize;
         sample[ALLOCATION_TIME_SLOT] = allocatedTime;
         sample[THREAD_ID_SLOT] = threadId;
         sample[STACKTRACE_ID_SLOT] = stackTraceId;
-        sample[USED_AT_GC_SLOT] = usedAtGC;
+        sample[HEAP_USED_AT_LAST_GC_SLOT] = heapUsedAtLastGC;
         sample[ARRAY_LENGTH_SLOT] = arrayLength;
     }
 
@@ -139,7 +139,7 @@ public class JfrOldObjectSampleArray {
         sample[ALLOCATION_TIME_SLOT] = 0;
         sample[THREAD_ID_SLOT] = 0;
         sample[STACKTRACE_ID_SLOT] = 0;
-        sample[USED_AT_GC_SLOT] = 0;
+        sample[HEAP_USED_AT_LAST_GC_SLOT] = 0;
         sample[ARRAY_LENGTH_SLOT] = 0;
         sample[PREVIOUS_SLOT] = null;
     }

@@ -152,8 +152,8 @@ public final class JfrOldObjectSampler {
                     System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
                     final long threadId = JfrOldObjectSampleArray.getThreadId(current);
                     final long stackTraceId = JfrOldObjectSampleArray.getStackTraceId(current);
-                    final long usedAtLastGC = JfrOldObjectSampleArray.getUsedAtGC(current);
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, usedAtLastGC);
+                    final long heapUsedAtLastGC = JfrOldObjectSampleArray.getHeapUsedAtLastGC(current);
+                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, heapUsedAtLastGC);
                 }
 
                 current = list.next(current);
