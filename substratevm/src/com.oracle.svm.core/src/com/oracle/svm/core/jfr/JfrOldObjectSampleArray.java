@@ -110,6 +110,7 @@ public class JfrOldObjectSampleArray {
     static void setPrevious(Object[] value, Object[] sample) {
         sample[PREVIOUS_SLOT] = value;
     }
+
 //    WeakReference<?> getReference(int index)
 //    {
 //        return (WeakReference<?>) samples[index][REF_SLOT];
@@ -118,11 +119,10 @@ public class JfrOldObjectSampleArray {
 //    void setReference(WeakReference<?> value, int index)
 //    {
 //        samples[index][REF_SLOT] = value;
-
 //    }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
+    static void setSample(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long usedAtGC, int arrayLength, Object[] sample) {
         sample[REF_SLOT] = ref;
         sample[SPAN_SLOT] = allocatedSize;
         sample[ALLOCATION_TIME_SLOT] = allocatedTime;
@@ -133,7 +133,7 @@ public class JfrOldObjectSampleArray {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    static void clear(Object[] sample) {
+    static void clearSample(Object[] sample) {
         sample[REF_SLOT] = null;
         sample[SPAN_SLOT] = 0;
         sample[ALLOCATION_TIME_SLOT] = 0;
