@@ -3,6 +3,7 @@ package com.oracle.svm.core.jfr;
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
+import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -24,11 +25,10 @@ import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.setSpan;
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
-    // private final Lock lock = new ReentrantLock();
-
     final JfrOldObjectSampleArray samples;
     final JfrOldObjectSamplePriorityQueue queue;
     final JfrOldObjectSampleList list;
+    private final SpinLock lock;
     private long totalAllocated;
 
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -36,42 +36,40 @@ public final class JfrOldObjectSampler {
         this.samples = new JfrOldObjectSampleArray(SAMPLER_SIZE);
         this.queue = new JfrOldObjectSamplePriorityQueue(this.samples);
         this.list = new JfrOldObjectSampleList();
+        this.lock = new SpinLock();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
-        // Not allowed. tryLock() throwing:
-        // Fatal error: org.graalvm.compiler.java.BytecodeParser$BytecodeParserError: org.graalvm.compiler.debug.GraalError:
-        // Cannot use an assertion within the context of an intrinsic: AnalysisField<Thread.$assertionsDisabled accessed: 0 reads: false written: 0 folded: 0>
-        // final boolean locked = lock.tryLock();
-        // if (!locked) {
-        //     Logger.log(LogTag.JFR_SYSTEM, LogLevel.TRACE, "Skipping old object sample due to lock contention");
-        //     return;
-        // }
-
-        // todo: if tryLock not allowed, maybe a volatile boolean can be used?
-        // todo: check if dead samples are present and clean those up?
-
-        totalAllocated += allocatedSize;
-
-        if (queue.isFull()) {
-            if (getSpan(queue.peek()) > allocatedSize) {
-                // Sample will not fit, try to scavenge
-                int numDead = scavenge();
-                if (numDead == 0) {
-                    // Sample will not fit and all objects still in use, return early
-                    return;
-                }
-            } else {
-                // Offered element has a higher priority,
-                // vacate from the lowest priority one and insert the element.
-                evict();
-            }
+        final boolean success = lock.tryLock();
+        if (!success) {
+            return;
         }
 
-        // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
-        //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
-        store(ref, allocatedSize, JfrTicks.elapsedTicks(), arrayLength);
+        try {
+            totalAllocated += allocatedSize;
+
+            if (queue.isFull()) {
+                if (getSpan(queue.peek()) > allocatedSize) {
+                    // Sample will not fit, try to scavenge
+                    int numDead = scavenge();
+                    if (numDead == 0) {
+                        // Sample will not fit and all objects still in use, return early
+                        return;
+                    }
+                } else {
+                    // Offered element has a higher priority,
+                    // vacate from the lowest priority one and insert the element.
+                    evict();
+                }
+            }
+
+            // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
+            //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
+            store(ref, allocatedSize, JfrTicks.elapsedTicks(), arrayLength);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
@@ -146,16 +144,19 @@ public final class JfrOldObjectSampler {
     }
 
     void emit(long cutoff, boolean emitAll, boolean skipBFS, JfrChunkWriter chunkWriter) {
-        // todo do we need exclusive access on object sampler instance?
-        //      (For operations that require exclusive access (non-safepoint))
+        lock.lock();
 
-        if (cutoff <= 0) {
-            // No reference chains
-            writeEvents(emitAll, chunkWriter);
-            return;
+        try {
+            if (cutoff <= 0) {
+                // No reference chains
+                writeEvents(emitAll, chunkWriter);
+                return;
+            }
+
+            // todo: with reference chains
+        } finally {
+            lock.unlock();
         }
-
-        // todo: with reference chains
     }
 
     private void writeEvents(boolean emitAll, JfrChunkWriter chunkWriter) {
@@ -174,7 +175,7 @@ public final class JfrOldObjectSampler {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
+                // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] add old object %s%n", Thread.currentThread().getName(), obj);
                 oldObjectRepo.addOldObject(obj);
                 count++;
             }
@@ -198,7 +199,7 @@ public final class JfrOldObjectSampler {
                 final Object obj = getReference(current).get();
                 if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
                     final long objectId = oldObjectRepo.getOldObjectId(obj);
-                    System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
+                    // System.out.printf("[%s] [JfrOldObjectSampler.writeEvents] write object id %d for object %s%n", Thread.currentThread().getName(), objectId, obj);
                     final long threadId = getThreadId(current);
                     final long stackTraceId = getStackTraceId(current);
                     final long heapUsedAtLastGC = getHeapUsedAtLastGC(current);
