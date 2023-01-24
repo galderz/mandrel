@@ -63,12 +63,13 @@ public class JfrOldObjectSampleArray {
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     static long getSpan(Object[] sample) {
-        return (long) sample[SPAN_SLOT];
+        final Long span = (Long) sample[SPAN_SLOT];
+        return span == null ? 0 : span;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     long getSpan(int index) {
-        return (long) samples[index][SPAN_SLOT];
+        return getSpan(samples[index]);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
