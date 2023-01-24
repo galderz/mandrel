@@ -28,8 +28,6 @@ import static com.oracle.svm.core.graal.snippets.SubstrateAllocationSnippets.TLA
 import static com.oracle.svm.core.graal.snippets.SubstrateAllocationSnippets.TLAB_TOP_IDENTITY;
 
 import com.oracle.svm.core.heap.Pod;
-import com.oracle.svm.core.jfr.JfrEvent;
-import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.thread.Continuation;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.replacements.AllocationSnippets.FillContent;
@@ -75,8 +73,6 @@ import com.oracle.svm.core.threadlocal.FastThreadLocalBytes;
 import com.oracle.svm.core.threadlocal.FastThreadLocalFactory;
 import com.oracle.svm.core.threadlocal.FastThreadLocalWord;
 import com.oracle.svm.core.util.VMError;
-
-import java.lang.ref.WeakReference;
 
 /**
  * Bump-pointer allocation from thread-local top and end Pointers. Many of these methods are called
@@ -222,7 +218,7 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            JfrOldObjectSampleEvents.sampleOldObject(result, size.rawValue());
+            JfrOldObjectSampleEvents.sample(result, size.rawValue(), Integer.MIN_VALUE);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
@@ -284,6 +280,8 @@ public final class ThreadLocalAllocation {
 
             Object result = slowPathNewArrayLikeObject0(hub, length, size, podReferenceMap);
             runSlowPathHooks();
+
+            JfrOldObjectSampleEvents.sample(result, size.rawValue(), length);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();

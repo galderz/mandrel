@@ -11,15 +11,16 @@ import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.junit.Test;
 
-public class TestPlainObjectLeak extends JfrTest {
+public class TestArrayLeak extends JfrTest {
+
     static Object leak;
-    private String expectedTypeName;
 
     @Override
     protected String[] getTestedEvents() {
         return new String[]{
                 JfrEvent.OldObjectSample.getName(),
         };
+//        return new String[0];
     }
 
     @Override
@@ -32,30 +33,17 @@ public class TestPlainObjectLeak extends JfrTest {
     }
 
     @Test
-    public void testSampleQueueNotFull() {
-        expectedTypeName = NodeNotFull.class.getName();
-        NodeNotFull node = new NodeNotFull();
+    public void testArrayLeak() {
+        Object[] node = new Object[3];
         leak = node;
         for (int i = 0; i < 1_000_000; i++) {
-            node.value = new NodeNotFull();
-            node.left = new NodeNotFull();
-            node.right = new NodeNotFull();
-            node = node.right;
-        }
-
-        blackhole(leak);
-    }
-
-    @Test
-    public void testSampleQueueFull() {
-        expectedTypeName = NodeFull.class.getName();
-        NodeFull node = new NodeFull();
-        leak = node;
-        for (int i = 0; i < 10_000_000; i++) {
-            node.value = new NodeFull();
-            node.left = new NodeFull();
-            node.right = new NodeFull();
-            node = node.right;
+            Object[] value = new Object[100];
+            node[0] = value;
+            Object[] left = new Object[3];
+            node[1] = left;
+            Object[] right = new Object[3];
+            node[2] = right;
+            node = right;
         }
 
         blackhole(leak);
@@ -64,7 +52,7 @@ public class TestPlainObjectLeak extends JfrTest {
     @Override
     protected void checkEvent(RecordedEvent event) {
         super.checkEvent(event);
-        OldObjectAsserts.assertEvent(expectedTypeName, Integer.MIN_VALUE, event);
+        OldObjectAsserts.assertEvent("[Ljava.lang.Object;", 100, event);
     }
 
     private static void blackhole(Object obj) {
@@ -73,17 +61,7 @@ public class TestPlainObjectLeak extends JfrTest {
         }
     }
 
-    static class NodeNotFull {
-        NodeNotFull left;
-        NodeNotFull right;
-        Object value;
-    }
-
-    static class NodeFull {
-        NodeFull left;
-        NodeFull right;
-        Object value;
-    }
+    private static final class Empty {}
 
     public static class TestFeature implements Feature {
         @Override

@@ -4,7 +4,6 @@ import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jfr.HasJfrSupport;
-import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.nativeimage.ImageSingletons;
 
@@ -12,9 +11,9 @@ import java.lang.ref.WeakReference;
 
 final class JfrOldObjectSampleEventSupport {
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void sampleOldObject(WeakReference<Object> result, long size) {
+    public void sample(WeakReference<Object> result, long allocatedSize, int arrayLength) {
         if (SubstrateJVM.isRecording()) {
-            SubstrateJVM.getJfrOldObjectSampler().sample(result, size);
+            SubstrateJVM.getJfrOldObjectSampler().sample(result, allocatedSize, arrayLength);
         }
     }
 }

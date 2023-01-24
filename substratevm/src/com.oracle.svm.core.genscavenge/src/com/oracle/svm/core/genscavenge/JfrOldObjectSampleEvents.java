@@ -8,10 +8,10 @@ import org.graalvm.nativeimage.ImageSingletons;
 import java.lang.ref.WeakReference;
 
 final class JfrOldObjectSampleEvents {
-    static void sampleOldObject(Object result, long size) {
+    static void sample(Object result, long allocatedSize, int arrayLength) {
          if (hasJfrSupport() && SubstrateJVM.get().isEnabled(JfrEvent.OldObjectSample)) {
              // Instantiate weak reference at the last possible time before allocations are not allowed
-             jfrSupport().sampleOldObject(new WeakReference<>(result), size);
+             jfrSupport().sample(new WeakReference<>(result), allocatedSize, arrayLength);
          }
     }
 
