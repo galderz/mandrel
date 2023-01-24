@@ -107,15 +107,14 @@ public final class JfrOldObjectSampler {
 
         if (cutoff <= 0) {
             // No reference chains
-            final long timestamp = JfrTicks.elapsedTicks();
-            writeEvents(timestamp, emitAll, chunkWriter);
+            writeEvents(emitAll, chunkWriter);
             return;
         }
 
         // todo: with reference chains
     }
 
-    private void writeEvents(long timestamp, boolean emitAll, JfrChunkWriter chunkWriter) {
+    private void writeEvents(boolean emitAll, JfrChunkWriter chunkWriter) {
         // todo add last sweep to sampler and handle !emitAll
         final long lastSweep = Long.MAX_VALUE;
 
@@ -149,6 +148,7 @@ public final class JfrOldObjectSampler {
 
             // A final pass to write the events
             current = list.head();
+            final long timestamp = JfrTicks.elapsedTicks();
             while (current != null) {
                 final long allocationTime = getAllocationTime(current);
                 final Object obj = getReference(current).get();
