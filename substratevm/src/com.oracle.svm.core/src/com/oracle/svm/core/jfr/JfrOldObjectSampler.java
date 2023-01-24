@@ -94,7 +94,7 @@ public final class JfrOldObjectSampler {
     /**
      * Remove a given sample from the sampler.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
+    @Uninterruptible(reason = "Accesses allocation sampler.")
     private void remove(Object[] sample) {
         final Object[] prev = getPrevious(sample);
         if (prev != null) {
@@ -113,7 +113,7 @@ public final class JfrOldObjectSampler {
      * as well as adjusting the list view links
      * and clearing its data.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
+    @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {
         final Object[] head = queue.poll();
         list.remove(head);
