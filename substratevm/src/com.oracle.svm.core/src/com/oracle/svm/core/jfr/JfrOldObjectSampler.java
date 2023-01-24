@@ -124,19 +124,18 @@ public final class JfrOldObjectSampler {
         final Object[] sample = samples.getSample(index);
 
         final Thread thread = Thread.currentThread();
-        // todo rename to heapUsedAtLastGC for consistency
-        final long usedAtLastGC = Heap.getHeap().getUsedAtLastGC();
+        final long heapUsedAtLastGC = Heap.getHeap().getUsedAtLastGC();
 
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            setSample(ref, allocatedSize, allocatedTime, 0L, 0L, usedAtLastGC, arrayLength, sample);
+            setSample(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength, sample);
         } else {
             // todo see if segfaults for retrieving stacktrace id go away
             //      https://gist.github.com/galderz/51020f04735ace36610cab1dd8c27c2c
             // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
             final long stackTraceId = 1;
             final long threadId = JavaThreads.getThreadId(thread);
-            setSample(ref, allocatedSize, allocatedTime, threadId, stackTraceId, usedAtLastGC, arrayLength, sample);
+            setSample(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength, sample);
         }
 
         queue.push(sample);
