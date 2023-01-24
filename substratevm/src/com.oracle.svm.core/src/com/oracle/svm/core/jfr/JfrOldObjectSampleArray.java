@@ -135,11 +135,11 @@ public class JfrOldObjectSampleArray {
     @Uninterruptible(reason = "Accesses allocation sampler.")
     static void clearSample(Object[] sample) {
         sample[REF_SLOT] = null;
-        sample[SPAN_SLOT] = 0;
-        sample[ALLOCATION_TIME_SLOT] = 0;
-        sample[THREAD_ID_SLOT] = 0;
-        sample[STACKTRACE_ID_SLOT] = 0;
-        sample[HEAP_USED_AT_LAST_GC_SLOT] = 0;
+        sample[SPAN_SLOT] = 0L;
+        sample[ALLOCATION_TIME_SLOT] = 0L;
+        sample[THREAD_ID_SLOT] = 0L;
+        sample[STACKTRACE_ID_SLOT] = 0L;
+        sample[HEAP_USED_AT_LAST_GC_SLOT] = 0L;
         sample[ARRAY_LENGTH_SLOT] = 0;
         sample[PREVIOUS_SLOT] = null;
     }
