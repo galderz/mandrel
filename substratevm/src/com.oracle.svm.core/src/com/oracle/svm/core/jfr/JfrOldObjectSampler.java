@@ -54,14 +54,19 @@ public final class JfrOldObjectSampler {
 
         totalAllocated += allocatedSize;
 
-        if (queue.isFull())
-        {
-            if (getSpan(queue.peek()) > allocatedSize)
-            {
-                return;
+        if (queue.isFull()) {
+            if (getSpan(queue.peek()) > allocatedSize) {
+                // Sample will not fit, try to scavenge
+                int numDead = scavenge();
+                if (numDead == 0) {
+                    // Sample will not fit and all objects still in use, return early
+                    return;
+                }
+            } else {
+                // Offered element has a higher priority,
+                // vacate from the lowest priority one and insert the element.
+                evict();
             }
-
-            evict();
         }
 
         // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
@@ -69,7 +74,46 @@ public final class JfrOldObjectSampler {
         store(ref, allocatedSize, JfrTicks.elapsedTicks(), arrayLength);
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
+    private int scavenge() {
+        int numDead = 0;
+        Object[] current = list.head();
+        while (current != null) {
+            Object[] next = list.next(current);
+            final WeakReference<?> ref = getReference(current);
+            if (ref.get() == null) {
+                remove(current);
+                numDead++;
+            }
+
+            current = next;
+        }
+        return numDead;
+    }
+
+    /**
+     * Remove a given sample from the sampler.
+     */
+    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
+    private void remove(Object[] sample) {
+        final Object[] prev = getPrevious(sample);
+        if (prev != null) {
+            queue.remove(prev);
+            setSpan(getSpan(sample) + getSpan(prev), prev);
+            queue.push(prev);
+        }
+        queue.remove(sample);
+        list.remove(sample);
+        clearSample(sample);
+    }
+
+    /**
+     * Evict the sample with the smallest span from the sampler.
+     * This includes removing it from the head of the queue,
+     * as well as adjusting the list view links
+     * and clearing its data.
+     */
+    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
     private void evict() {
         final Object[] head = queue.poll();
         list.remove(head);
