@@ -64,8 +64,6 @@ public final class JfrOldObjectSampler {
                 }
             }
 
-            // todo calling JfrTicks.elapsedTicks() throws error that time related code cannot be inlined
-            //      should we set it to a dummy value and fix it up (somehow?) when actually emitting the event?
             store(ref, allocatedSize, JfrTicks.elapsedTicks(), arrayLength);
         } finally {
             lock.unlock();
