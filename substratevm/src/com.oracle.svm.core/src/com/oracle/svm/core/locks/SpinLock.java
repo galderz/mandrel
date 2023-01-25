@@ -25,7 +25,13 @@ public class SpinLock {
      */
     @Uninterruptible(reason = "Called from uninterruptible code.")
     public boolean tryLock() {
-        final long threadId = Thread.currentThread().getId();
+        final Thread thread = Thread.currentThread();
+        // Note: thread can be null during shutdown, don't remove thread null check
+        if (thread == null) {
+            return false;
+        }
+
+        final long threadId = thread.getId();
         if (!lock.compareAndSet(NOT_HELD, threadId)) {
             if (threadId == lock.get()) {
                 throw VMError.shouldNotReachHere("This lock is not reentrant");
