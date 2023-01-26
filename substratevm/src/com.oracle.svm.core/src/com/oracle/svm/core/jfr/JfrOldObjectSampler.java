@@ -216,19 +216,4 @@ public final class JfrOldObjectSampler {
     private boolean isAliveAndOlderThan(Object obj, long lastSweep, long allocationTime) {
         return obj != null && allocationTime < lastSweep;
     }
-
-    // Resolve stacktraces from their ids for checkpointing
-    public void resolveStackTraces() {
-        // todo check if last != last resolved ?
-        // todo add is not dead check
-//        samples.stream()
-//                .filter(JfrOldObjectSample::hasStackTraceId)
-//                .forEach(this::resolveStackTrace);
-    }
-
-    private void resolveStackTrace(JfrOldObjectSample sample) {
-        // todo add blob cache support
-        // todo add method to jstacktrace repository to resolve from stacktrace ids to stactraces
-        // todo then serialize the stacktrace and cache it
-    }
 }
