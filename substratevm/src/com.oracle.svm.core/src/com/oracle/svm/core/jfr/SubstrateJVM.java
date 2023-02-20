@@ -348,8 +348,6 @@ public class SubstrateJVM {
         JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
         try {
             if (recording) {
-                finalizeCurrentChunk();
-
                 boolean existingFile = chunkWriter.hasOpenFile();
                 if (existingFile) {
                     chunkWriter.closeFile(metadataDescriptor, repositories);
@@ -369,12 +367,6 @@ public class SubstrateJVM {
         } finally {
             chunkWriter.unlock();
         }
-    }
-
-    // Guarded by unlocked chunk writer lock
-    private void finalizeCurrentChunk() {
-        // todo exclusive access on sampler?
-        oldObjectSampler.resolveStackTraces();
     }
 
     /** See {@link JVM#setFileNotification}. */

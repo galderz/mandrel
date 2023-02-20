@@ -43,7 +43,9 @@ public enum JfrType {
     GCCause("jdk.types.GCCause"),
     GCName("jdk.types.GCName"),
     VMOperation("jdk.types.VMOperationType"),
-    OldObject("jdk.types.OldObject");
+    OldObject("jdk.types.OldObject"),
+    OldObjectField("jdk.types.OldObjectField"),
+    Reference("jdk.types.Reference");
 
     private final long id;
 

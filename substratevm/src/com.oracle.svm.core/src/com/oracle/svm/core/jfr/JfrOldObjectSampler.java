@@ -5,6 +5,7 @@ import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -150,7 +151,8 @@ public final class JfrOldObjectSampler {
                 return;
             }
 
-            // todo: with reference chains
+            computePathToGcRoots();
+            writeEvents(emitAll, chunkWriter);
         } finally {
             lock.unlock();
         }
@@ -185,7 +187,6 @@ public final class JfrOldObjectSampler {
             // These need to be serialized before writing the events,
             // to ensure that constants are available for resolution
             // at the time old object sample events appear in the stream.
-            // oldObjectRepo.write(chunkWriter);
             chunkWriter.writeSingleCheckpointEvent(oldObjectRepo);
 
             // A final pass to write the events
@@ -211,6 +212,21 @@ public final class JfrOldObjectSampler {
         oldObjectRepo.clear();
 
         System.out.printf("Emit completed for %d samples%n", count);
+    }
+
+    private void computePathToGcRoots() {
+        // todo add last sweep to sampler
+        final long lastSweep = Long.MAX_VALUE;
+
+        Object[] current = list.head();
+        while (current != null) {
+            final long allocationTime = getAllocationTime(current);
+            final Object obj = getReference(current).get();
+            if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
+                SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(new PathToGcRoots().findPathToRoot(obj));
+            }
+            current = list.next(current);
+        }
     }
 
     private boolean isAliveAndOlderThan(Object obj, long lastSweep, long allocationTime) {
