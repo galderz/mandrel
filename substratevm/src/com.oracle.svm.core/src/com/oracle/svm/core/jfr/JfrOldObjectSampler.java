@@ -220,6 +220,8 @@ public final class JfrOldObjectSampler {
         // todo add last sweep to sampler
         final long lastSweep = Long.MAX_VALUE;
 
+//        new LeakToGcRoots().findPaths();
+
         final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
         final PathToGcRoots pathToGcRoots = new PathToGcRoots();
 
