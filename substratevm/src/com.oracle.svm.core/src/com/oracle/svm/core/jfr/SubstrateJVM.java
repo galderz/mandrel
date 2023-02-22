@@ -226,6 +226,7 @@ public class SubstrateJVM {
         threadLocal.initialize(options.threadBufferSize.getValue());
         globalMemory.initialize(options.globalBufferSize.getValue(), options.globalBufferCount.getValue());
         unlockedChunkWriter.initialize(options.maxChunkSize.getValue());
+        ImageSingletons.lookup(JfrOldObjectUtils.class).buildFieldsMap();
 
         recorderThread.start();
         initialized = true;
@@ -572,6 +573,8 @@ public class SubstrateJVM {
         JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
         try {
             oldObjectSampler.emit(cutoff, emitAll, skipBFS, chunkWriter);
+        } catch (Throwable t) {
+            t.printStackTrace();
         } finally {
             chunkWriter.unlock();
         }

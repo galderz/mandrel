@@ -1,61 +1,84 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.heap.UnknownObjectField;
+import com.oracle.svm.core.hub.DynamicHub;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 // todo rename class name to something more clear
 public final class JfrOldObjectUtils {
 
     @UnknownObjectField(types = {byte[].class}) private byte[] fieldsMapBytes;
 
-    private Map<String, List<Field>> fieldsMap;
+    @UnknownObjectField(types = {Object[][][].class}) private Object[][][] fieldsMap;
+
+    private static final int LOCATION_SLOT = 0;
+    private static final int NAME_SLOT = 1;
+    private static final int MODIFIERS_SLOT = 2;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectUtils() {
-        this.fieldsMap = new HashMap<>();
+    }
+
+    @Platforms(Platform.HOSTED_ONLY.class)
+    public void initialize(int size) {
+        fieldsMap = new Object[size][][];
     }
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public void setFieldsMapBytes(byte[] fieldsMapBytes) {
         this.fieldsMapBytes = fieldsMapBytes;
         System.out.println("Field map bytes set. Length: " + this.fieldsMapBytes.length);
-
-        // TODO is this the right place to do this?
-        addFieldsMap(fieldsMapBytes, this.fieldsMap);
-        System.out.println("Field map types set. Length: " + this.fieldsMap.size());
     }
 
-    public OldObjectField getOldObjectField(String className, int fieldOffset) {
-        final List<Field> fields = this.fieldsMap.get(className);
+    public void buildFieldsMap() {
+        // TODO is this the right place to do this?
+        addFieldsMap(fieldsMapBytes);
+        System.out.println("Field map types set. Length: " + this.fieldsMap.length);
+    }
+
+    public Object[] getOldObjectField(DynamicHub hub, int fieldOffset) {
+        final int typeId = hub.getTypeID();
+        final Object[] obj = this.fieldsMap[typeId];
+        final Object[][] fields = (Object[][]) obj;
         if (fields == null) {
-            throw new IllegalStateException("Class name must be present in field map");
+            return null;
+            // throw new IllegalStateException("Class name must be present in field map: " + hub.getName() + " offset: " + fieldOffset);
         }
 
-        for (int i = 0; i < fields.size(); i++) {
-            final Field field = fields.get(i);
-            if (field.location == fieldOffset) {
-                return new OldObjectField(field.name, field.modifiers);
+        for (int i = 0; i < fields.length; i++) {
+            final Object[] fieldElements = fields[i];
+            final int location = (int) fieldElements[LOCATION_SLOT];
+            if (location == fieldOffset) {
+                return fieldElements;
             }
         }
 
         throw new IllegalStateException("Field should have been found");
     }
 
+    static String getFieldName(Object[] field) {
+        return (String) field[NAME_SLOT];
+    }
+
+    static Integer getModifiers(Object[] field) {
+        return (Integer) field[MODIFIERS_SLOT];
+    }
+
     // todo derived from HeapDumpWriterImpl
-    private void addFieldsMap(byte[] data, Map<String, List<Field>> fieldsMap) {
+    private void addFieldsMap(byte[] data) {
         int offset = 0;
         while (offset < data.length) {
-            List<Field> fields;
+            List<Object[]> fields;
             String className = readString(data, offset);
             offset += className.length() + 1;
+            int typeId = readInt(data, offset);
+            offset += 4;
 
             if (data[offset] == 0 && data[offset + 1] == 0) {
                 /* No fields. */
@@ -68,7 +91,16 @@ public final class JfrOldObjectUtils {
                 offset = readFields(true, data, offset, fields);
                 offset++;
             }
-            fieldsMap.put(className, fields);
+
+            // Object[][] fieldsArray = new Object[fields.size()][];
+
+//            for (int i = 0; i < fields.size(); i++) {
+//                final Object[] fieldElements = fields.get(i);
+//                fieldsMap[typeId][i] = fieldElements;
+//            }
+
+            Object[][] fieldsArray = new Object[fields.size()][];
+            fieldsMap[typeId] = fields.toArray(fieldsArray);
         }
     }
 
@@ -98,7 +130,7 @@ public final class JfrOldObjectUtils {
     }
 
     // todo derived from HeapDumpWriterImpl
-    private int readFields(boolean isStatic, byte[] data, int dataOffset, List<Field> fields) {
+    private int readFields(boolean isStatic, byte[] data, int dataOffset, List<Object[]> fields) {
         int offset = dataOffset;
         while (data[offset] != 0) {
             /* Read field. */
@@ -114,7 +146,10 @@ public final class JfrOldObjectUtils {
             // char storageSig = (char) data[offset++];
             int location = readInt(data, offset);
             offset += 4;
-            Field fieldDef = new Field(location, fieldName, modifiers);
+            Object[] fieldDef = new Object[MODIFIERS_SLOT + 1];
+            fieldDef[LOCATION_SLOT] = location;
+            fieldDef[NAME_SLOT] = fieldName;
+            fieldDef[MODIFIERS_SLOT] = modifiers;
             fields.add(fieldDef);
         }
         return offset;
@@ -129,17 +164,17 @@ public final class JfrOldObjectUtils {
         return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4 << 0));
     }
 
-    private static final class Field {
-        private final int location;
-        private String name;
-        private int modifiers;
-
-        private Field(int location, String name, int modifiers) {
-            this.location = location;
-            this.name = name;
-            this.modifiers = modifiers;
-        }
-    }
+//    private static final class Field {
+//        private final int location;
+//        private String name;
+//        private int modifiers;
+//
+//        private Field(int location, String name, int modifiers) {
+//            this.location = location;
+//            this.name = name;
+//            this.modifiers = modifiers;
+//        }
+//    }
 
     public static final class OldObjectField {
         public final String name;

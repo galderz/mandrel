@@ -36,6 +36,7 @@ import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.heap.ReferenceAccess;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.VMOperationInfos;
+import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.hub.InteriorObjRefWalker;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.log.StringBuilderLog;
@@ -56,7 +57,10 @@ import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Determines paths from object to GC root.
@@ -74,9 +78,12 @@ final class PathToGcRoots {
     private final List<PathElement> path = new ArrayList<>();
 
     PathElement[] findPathToRoot(Object obj) {
+        System.out.println("PathToGcRoots.findPathToRoot enter");
+        System.out.println("obj = " + obj);
         PathEdge result = new PathEdge();
         FindPathToObjectOperation op = new FindPathToObjectOperation(this, obj, result);
         op.enqueue();
+        System.out.println("PathToGcRoots.findPathToRoot exit path.from=" + result.from + ", path.to=" + result.to);
         return getPath();
     }
 
@@ -314,11 +321,9 @@ final class PathToGcRoots {
     }
 
     private static class HeapObjRefVisitor extends AbstractVisitor implements ObjectReferenceVisitor {
-        private final JfrOldObjectUtils oldObjectUtils;
         private Pointer containerPointer;
 
         HeapObjRefVisitor() {
-            this.oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
         }
 
         @NeverInline("Starting a stack walk in the caller frame")
@@ -341,8 +346,7 @@ final class PathToGcRoots {
                 Pointer referentPointer = ReferenceAccess.singleton().readObjectAsUntrackedPointer(objRef, compressed);
                 if (target.matches(referentPointer.toObject())) {
                     UnsignedWord offset = objRef.subtract(containerPointer);
-                    final JfrOldObjectUtils.OldObjectField oldObjectField = oldObjectUtils.getOldObjectField(containerObject.getClass().getName(), UnsignedUtils.safeToInt(offset));
-                    result.fill(new HeapElement(containerObject, offset, oldObjectField.name, oldObjectField.modifiers), new LeafElement(referentPointer.toObject()));
+                    result.fill(new HeapElement(containerObject, offset), new LeafElement(referentPointer.toObject()));
                     return false;
                 }
             }
@@ -376,14 +380,14 @@ final class PathToGcRoots {
     public static class HeapElement extends PathElement {
         private final Object base;
         private final UnsignedWord offset;
-        final String fieldName;
-        final int fieldModifiers;
 
-        HeapElement(Object base, UnsignedWord offset, String fieldName, int fieldModifiers) {
+        HeapElement(Object base, UnsignedWord offset) {
             this.base = base;
             this.offset = offset;
-            this.fieldName = fieldName;
-            this.fieldModifiers = fieldModifiers;
+        }
+
+        public UnsignedWord getOffset() {
+            return offset;
         }
 
         @Override

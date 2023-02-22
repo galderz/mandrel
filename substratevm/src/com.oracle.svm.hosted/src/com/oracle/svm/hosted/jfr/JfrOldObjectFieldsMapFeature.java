@@ -2,11 +2,8 @@ package com.oracle.svm.hosted.jfr;
 
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
+import com.oracle.svm.core.hub.DynamicHubSupport;
 import com.oracle.svm.core.jfr.JfrOldObjectUtils;
-import com.oracle.svm.core.jfr.JfrTypeRepository;
-import com.oracle.svm.core.jfr.SubstrateJVM;
-import com.oracle.svm.core.jfr.traceid.JfrTraceId;
-import com.oracle.svm.core.jfr.traceid.JfrTraceIdMap;
 import com.oracle.svm.core.meta.SharedField;
 import com.oracle.svm.core.meta.SharedType;
 import com.oracle.svm.core.util.ByteArrayReader;
@@ -30,6 +27,13 @@ public class JfrOldObjectFieldsMapFeature implements InternalFeature {
         ImageSingletons.add(JfrOldObjectUtils.class, new JfrOldObjectUtils());
     }
 
+    @Override
+    public void beforeCompilation(BeforeCompilationAccess access) {
+        // todo trim down to only those that are instances
+        int mapSize = ImageSingletons.lookup(DynamicHubSupport.class).getMaxTypeId();
+        ImageSingletons.lookup(JfrOldObjectUtils.class).initialize(mapSize);
+    }
+
     /**
      * Write out fields info and their offsets.
      */
@@ -48,7 +52,6 @@ public class JfrOldObjectFieldsMapFeature implements InternalFeature {
         access.registerAsImmutable(fieldMap);
     }
 
-    // todo copied from HeapDumpHostedUtils
     @Platforms(Platform.HOSTED_ONLY.class)
     public static byte[] dumpFieldsMap(Collection<? extends SharedType> types) {
         UnsafeArrayTypeWriter writeBuffer = UnsafeArrayTypeWriter.create(ByteArrayReader.supportsUnalignedMemoryAccess());
@@ -74,6 +77,8 @@ public class JfrOldObjectFieldsMapFeature implements InternalFeature {
                 }
                 /* Write the class name */
                 writeString(writeBuffer, type.toClassName());
+                /* Write type id */
+                writeInt(writeBuffer, type.getHub().getTypeID());
 
                 /* Write each direct field and offset. */
                 for (ResolvedJavaField resolvedJavaField : inHotSpotFieldOrder(fields)) {

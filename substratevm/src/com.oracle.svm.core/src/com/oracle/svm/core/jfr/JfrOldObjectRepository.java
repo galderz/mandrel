@@ -1,19 +1,21 @@
 package com.oracle.svm.core.jfr;
 
+import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 
 final class JfrOldObjectRepository implements JfrConstantPool {
     // TODO key on weak refs rather than obj to avoid leaks?
-    public final Map<Object, OldObjectInfo> oldObjects = new HashMap<>();
-    public final Map<Object, OldObjectField> oldObjectFields = new HashMap<>();
+    public final Map<Object, OldObjectInfo> oldObjects = new IdentityHashMap<>();
+    public final Map<Object, OldObjectField> oldObjectFields = new IdentityHashMap<>();
     private long idCounter;
 //    private JfrBuffer oldObjectBuffer;
 //    private int numberOfSerializedOldObjects; // todo is oldObjects.size() not enough?
@@ -103,7 +105,11 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         oldObjects.putIfAbsent(object, new OldObjectInfo(idCounter++, -1, null));
     }
 
-    void addOldObjectsInPathToGcRoot(PathToGcRoots.PathElement[] pathToGcRoot) {
+    void addOldObjectsInPathToGcRoot(PathToGcRoots.PathElement[] pathToGcRoot, JfrOldObjectUtils oldObjectUtils) {
+        // System.out.println("pathToGcRoot = " + Arrays.toString(pathToGcRoot) + ", oldObjectUtils = " + oldObjectUtils);
+        System.out.println("JfrOldObjectRepository.addOldObjectsInPathToGcRoot");
+        System.out.println("pathToGcRoot size = " + pathToGcRoot.length);
+
         final Object gcRoot = pathToGcRoot[pathToGcRoot.length - 1].getObject();
         final long gcRootId = idCounter++;
         oldObjects.putIfAbsent(gcRoot, new OldObjectInfo(gcRootId, gcRootId, null));
@@ -115,7 +121,17 @@ final class JfrOldObjectRepository implements JfrConstantPool {
 
             if (currentPathElem instanceof PathToGcRoots.HeapElement) {
                 final PathToGcRoots.HeapElement currentHeapElem = (PathToGcRoots.HeapElement) currentPathElem;
-                oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, currentHeapElem.fieldName, currentHeapElem.fieldModifiers));
+                final DynamicHub hub = DynamicHub.fromClass(currentHeapElem.getObject().getClass());
+                if (hub.isArray()) {
+                    // todo deal with arrays
+                    continue;
+                }
+                final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, UnsignedUtils.safeToInt(currentHeapElem.getOffset()));
+                if (oldObjectField != null) {
+                    final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
+                    final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
+                    oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
+                }
             }
 
             oldObjects.putIfAbsent(current, new OldObjectInfo(idCounter++, gcRootId, parent));

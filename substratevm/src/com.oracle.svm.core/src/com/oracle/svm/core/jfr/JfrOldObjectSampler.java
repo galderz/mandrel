@@ -159,6 +159,7 @@ public final class JfrOldObjectSampler {
     }
 
     private void writeEvents(boolean emitAll, JfrChunkWriter chunkWriter) {
+        System.out.println("JfrOldObjectSampler.writeEvents start");
         // todo add last sweep to sampler and handle !emitAll
         final long lastSweep = Long.MAX_VALUE;
 
@@ -215,18 +216,27 @@ public final class JfrOldObjectSampler {
     }
 
     private void computePathToGcRoots() {
+        System.out.println("JfrOldObjectSampler.computePathToGcRoots start");
         // todo add last sweep to sampler
         final long lastSweep = Long.MAX_VALUE;
+
+        final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
+        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
 
         Object[] current = list.head();
         while (current != null) {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(new PathToGcRoots().findPathToRoot(obj));
+                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
+                if (pathToRoot.length > 0) {
+                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);
+                }
             }
             current = list.next(current);
         }
+
+        System.out.println("JfrOldObjectSampler.computePathToGcRoots end");
     }
 
     private boolean isAliveAndOlderThan(Object obj, long lastSweep, long allocationTime) {

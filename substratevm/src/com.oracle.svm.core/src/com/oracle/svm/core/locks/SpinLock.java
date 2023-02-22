@@ -34,7 +34,8 @@ public class SpinLock {
         final long threadId = thread.getId();
         if (!lock.compareAndSet(NOT_HELD, threadId)) {
             if (threadId == lock.get()) {
-                throw VMError.shouldNotReachHere("This lock is not reentrant");
+                // throw VMError.shouldNotReachHere("This lock is not reentrant");
+                return false; // this lock is not reentrant
             }
 
             return false;
