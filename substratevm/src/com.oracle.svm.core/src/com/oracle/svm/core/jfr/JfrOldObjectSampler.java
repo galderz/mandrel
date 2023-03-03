@@ -10,6 +10,9 @@ import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.clearSample;
 import static com.oracle.svm.core.jfr.JfrOldObjectSampleArray.getAllocationTime;
@@ -223,20 +226,27 @@ public final class JfrOldObjectSampler {
 //        new LeakToGcRoots().findPaths();
 
         final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
-        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
+//        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
+
+        final Set<Object> leakTargets = Collections.newSetFromMap(new IdentityHashMap<>());
 
         Object[] current = list.head();
         while (current != null) {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
-                if (pathToRoot.length > 0) {
-                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);
-                }
+                leakTargets.add(obj);
+//                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
+//                if (pathToRoot.length > 0) {
+//                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);
+//                }
             }
             current = list.next(current);
         }
+
+        // System.out.println("JfrOldObjectSampler.computePathToGcRoots leak targets: " + leakTargets);
+        final BfsPathToGcRoots bfs = new BfsPathToGcRoots();
+        bfs.findPathToGcRoots(leakTargets);
 
         System.out.println("JfrOldObjectSampler.computePathToGcRoots end");
     }

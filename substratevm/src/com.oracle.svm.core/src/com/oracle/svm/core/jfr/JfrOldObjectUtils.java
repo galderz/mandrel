@@ -2,6 +2,7 @@ package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.heap.UnknownObjectField;
 import com.oracle.svm.core.hub.DynamicHub;
+import org.graalvm.nativebridge.In;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -42,6 +43,11 @@ public final class JfrOldObjectUtils {
         System.out.println("Field map types set. Length: " + this.fieldsMap.length);
     }
 
+    public Object[][] getOldObjectFields(Class<?> clazz) {
+        final DynamicHub hub = DynamicHub.fromClass(clazz);
+        return this.fieldsMap[hub.getTypeID()];
+    }
+
     public Object[] getOldObjectField(DynamicHub hub, int fieldOffset) {
         final int typeId = hub.getTypeID();
         final Object[] obj = this.fieldsMap[typeId];
@@ -60,6 +66,10 @@ public final class JfrOldObjectUtils {
         }
 
         throw new IllegalStateException("Field should have been found");
+    }
+
+    static int getFieldLocation(Object[] field) {
+        return (int) field[LOCATION_SLOT];
     }
 
     static String getFieldName(Object[] field) {
