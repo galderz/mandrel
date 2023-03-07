@@ -39,6 +39,7 @@ import static com.oracle.svm.core.posix.headers.Mman.NoTransitions.mprotect;
 import static com.oracle.svm.core.posix.headers.Mman.NoTransitions.munmap;
 import static org.graalvm.word.WordFactory.nullPointer;
 
+import com.oracle.svm.core.log.Log;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
@@ -123,6 +124,8 @@ public class PosixVirtualMemoryProvider implements VirtualMemoryProvider {
         mappingSize = UnsignedUtils.roundUp(mappingSize, granularity);
         int flags = MAP_ANON() | MAP_PRIVATE() | MAP_NORESERVE();
         assert !(executable && Platform.includedIn(Platform.MACOS_AARCH64.class)) : "Memory reserved with MAP_JIT cannot be committed with MAP_FIXED later";
+        Log log = Log.log();
+        log.string("Reserve size: ").unsigned(mappingSize).newline();
         Pointer mappingBegin = mmap(nullPointer(), mappingSize, PROT_NONE(), flags, NO_FD, NO_FD_OFFSET);
         if (mappingBegin.equal(MAP_FAILED())) {
             return nullPointer();
