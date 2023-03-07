@@ -29,6 +29,7 @@ import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 
 import java.lang.ref.Reference;
 
+import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
@@ -369,6 +370,13 @@ public final class GCImpl implements GC {
         HeapImpl heap = HeapImpl.getHeapImpl();
         sizeBefore = ((SubstrateGCOptions.PrintGC.getValue() || SerialGCOptions.PrintHeapShape.getValue()) ? getChunkBytes() : WordFactory.zero());
         if (SubstrateGCOptions.VerboseGC.getValue() && getCollectionEpoch().equal(0)) {
+            verboseGCLog.string("Rounding test: ").newline();
+            long alignedHeapChunkSize = 1L * 1024L * 1024L;
+            final UnsignedWord nbytes = WordFactory.unsigned(alignedHeapChunkSize);
+            final UnsignedWord mappingSize = nbytes;
+            final UnsignedWord granularity = WordFactory.unsigned(4096L);
+            verboseGCLog.unsigned(UnsignedUtils.roundUp(mappingSize, granularity)).newline();
+
             verboseGCLog.string("[Heap policy parameters: ").newline();
             verboseGCLog.string("  YoungGenerationSize: ").unsigned(getPolicy().getMaximumYoungGenerationSize()).newline();
             verboseGCLog.string("      MaximumHeapSize: ").unsigned(getPolicy().getMaximumHeapSize()).newline();
