@@ -22,10 +22,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class BfsPathToGcRoots {
-    private static final ImageHeapRootsRefVisitor bootImageHeapObjRefVisitor = new ImageHeapRootsRefVisitor();
+    // private static final ImageHeapRootsRefVisitor bootImageHeapObjRefVisitor = new ImageHeapRootsRefVisitor();
     private static final AddressHighBitsObjectRefVisitor addressHighBitsObjRefVisitor = new AddressHighBitsObjectRefVisitor();
     private static final HeapObjRefVisitor heapObjRefVisitor = new HeapObjRefVisitor();
     private static final HeapObjectVisitor heapObjectVisitor = new HeapObjectVisitor();
@@ -41,15 +42,15 @@ public class BfsPathToGcRoots {
         final Set<Object> seen = Collections.newSetFromMap(new WeakIdentityHashMap<>()); // todo switch to identity hash map
 
         final int classCount = Heap.getHeap().getLoadedClasses().size();
-        final int queueCapacity = classCount * 16384;
+        final int queueCapacity = classCount * (1 << 15);
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
 
-        final Set<Object> roots = findRoots(queue);
+        // final Set<Object> roots = findRoots(queue);
 
         final int objectAlignment = ConfigurationValues.getObjectLayout().getAlignment();
         final BitMap bitMap = new BitMap(objectAlignment);
-        final HighBitMap highBits = findHighBits(bitMap);
-        final LowBitMap lowBits = new LowBitMap(highBits, bitMap);
+        final HighBitMap highBits = markHighBits(bitMap);
+        final LowBitMap lowBits = new LowBitMap(highBits.getHighBitIndexes(), bitMap);
         findAllPaths(queue, lowBits);
 
         // findPathFromRoot(roots, queue, targets, results, seen);
@@ -59,8 +60,12 @@ public class BfsPathToGcRoots {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.findAllPaths").newline();
         // TODO: find in image heap and stack too
+        long start = System.nanoTime();
         findAllPathsInHeap(queue, lowBits);
-        log.string("BfsPathToGcRoots.findAllPaths queue size ").unsigned(queue.size()).newline();
+        long finish = System.nanoTime();
+        long timeElapsed = finish - start;
+        log.string("BfsPathToGcRoots.findAllPaths low bits mark count ").unsigned(lowBits.count).string(", duration ").unsigned(TimeUnit.NANOSECONDS.toSeconds(timeElapsed)).string(" seconds").newline();
+//        log.string("BfsPathToGcRoots.findAllPaths queue size ").unsigned(queue.size()).newline();
     }
 
     private static void findAllPathsInHeap(EdgeQueue queue, LowBitMap lowBits) {
@@ -68,30 +73,36 @@ public class BfsPathToGcRoots {
         Heap.getHeap().walkObjects(heapObjectVisitor);
     }
 
-    private HighBitMap findHighBits(BitMap bitMap) {
+    private HighBitMap markHighBits(BitMap bitMap) {
         final Log log = Log.log();
-        log.string("BfsPathToGcRoots.findHighBits").newline();
+        log.string("BfsPathToGcRoots.markHighBits").newline();
         final HighBitMap highBits = new HighBitMap(bitMap);
-        final AddressHighBitsObjectVisitor visitor = new AddressHighBitsObjectVisitor(highBits);
-        Heap.getHeap().walkImageHeapObjects(visitor);
-        log.string("BfsPathToGcRoots.findHighBits unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
+        markHighBitsInHeap(highBits);
+        log.string("BfsPathToGcRoots.markHighBits unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
         return highBits;
     }
 
-    private static Set<Object> findRoots(EdgeQueue queue) {
+    private static void markHighBitsInHeap(HighBitMap highBits) {
         final Log log = Log.log();
-        log.string("BfsPathToGcRoots.findRoots").newline();
-        final ImageHeapRootsVisitor visitor = new ImageHeapRootsVisitor(queue);
-        Heap.getHeap().walkImageHeapObjects(visitor);
-        log.string("BfsPathToGcRoots.findRoots roots queue size ").unsigned(queue.size()).newline();
-        final Set<Object> roots = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (int i = 0; i < queue.size(); i++) {
-            final Object to = queue.getTo(i);
-            roots.add(to);
-        }
-        queue.clear();
-        return roots;
+        log.string("BfsPathToGcRoots.markHighBitsInHeap").newline();
+        Heap.getHeap().walkImageHeapObjects(new AddressHighBitsObjectVisitor(highBits));
+        log.string("BfsPathToGcRoots.markHighBitsInHeap unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
     }
+
+//    private static Set<Object> findRoots(EdgeQueue queue) {
+//        final Log log = Log.log();
+//        log.string("BfsPathToGcRoots.findRoots").newline();
+//        final ImageHeapRootsVisitor visitor = new ImageHeapRootsVisitor(queue);
+//        Heap.getHeap().walkImageHeapObjects(visitor);
+//        log.string("BfsPathToGcRoots.findRoots roots queue size ").unsigned(queue.size()).newline();
+//        final Set<Object> roots = Collections.newSetFromMap(new IdentityHashMap<>());
+//        for (int i = 0; i < queue.size(); i++) {
+//            final Object to = queue.getTo(i);
+//            roots.add(to);
+//        }
+//        queue.clear();
+//        return roots;
+//    }
 
 //    private void findPathFromRoot(Set<Object> roots, EdgeQueue queue, Set<Object> samples, List<Path> results, Set<Object> seen) {
 //        assert VMOperation.isInProgressAtSafepoint();
@@ -183,7 +194,7 @@ public class BfsPathToGcRoots {
             final long address = Word.objectToUntrackedPointer(obj).rawValue();
             highBits.mark(address);
             addressHighBitsObjRefVisitor.initialize(highBits);
-            return InteriorObjRefWalker.walkObject(obj, bootImageHeapObjRefVisitor);
+            return InteriorObjRefWalker.walkObject(obj, addressHighBitsObjRefVisitor);
         }
     }
 
@@ -206,38 +217,38 @@ public class BfsPathToGcRoots {
         }
     }
 
-    private static class ImageHeapRootsVisitor implements ObjectVisitor {
-        private final EdgeQueue queue;
+//    private static class ImageHeapRootsVisitor implements ObjectVisitor {
+//        private final EdgeQueue queue;
+//
+//        public ImageHeapRootsVisitor(EdgeQueue queue) {
+//            this.queue = queue;
+//        }
+//
+//        @Override
+//        public boolean visitObject(Object obj) {
+//            queue.push(obj);
+//            bootImageHeapObjRefVisitor.initialize(queue);
+//            return InteriorObjRefWalker.walkObject(obj, bootImageHeapObjRefVisitor);
+//        }
+//    }
 
-        public ImageHeapRootsVisitor(EdgeQueue queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public boolean visitObject(Object obj) {
-            queue.push(obj);
-            bootImageHeapObjRefVisitor.initialize(queue);
-            return InteriorObjRefWalker.walkObject(obj, bootImageHeapObjRefVisitor);
-        }
-    }
-
-    private static class ImageHeapRootsRefVisitor implements ObjectReferenceVisitor {
-        private EdgeQueue queue;
-
-        void initialize(EdgeQueue queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public boolean visitObjectReference(Pointer objRef, boolean compressed, Object holderObject) {
-            if (objRef.isNull()) {
-                return true;
-            }
-            Object referent = ReferenceAccess.singleton().readObjectAt(objRef, compressed);
-            queue.push(referent);
-            return true;
-        }
-    }
+//    private static class ImageHeapRootsRefVisitor implements ObjectReferenceVisitor {
+//        private EdgeQueue queue;
+//
+//        void initialize(EdgeQueue queue) {
+//            this.queue = queue;
+//        }
+//
+//        @Override
+//        public boolean visitObjectReference(Pointer objRef, boolean compressed, Object holderObject) {
+//            if (objRef.isNull()) {
+//                return true;
+//            }
+//            Object referent = ReferenceAccess.singleton().readObjectAt(objRef, compressed);
+//            queue.push(referent);
+//            return true;
+//        }
+//    }
 
     private static class HeapObjectVisitor implements ObjectVisitor {
         private EdgeQueue queue;
@@ -287,10 +298,15 @@ public class BfsPathToGcRoots {
             Object containerObject = containerPointer.toObject();
             if (!isInterfering(containerObject)) {
                 Pointer referentPointer = ReferenceAccess.singleton().readObjectAsUntrackedPointer(objRef, compressed);
-                if (lowBits.mark(referentPointer.rawValue())) {
-                    UnsignedWord offset = objRef.subtract(containerPointer);
-                    queue.push(containerObject, offset, referentPointer.toObject());
-                }
+
+//                queue.push(containerObject, referentPointer, referentPointer.toObject());
+
+                lowBits.mark(referentPointer.rawValue());
+
+//                if (lowBits.mark(referentPointer.rawValue())) {
+//                    UnsignedWord offset = objRef.subtract(containerPointer);
+//                    queue.push(containerObject, offset, referentPointer.toObject());
+//                }
             }
             return true;
         }
@@ -481,10 +497,10 @@ public class BfsPathToGcRoots {
     {
         final NoAllocFixedIntToObjectMap<NoAllocFixedBitSet> lowBitSets;
         final BitMap bitMap;
+        long count;
 
-        LowBitMap(HighBitMap highBits, BitMap bitMap)
+        LowBitMap(List<Integer> highBitIndexes, BitMap bitMap)
         {
-            final List<Integer> highBitIndexes = highBits.getHighBitIndexes();
             this.lowBitSets = new NoAllocFixedIntToObjectMap<>(highBitIndexes.size());
             for (int i = 0; i < highBitIndexes.size(); i++) {
                 final Integer highBitIndex = highBitIndexes.get(i);
@@ -501,13 +517,15 @@ public class BfsPathToGcRoots {
         boolean mark(long number) {
             final int highBits = this.bitMap.getHighBits(number);
             final NoAllocFixedBitSet bitSet = lowBitSets.get(highBits);
-            final int lowBits = this.bitMap.getLowBits(number);
-            final boolean isMarked = bitSet.get(lowBits);
-            if (isMarked) {
-                return false;
-            }
+//            final int lowBits = this.bitMap.getLowBits(number);
+//            final boolean isMarked = bitSet.get(lowBits);
+//            if (isMarked) {
+//                return false;
+//            }
 
-            bitSet.set(lowBits);
+            count = count + highBits % 2;
+//            count = count + lowBits % 2;
+            count = count + bitSet.words.length % 2;
             return true;
         }
     }
@@ -572,7 +590,7 @@ public class BfsPathToGcRoots {
 
         NoAllocFixedIntToObjectMap()
         {
-            this(8, NoAllocFixedIntToObjectMap::hash);
+            this(MIN_CAPACITY, NoAllocFixedIntToObjectMap::hash);
         }
 
         NoAllocFixedIntToObjectMap(int capacity)
