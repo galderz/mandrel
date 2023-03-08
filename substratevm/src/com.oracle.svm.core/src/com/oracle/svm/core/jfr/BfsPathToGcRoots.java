@@ -41,7 +41,7 @@ public class BfsPathToGcRoots {
         final Set<Object> seen = Collections.newSetFromMap(new WeakIdentityHashMap<>()); // todo switch to identity hash map
 
         final int classCount = Heap.getHeap().getLoadedClasses().size();
-        final int queueCapacity = classCount * 4096;
+        final int queueCapacity = classCount * 16384;
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
 
         final Set<Object> roots = findRoots(queue);
@@ -479,16 +479,16 @@ public class BfsPathToGcRoots {
 
     static class LowBitMap
     {
-        final IntToObjectMap<NoAllocationBitSet> lowBitSets;
+        final NoAllocFixedIntToObjectMap<NoAllocFixedBitSet> lowBitSets;
         final BitMap bitMap;
 
         LowBitMap(HighBitMap highBits, BitMap bitMap)
         {
             final List<Integer> highBitIndexes = highBits.getHighBitIndexes();
-            this.lowBitSets = new IntToObjectMap<>(highBitIndexes.size());
+            this.lowBitSets = new NoAllocFixedIntToObjectMap<>(highBitIndexes.size());
             for (int i = 0; i < highBitIndexes.size(); i++) {
                 final Integer highBitIndex = highBitIndexes.get(i);
-                lowBitSets.put(highBitIndex, new NoAllocationBitSet(1 << bitMap.lowBitsCount));
+                lowBitSets.put(highBitIndex, new NoAllocFixedBitSet(1 << bitMap.lowBitsCount));
             }
             this.bitMap = bitMap;
         }
@@ -500,7 +500,7 @@ public class BfsPathToGcRoots {
          */
         boolean mark(long number) {
             final int highBits = this.bitMap.getHighBits(number);
-            final NoAllocationBitSet bitSet = lowBitSets.get(highBits);
+            final NoAllocFixedBitSet bitSet = lowBitSets.get(highBits);
             final int lowBits = this.bitMap.getLowBits(number);
             final boolean isMarked = bitSet.get(lowBits);
             if (isMarked) {
@@ -514,15 +514,15 @@ public class BfsPathToGcRoots {
 
     static class HighBitMap
     {
-        final NoAllocationBitSet zeroLedBits;
-        final NoAllocationBitSet oneLedBits;
+        final NoAllocFixedBitSet zeroLedBits;
+        final NoAllocFixedBitSet oneLedBits;
         final BitMap bitMap;
 
         HighBitMap(BitMap bitMap)
         {
             int highBitsCount = 64 - bitMap.lowBitsCount - bitMap.logAlignment - 1;
-            this.zeroLedBits = new NoAllocationBitSet(1 << highBitsCount);
-            this.oneLedBits = new NoAllocationBitSet(1 << highBitsCount);
+            this.zeroLedBits = new NoAllocFixedBitSet(1 << highBitsCount);
+            this.oneLedBits = new NoAllocFixedBitSet(1 << highBitsCount);
             this.bitMap = bitMap;
         }
 
@@ -551,32 +551,38 @@ public class BfsPathToGcRoots {
             return Long.signum(number);
         }
 
-        private void addMarkedBitIndexes(NoAllocationBitSet zeroLedBits, List<Integer> indexes) {
-            for (int i = zeroLedBits.nextSetBit(0); i != -1; i = zeroLedBits.nextSetBit(i + 1)) {
+        private void addMarkedBitIndexes(NoAllocFixedBitSet bitSet, List<Integer> indexes) {
+            for (int i = bitSet.nextSetBit(0); i != -1; i = bitSet.nextSetBit(i + 1)) {
                 indexes.add(i);
             }
         }
     }
 
-    static class IntToObjectMap<V>
+    /**
+     * A fixed-size, allocation free, int to object map.
+     */
+    static class NoAllocFixedIntToObjectMap<V>
     {
+        private static final int MIN_CAPACITY = 4;
+
         private final int[] keys;
         private final Object[] values;
         private final Function<Integer, Integer> hashFn;
         private int size;
 
-        IntToObjectMap()
+        NoAllocFixedIntToObjectMap()
         {
-            this(8, IntToObjectMap::hash);
+            this(8, NoAllocFixedIntToObjectMap::hash);
         }
 
-        IntToObjectMap(int capacity)
+        NoAllocFixedIntToObjectMap(int capacity)
         {
-            this(capacity, IntToObjectMap::hash);
+            this(capacity, NoAllocFixedIntToObjectMap::hash);
         }
 
-        IntToObjectMap(int capacity, Function<Integer, Integer> hashFn)
+        NoAllocFixedIntToObjectMap(int initialCapacity, Function<Integer, Integer> hashFn)
         {
+            int capacity = findNextPositivePowerOfTwo(Math.max(initialCapacity, MIN_CAPACITY));
             keys = new int[capacity];
             values = new Object[capacity];
             this.hashFn = hashFn;
@@ -651,12 +657,16 @@ public class BfsPathToGcRoots {
         {
             return hashFn.apply(value) & mask;
         }
+
+        private static int findNextPositivePowerOfTwo(final int value) {
+            return 1 << (32 - Integer.numberOfLeadingZeros(value - 1));
+        }
     }
 
     /**
      * A fixed-size, allocation free, bit set.
      */
-    static final class NoAllocationBitSet
+    static final class NoAllocFixedBitSet
     {
         static final int ADDRESS_BITS_PER_WORD = 6;
         static final long WORD_MASK = 0xffffffffffffffffL;
@@ -664,7 +674,7 @@ public class BfsPathToGcRoots {
         final long[] words;
         int wordsInUse = 0;
 
-        NoAllocationBitSet(int numberOfBits)
+        NoAllocFixedBitSet(int numberOfBits)
         {
             words = new long[wordIndex(numberOfBits - 1) + 1];
         }
