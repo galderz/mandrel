@@ -18,16 +18,13 @@ import org.graalvm.word.UnsignedWord;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 public class BfsPathToGcRoots {
     // private static final ImageHeapRootsRefVisitor bootImageHeapObjRefVisitor = new ImageHeapRootsRefVisitor();
-    private static final AddressHighBitsObjectRefVisitor addressHighBitsObjRefVisitor = new AddressHighBitsObjectRefVisitor();
+    private static final ObjectRefHighBitsVisitor addressHighBitsObjRefVisitor = new ObjectRefHighBitsVisitor();
     private static final HeapObjRefVisitor heapObjRefVisitor = new HeapObjRefVisitor();
     private static final HeapObjectVisitor heapObjectVisitor = new HeapObjectVisitor();
 
@@ -42,7 +39,7 @@ public class BfsPathToGcRoots {
         final Set<Object> seen = Collections.newSetFromMap(new WeakIdentityHashMap<>()); // todo switch to identity hash map
 
         final int classCount = Heap.getHeap().getLoadedClasses().size();
-        final int queueCapacity = classCount * (1 << 15);
+        final int queueCapacity = classCount * (1 << 10);
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
 
         // final Set<Object> roots = findRoots(queue);
@@ -77,6 +74,7 @@ public class BfsPathToGcRoots {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.markHighBits").newline();
         final HighBitMap highBits = new HighBitMap(bitMap);
+        markHighBitsInImageHeap(highBits);
         markHighBitsInHeap(highBits);
         log.string("BfsPathToGcRoots.markHighBits unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
         return highBits;
@@ -85,8 +83,15 @@ public class BfsPathToGcRoots {
     private static void markHighBitsInHeap(HighBitMap highBits) {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.markHighBitsInHeap").newline();
-        Heap.getHeap().walkImageHeapObjects(new AddressHighBitsObjectVisitor(highBits));
+        Heap.getHeap().walkObjects(new ObjectHighBitsVisitor(highBits));
         log.string("BfsPathToGcRoots.markHighBitsInHeap unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
+    }
+
+    private static void markHighBitsInImageHeap(HighBitMap highBits) {
+        final Log log = Log.log();
+        log.string("BfsPathToGcRoots.markHighBitsInImageHeap").newline();
+        Heap.getHeap().walkImageHeapObjects(new ObjectHighBitsVisitor(highBits));
+        log.string("BfsPathToGcRoots.markHighBitsInImageHeap unique high bit indexes: ").string(highBits.getHighBitIndexes().toString()).newline();
     }
 
 //    private static Set<Object> findRoots(EdgeQueue queue) {
@@ -182,10 +187,10 @@ public class BfsPathToGcRoots {
 //        Heap.getHeap().walkObjects(heapObjectVisitor);
 //    }
 
-    private static class AddressHighBitsObjectVisitor implements ObjectVisitor {
+    private static class ObjectHighBitsVisitor implements ObjectVisitor {
         private final HighBitMap highBits;
 
-        private AddressHighBitsObjectVisitor(HighBitMap highBits) {
+        private ObjectHighBitsVisitor(HighBitMap highBits) {
             this.highBits = highBits;
         }
 
@@ -198,7 +203,7 @@ public class BfsPathToGcRoots {
         }
     }
 
-    private static class AddressHighBitsObjectRefVisitor implements ObjectReferenceVisitor {
+    private static class ObjectRefHighBitsVisitor implements ObjectReferenceVisitor {
         private HighBitMap highBits;
 
         void initialize(HighBitMap highBits) {
@@ -265,8 +270,11 @@ public class BfsPathToGcRoots {
         @Override
         public boolean visitObject(Object containerObject) {
             Pointer containerPointer = Word.objectToUntrackedPointer(containerObject);
-            heapObjRefVisitor.initialize(containerPointer, queue, lowBits);
-            return InteriorObjRefWalker.walkObject(containerObject, heapObjRefVisitor);
+            if (lowBits.mark(containerPointer.rawValue())) {
+                heapObjRefVisitor.initialize(containerPointer, queue, lowBits);
+                InteriorObjRefWalker.walkObject(containerObject, heapObjRefVisitor);
+            }
+            return true;
         }
     }
 
