@@ -64,8 +64,8 @@ public class BfsPathToGcRoots {
         findAllPathsInHeap(queue, lowBits);
         long finish = System.nanoTime();
         long timeElapsed = finish - start;
-        log.string("BfsPathToGcRoots.findAllPaths low bits mark count ").unsigned(lowBits.count).string(", duration ").unsigned(TimeUnit.NANOSECONDS.toSeconds(timeElapsed)).string(" seconds").newline();
-//        log.string("BfsPathToGcRoots.findAllPaths queue size ").unsigned(queue.size()).newline();
+//        log.string("BfsPathToGcRoots.findAllPaths low bits mark count ").unsigned(lowBits.count).string(", duration ").unsigned(TimeUnit.NANOSECONDS.toSeconds(timeElapsed)).string(" seconds").newline();
+        log.string("BfsPathToGcRoots.findAllPaths queue size ").unsigned(queue.size()).newline();
     }
 
     private static void findAllPathsInHeap(EdgeQueue queue, LowBitMap lowBits) {
@@ -301,12 +301,12 @@ public class BfsPathToGcRoots {
 
 //                queue.push(containerObject, referentPointer, referentPointer.toObject());
 
-                lowBits.mark(referentPointer.rawValue());
+//                lowBits.mark(referentPointer.rawValue());
 
-//                if (lowBits.mark(referentPointer.rawValue())) {
-//                    UnsignedWord offset = objRef.subtract(containerPointer);
-//                    queue.push(containerObject, offset, referentPointer.toObject());
-//                }
+                if (lowBits.mark(referentPointer.rawValue())) {
+                    UnsignedWord offset = objRef.subtract(containerPointer);
+                    queue.push(containerObject, offset, referentPointer.toObject());
+                }
             }
             return true;
         }
@@ -497,7 +497,7 @@ public class BfsPathToGcRoots {
     {
         final NoAllocFixedIntToObjectMap<NoAllocFixedBitSet> lowBitSets;
         final BitMap bitMap;
-        long count;
+//        long count;
 
         LowBitMap(List<Integer> highBitIndexes, BitMap bitMap)
         {
@@ -517,15 +517,17 @@ public class BfsPathToGcRoots {
         boolean mark(long number) {
             final int highBits = this.bitMap.getHighBits(number);
             final NoAllocFixedBitSet bitSet = lowBitSets.get(highBits);
-//            final int lowBits = this.bitMap.getLowBits(number);
-//            final boolean isMarked = bitSet.get(lowBits);
-//            if (isMarked) {
-//                return false;
-//            }
+            final int lowBits = this.bitMap.getLowBits(number);
+            final boolean isMarked = bitSet.get(lowBits);
+            if (isMarked) {
+                return false;
+            }
 
-            count = count + highBits % 2;
-//            count = count + lowBits % 2;
-            count = count + bitSet.words.length % 2;
+//            count = count + highBits % 2;
+////            count = count + lowBits % 2;
+//            count = count + bitSet.words.length % 2;
+
+            bitSet.set(lowBits);
             return true;
         }
     }
@@ -585,25 +587,18 @@ public class BfsPathToGcRoots {
 
         private final int[] keys;
         private final Object[] values;
-        private final Function<Integer, Integer> hashFn;
         private int size;
 
         NoAllocFixedIntToObjectMap()
         {
-            this(MIN_CAPACITY, NoAllocFixedIntToObjectMap::hash);
+            this(MIN_CAPACITY);
         }
 
-        NoAllocFixedIntToObjectMap(int capacity)
-        {
-            this(capacity, NoAllocFixedIntToObjectMap::hash);
-        }
-
-        NoAllocFixedIntToObjectMap(int initialCapacity, Function<Integer, Integer> hashFn)
+        NoAllocFixedIntToObjectMap(int initialCapacity)
         {
             int capacity = findNextPositivePowerOfTwo(Math.max(initialCapacity, MIN_CAPACITY));
             keys = new int[capacity];
             values = new Object[capacity];
-            this.hashFn = hashFn;
         }
 
         int size()
@@ -623,12 +618,13 @@ public class BfsPathToGcRoots {
             int index = hash(key, mask);
 
             Object value = values[index];
-            while (Objects.nonNull(value))
+            while (value != null)
             {
                 if (keys[index] == key)
                     break;
 
                 index = ++index & mask;
+                value = values[index];
             }
 
             return (V) value;
@@ -643,7 +639,7 @@ public class BfsPathToGcRoots {
             int index = hash(key, mask);
 
             Object prevValue = values[index];
-            while (Objects.nonNull(prevValue))
+            while (prevValue != null)
             {
                 if (keys[index] == key)
                     break;
@@ -673,7 +669,7 @@ public class BfsPathToGcRoots {
 
         private int hash(int value, int mask)
         {
-            return hashFn.apply(value) & mask;
+            return hash(value) & mask;
         }
 
         private static int findNextPositivePowerOfTwo(final int value) {
