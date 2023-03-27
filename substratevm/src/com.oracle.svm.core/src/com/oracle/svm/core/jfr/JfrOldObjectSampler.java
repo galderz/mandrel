@@ -154,7 +154,7 @@ public final class JfrOldObjectSampler {
                 return;
             }
 
-            computePathToGcRoots();
+            writePathToGcRoots();
             writeEvents(emitAll, chunkWriter);
         } finally {
             lock.unlock();
@@ -218,24 +218,24 @@ public final class JfrOldObjectSampler {
         System.out.printf("Emit completed for %d samples%n", count);
     }
 
-    private void computePathToGcRoots() {
-        System.out.println("JfrOldObjectSampler.computePathToGcRoots start");
+    private void writePathToGcRoots() {
+        System.out.println("JfrOldObjectSampler.writePathToGcRoots");
         // todo add last sweep to sampler
         final long lastSweep = Long.MAX_VALUE;
 
 //        new LeakToGcRoots().findPaths();
 
-        final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
+
 //        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
 
-        final Set<Object> leakTargets = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<Object> oldObjects = Collections.newSetFromMap(new IdentityHashMap<>());
 
         Object[] current = list.head();
         while (current != null) {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                leakTargets.add(obj);
+                oldObjects.add(obj);
 //                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
 //                if (pathToRoot.length > 0) {
 //                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);
@@ -246,9 +246,10 @@ public final class JfrOldObjectSampler {
 
         // System.out.println("JfrOldObjectSampler.computePathToGcRoots leak targets: " + leakTargets);
         final BfsPathToGcRoots bfs = new BfsPathToGcRoots();
-        bfs.findPathToGcRoots(leakTargets);
-
-        System.out.println("JfrOldObjectSampler.computePathToGcRoots end");
+        final PathToGcRootsStore pathStore = new PathToGcRootsStore(oldObjects.size()); // todo consider pre-allocating for max numb of tracked leaks and re-use that
+        bfs.findPathToGcRoots(oldObjects, pathStore);
+        SubstrateJVM.getOldObjectRepository().addOldObjects(oldObjects, pathStore);
+        System.out.println("JfrOldObjectSampler.writePathToGcRoots end");
     }
 
     private boolean isAliveAndOlderThan(Object obj, long lastSweep, long allocationTime) {

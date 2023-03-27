@@ -237,10 +237,10 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
         getFileSupport().writeInt(fd, 0); // We'll patch this later.
 //        JfrConstantPool[] serializers = JfrSerializerSupport.get().getSerializers();
 //        int poolCount = writeConstantPools(serializers) + writeConstantPools(repositories);
-        repository.write(this);
+        final int poolCount = repository.write(this);
         SignedWord currentPos = getFileSupport().position(fd);
         getFileSupport().seek(fd, poolCountPos);
-        getFileSupport().writeInt(fd, makePaddedInt(1));
+        getFileSupport().writeInt(fd, makePaddedInt(poolCount));
         getFileSupport().seek(fd, currentPos);
         endEvent(start);
 

@@ -3,14 +3,16 @@ package com.oracle.svm.core.jfr;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.word.Word;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.word.UnsignedWord;
+import org.graalvm.word.WordFactory;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 final class JfrOldObjectRepository implements JfrConstantPool {
     // TODO key on weak refs rather than obj to avoid leaks?
@@ -50,6 +52,7 @@ final class JfrOldObjectRepository implements JfrConstantPool {
 
         JfrTypeRepository typeRepo = SubstrateJVM.getTypeRepository();
 
+        int poolCount = 1;
         long referenceCount = 0;
 
         writer.writeCompressedLong(JfrType.OldObject.getId());
@@ -73,6 +76,7 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         }
 
         if (!oldObjectFields.isEmpty()) {
+            poolCount++;
             writer.writeCompressedLong(JfrType.OldObjectField.getId());
             writer.writeCompressedLong(oldObjectFields.size());
             for (OldObjectField entry : oldObjectFields.values()) {
@@ -83,60 +87,111 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         }
 
         if (referenceCount > 0) {
+            poolCount++;
             writer.writeCompressedLong(JfrType.Reference.getId());
             writer.writeCompressedLong(referenceCount);
             for (Map.Entry<Object, OldObjectInfo> entry : oldObjects.entrySet()) {
                 final OldObjectInfo info = entry.getValue();
                 if (info.parent != null) {
+                    System.out.println("Write reference " + info.id);
                     final Object object = entry.getKey();
                     writer.writeCompressedLong(info.id); // id
                     writer.writeCompressedLong(0); // todo array info id
-                    writer.writeCompressedLong(oldObjectFields.get(object).id); // field info id
+                    final OldObjectField field = oldObjectFields.get(object); // todo can it really be null?
+                    writer.writeCompressedLong(field == null ? 0 : field.id); // field info id
                     writer.writeCompressedLong(oldObjects.get(info.parent).id); // (parent) old object sample id
-                    writer.writeCompressedLong(0); // todo handle skip edges
+                    writer.writeCompressedLong(info.skipLength); // skip length
                 }
             }
         }
 
-        return NON_EMPTY;
+        return poolCount;
     }
 
     void addOldObject(Object object) {
-        oldObjects.putIfAbsent(object, new OldObjectInfo(idCounter++, -1, null));
+        oldObjects.putIfAbsent(object, new OldObjectInfo(idCounter++, -1, null, 0));
     }
 
-    void addOldObjectsInPathToGcRoot(PathToGcRoots.PathElement[] pathToGcRoot, JfrOldObjectUtils oldObjectUtils) {
-        // System.out.println("pathToGcRoot = " + Arrays.toString(pathToGcRoot) + ", oldObjectUtils = " + oldObjectUtils);
-        System.out.println("JfrOldObjectRepository.addOldObjectsInPathToGcRoot");
-        System.out.println("pathToGcRoot size = " + pathToGcRoot.length);
+    void addOldObjects(Set<Object> objects, PathToGcRootsStore pathStore) {
+        System.out.println("JfrOldObjectRepository.addOldObjects");
+        final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
 
-        final Object gcRoot = pathToGcRoot[pathToGcRoot.length - 1].getObject();
-        final long gcRootId = idCounter++;
-        oldObjects.putIfAbsent(gcRoot, new OldObjectInfo(gcRootId, gcRootId, null));
+        for (Object obj : objects) {
+            System.out.println("Build path for: " + obj.toString());
+            final int path = pathStore.findPath(obj);
+            final Object gcRoot = pathStore.getRoot(path);
+            final long gcRootId = oldObjects.computeIfAbsent(gcRoot, k -> {
+                final long id = idCounter++;
+                return new OldObjectInfo(id, id, null, 0);
+            }).gcRootId;
 
-        for (int i = 0; i < pathToGcRoot.length - 1; i++) {
-            final PathToGcRoots.PathElement currentPathElem = pathToGcRoot[i];
-            Object current = currentPathElem.getObject();
-            Object parent = pathToGcRoot[i + 1].getObject();
-
-            if (currentPathElem instanceof PathToGcRoots.HeapElement) {
-                final PathToGcRoots.HeapElement currentHeapElem = (PathToGcRoots.HeapElement) currentPathElem;
-                final DynamicHub hub = DynamicHub.fromClass(currentHeapElem.getObject().getClass());
-                if (hub.isArray()) {
-                    // todo deal with arrays
-                    continue;
-                }
-                final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, UnsignedUtils.safeToInt(currentHeapElem.getOffset()));
-                if (oldObjectField != null) {
-                    final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
-                    final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
+            Object current;
+            int position = 0;
+            while (null != (current = pathStore.getElement(position, path))) {
+                final DynamicHub hub = DynamicHub.fromClass(current.getClass());
+                final UnsignedWord location = pathStore.getElementLocation(position, path);
+                if (location.notEqual(WordFactory.zero())) {
+                    System.out.println("Location is non-zero");
+                    // todo fix field ids
+                    final String fieldName = "tbd";
+                    final Integer modifiers = 1;
                     oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
-                }
-            }
 
-            oldObjects.putIfAbsent(current, new OldObjectInfo(idCounter++, gcRootId, parent));
+//                    final int rawLocation = UnsignedUtils.safeToInt(location);
+//                    // System.out.println("Old object field raw location: " + rawLocation);
+//                    final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, rawLocation);
+//                    if (oldObjectField != null) {
+//                        final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
+//                        // System.out.println("Old object field name: " + fieldName);
+//                        final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
+//                        oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
+//                    } else {
+//                        // System.out.println("Old object field info is null");
+//                    }
+                } else {
+                    System.out.println("Location is zero for " + hub.toString());
+                }
+
+                final Object parent = pathStore.getElementParent(position, path);
+                final int skipLength = pathStore.getSkipLength(position, path);
+                oldObjects.putIfAbsent(current, new OldObjectInfo(idCounter++, gcRootId, parent, skipLength));
+                position++;
+            }
         }
     }
+
+//    void addOldObjectsInPathToGcRoot(PathToGcRoots.PathElement[] pathToGcRoot, JfrOldObjectUtils oldObjectUtils) {
+//        // System.out.println("pathToGcRoot = " + Arrays.toString(pathToGcRoot) + ", oldObjectUtils = " + oldObjectUtils);
+//        System.out.println("JfrOldObjectRepository.addOldObjectsInPathToGcRoot");
+//        System.out.println("pathToGcRoot size = " + pathToGcRoot.length);
+//
+//        final Object gcRoot = pathToGcRoot[pathToGcRoot.length - 1].getObject();
+//        final long gcRootId = idCounter++;
+//        oldObjects.putIfAbsent(gcRoot, new OldObjectInfo(gcRootId, gcRootId, null, skipLength));
+//
+//        for (int i = 0; i < pathToGcRoot.length - 1; i++) {
+//            final PathToGcRoots.PathElement currentPathElem = pathToGcRoot[i];
+//            Object current = currentPathElem.getObject();
+//            Object parent = pathToGcRoot[i + 1].getObject();
+//
+//            if (currentPathElem instanceof PathToGcRoots.HeapElement) {
+//                final PathToGcRoots.HeapElement currentHeapElem = (PathToGcRoots.HeapElement) currentPathElem;
+//                final DynamicHub hub = DynamicHub.fromClass(currentHeapElem.getObject().getClass());
+//                if (hub.isArray()) {
+//                    // todo deal with arrays
+//                    continue;
+//                }
+//                final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, UnsignedUtils.safeToInt(currentHeapElem.getOffset()));
+//                if (oldObjectField != null) {
+//                    final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
+//                    final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
+//                    oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
+//                }
+//            }
+//
+//            oldObjects.putIfAbsent(current, new OldObjectInfo(idCounter++, gcRootId, parent, skipLength));
+//        }
+//    }
 
     long getOldObjectId(Object object) {
         final OldObjectInfo info = oldObjects.get(object);
@@ -180,11 +235,13 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         private final long id;
         private final long gcRootId;
         private final Object parent;
+        private final int skipLength;
 
-        private OldObjectInfo(long id, long gcRootId, Object parent) {
+        private OldObjectInfo(long id, long gcRootId, Object parent, int skipLength) {
             this.id = id;
             this.gcRootId = gcRootId;
             this.parent = parent;
+            this.skipLength = skipLength;
         }
     }
 
