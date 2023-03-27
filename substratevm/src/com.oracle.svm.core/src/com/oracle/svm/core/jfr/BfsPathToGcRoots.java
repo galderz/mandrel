@@ -47,9 +47,9 @@ public class BfsPathToGcRoots {
         final HighBitMap highBits = markHighBits(bitMap);
 
         final LowBitMap lowBits = new LowBitMap(highBits.getHighBitIndexes(), bitMap);
-        final EdgeQueue queue1 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 1);
+        iterate(log, queueCapacity, bitMap, highBits, lowBits, 1);
         iterate(log, queueCapacity, bitMap, highBits, lowBits, 2);
-        iterate(log, queueCapacity, bitMap, highBits, lowBits, 3);
+        // iterate(log, queueCapacity, bitMap, highBits, lowBits, 3);
 //        final EdgeQueue queue4 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 4);
 //        final EdgeQueue queue5 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 5);
 
@@ -58,13 +58,14 @@ public class BfsPathToGcRoots {
 //        findPathEdges(queue2, lowBits, new LowBitMap(highBits.getHighBitIndexes(), bitMap));
 //        showEdges(queue2, 2);
 
-        storePaths(targets, queue1, pathStore);
+        // storePaths(targets, queue1, pathStore);
     }
 
     private EdgeQueue iterate(Log log, int queueCapacity, BitMap bitMap, HighBitMap highBits, LowBitMap lowBits, int iteration) {
         log.string("Iteration").string(" ").unsigned(iteration).newline();
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
         findPathEdges(queue, lowBits, new LowBitMap(highBits.getHighBitIndexes(), bitMap));
+        log.string("Edge queue: ").string(queue.toString());
         showEdges(queue, iteration);
         return queue;
     }
@@ -76,7 +77,8 @@ public class BfsPathToGcRoots {
             final Object from = queue.getFrom(i);
             if (from != null) {
                 final Object to = queue.getTo(i);
-                log.unsigned(iteration).string(" ").string(show(from)).string("->").string(show(to)).newline();
+                final long fromAddress = Word.objectToUntrackedPointer(from).rawValue();
+                log.unsigned(iteration).string(" ").string(show(from)).string("(").signed(fromAddress).string(")").string("->").string(show(to)).newline();
             }
         }
     }
@@ -127,6 +129,7 @@ public class BfsPathToGcRoots {
         log.string("BfsPathToGcRoots.findPathEdges").newline();
         // TODO: find path edges in stack
         heapObjectVisitor.initialize(queue, lowBits, refLowBits);
+        Heap.getHeap().walkObjects(heapObjectVisitor);
         Heap.getHeap().walkObjects(heapObjectVisitor);
         Heap.getHeap().walkImageHeapObjects(heapObjectVisitor);
         log.string("BfsPathToGcRoots.findPathEdges queue size ").unsigned(queue.size()).newline();
