@@ -3,6 +3,7 @@ package com.oracle.svm.core.jfr;
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
+import com.oracle.svm.core.jfr.oldobject.OldObject;
 import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -228,14 +229,14 @@ public final class JfrOldObjectSampler {
 
 //        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
 
-        final Set<Object> oldObjects = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<OldObject> oldObjects = Collections.newSetFromMap(new IdentityHashMap<>());
 
         Object[] current = list.head();
         while (current != null) {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                oldObjects.add(obj);
+                oldObjects.add(new OldObject(obj));
 //                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
 //                if (pathToRoot.length > 0) {
 //                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);

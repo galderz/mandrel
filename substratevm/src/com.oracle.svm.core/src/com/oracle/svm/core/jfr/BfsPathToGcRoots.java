@@ -9,6 +9,7 @@ import com.oracle.svm.core.heap.ReferenceAccess;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.VMOperationInfos;
 import com.oracle.svm.core.hub.InteriorObjRefWalker;
+import com.oracle.svm.core.jfr.oldobject.OldObject;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.thread.JavaVMOperation;
 import org.graalvm.compiler.word.Word;
@@ -19,7 +20,6 @@ import org.graalvm.word.WordFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 
 public class BfsPathToGcRoots {
@@ -28,11 +28,13 @@ public class BfsPathToGcRoots {
     private static final HeapObjRefVisitor heapObjRefVisitor = new HeapObjRefVisitor();
     private static final HeapObjectVisitor heapObjectVisitor = new HeapObjectVisitor();
 
-    void findPathToGcRoots(Set<Object> targets, PathToGcRootsStore pathStore) {
+    void findPathToGcRoots(Set<OldObject> targets, PathToGcRootsStore pathStore) {
         new FindGcRootsToObjectsOperation(this, targets, pathStore).enqueue();
     }
 
-    private void findPaths(Set<Object> targets, PathToGcRootsStore pathStore) {
+    private void findPaths(Set<OldObject> targets, PathToGcRootsStore pathStore) {
+        final Log log = Log.log();
+        log.string("BfsPathToGcRoots.findPaths").newline();
         final int classCount = Heap.getHeap().getLoadedClasses().size();
         final int queueCapacity = classCount * (1 << 10);
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
@@ -43,21 +45,38 @@ public class BfsPathToGcRoots {
         final int objectAlignment = ConfigurationValues.getObjectLayout().getAlignment();
         final BitMap bitMap = new BitMap(objectAlignment);
         final HighBitMap highBits = markHighBits(bitMap);
-        final LowBitMap lowBits = new LowBitMap(highBits.getHighBitIndexes(), bitMap);
-        findPathEdges(queue, lowBits);
 
-        storePaths(targets, queue, pathStore);
-        showEdges(queue);
+        final LowBitMap lowBits = new LowBitMap(highBits.getHighBitIndexes(), bitMap);
+        final EdgeQueue queue1 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 1);
+        iterate(log, queueCapacity, bitMap, highBits, lowBits, 2);
+        iterate(log, queueCapacity, bitMap, highBits, lowBits, 3);
+//        final EdgeQueue queue4 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 4);
+//        final EdgeQueue queue5 = iterate(log, queueCapacity, bitMap, highBits, lowBits, 5);
+
+//        log.string("Iteration 2").newline();
+//        final EdgeQueue queue2 = new EdgeQueue(queueCapacity);
+//        findPathEdges(queue2, lowBits, new LowBitMap(highBits.getHighBitIndexes(), bitMap));
+//        showEdges(queue2, 2);
+
+        storePaths(targets, queue1, pathStore);
     }
 
-    private void showEdges(EdgeQueue queue) {
+    private EdgeQueue iterate(Log log, int queueCapacity, BitMap bitMap, HighBitMap highBits, LowBitMap lowBits, int iteration) {
+        log.string("Iteration").string(" ").unsigned(iteration).newline();
+        final EdgeQueue queue = new EdgeQueue(queueCapacity);
+        findPathEdges(queue, lowBits, new LowBitMap(highBits.getHighBitIndexes(), bitMap));
+        showEdges(queue, iteration);
+        return queue;
+    }
+
+    private void showEdges(EdgeQueue queue, int iteration) {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.showEdges").newline();
         for (int i = 0; i < queue.edges.length; i++) {
             final Object from = queue.getFrom(i);
             if (from != null) {
                 final Object to = queue.getTo(i);
-                log.string(show(from)).string("->").string(show(to)).newline();
+                log.unsigned(iteration).string(" ").string(show(from)).string("->").string(show(to)).newline();
             }
         }
     }
@@ -68,11 +87,11 @@ public class BfsPathToGcRoots {
                 : obj.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(obj));
     }
 
-    private void storePaths(Set<Object> targets, EdgeQueue queue, PathToGcRootsStore pathStore) {
+    private void storePaths(Set<OldObject> targets, EdgeQueue queue, PathToGcRootsStore pathStore) {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.storePaths").newline();
         int leakIndex = 0;
-        for (Object leak : targets) {
+        for (OldObject leak : targets) {
             storePath(leak, leakIndex++, queue, pathStore);
         }
 
@@ -86,13 +105,13 @@ public class BfsPathToGcRoots {
         // extract the "from" and "link" it
     }
 
-    private static void storePath(Object leak, int pathIndex, EdgeQueue queue, PathToGcRootsStore store) {
+    private static void storePath(OldObject leak, int pathIndex, EdgeQueue queue, PathToGcRootsStore store) {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.storePath").newline();
         int elementIndex = 0;
         store.addPathElement(elementIndex++, WordFactory.zero(), leak, pathIndex);
 
-        Object current = leak;
+        Object current = leak.object;
         Object from;
         int index;
         while ((index = queue.findTo(current)) >= 0 && (from = queue.getFrom(index)) != null) {
@@ -103,11 +122,11 @@ public class BfsPathToGcRoots {
         log.string("BfsPathToGcRoots.storePath with length ").unsigned(elementIndex).newline();
     }
 
-    private void findPathEdges(EdgeQueue queue, LowBitMap lowBits) {
+    private void findPathEdges(EdgeQueue queue, LowBitMap lowBits, LowBitMap refLowBits) {
         final Log log = Log.log();
         log.string("BfsPathToGcRoots.findPathEdges").newline();
         // TODO: find path edges in stack
-        heapObjectVisitor.initialize(queue, lowBits);
+        heapObjectVisitor.initialize(queue, lowBits, refLowBits);
         Heap.getHeap().walkObjects(heapObjectVisitor);
         Heap.getHeap().walkImageHeapObjects(heapObjectVisitor);
         log.string("BfsPathToGcRoots.findPathEdges queue size ").unsigned(queue.size()).newline();
@@ -302,20 +321,23 @@ public class BfsPathToGcRoots {
     private static class HeapObjectVisitor implements ObjectVisitor {
         private EdgeQueue queue;
         private LowBitMap lowBits;
+        private LowBitMap refLowBits;
 
         HeapObjectVisitor() {
         }
 
-        public void initialize(EdgeQueue queue, LowBitMap lowBits) {
+        public void initialize(EdgeQueue queue, LowBitMap lowBits, LowBitMap refLowBits) {
             this.queue = queue;
             this.lowBits = lowBits;
+            this.refLowBits = refLowBits;
         }
 
         @Override
         public boolean visitObject(Object containerObject) {
             Pointer containerPointer = Word.objectToUntrackedPointer(containerObject);
-            if (lowBits.mark(containerPointer.rawValue())) {
-                heapObjRefVisitor.initialize(containerPointer, queue, lowBits);
+            final long containerRawPointer = containerPointer.rawValue();
+            if (lowBits.mark(containerRawPointer) && refLowBits.mark(containerRawPointer)) {
+                heapObjRefVisitor.initialize(containerPointer, queue, refLowBits);
                 InteriorObjRefWalker.walkObject(containerObject, heapObjRefVisitor);
             }
             return true;
@@ -324,7 +346,7 @@ public class BfsPathToGcRoots {
 
     private static class HeapObjRefVisitor implements ObjectReferenceVisitor {
         private Pointer containerPointer;
-        private LowBitMap lowBits;
+        private LowBitMap refLowBits;
         private EdgeQueue queue;
 
         HeapObjRefVisitor() {
@@ -333,13 +355,14 @@ public class BfsPathToGcRoots {
         @NeverInline("Starting a stack walk in the caller frame")
         static boolean isInterfering(Object currentObject) {
             // return currentObject instanceof PathElement || currentObject instanceof FindPathToObjectOperation || currentObject instanceof TargetMatcher;
-            return currentObject instanceof EdgeQueue || currentObject instanceof FindGcRootsToObjectsOperation || currentObject instanceof LowBitMap;
+            // return currentObject instanceof EdgeQueue || currentObject instanceof FindGcRootsToObjectsOperation || currentObject instanceof LowBitMap;
+            return currentObject instanceof OldObject || currentObject instanceof Edge || currentObject instanceof Edge[];
         }
 
-        public void initialize(Pointer container, EdgeQueue queue, LowBitMap lowBits) {
+        public void initialize(Pointer container, EdgeQueue queue, LowBitMap refLowBits) {
             this.containerPointer = container;
             this.queue = queue;
-            this.lowBits = lowBits;
+            this.refLowBits = refLowBits;
         }
 
         @Override
@@ -355,7 +378,7 @@ public class BfsPathToGcRoots {
 
 //                lowBits.mark(referentPointer.rawValue());
 
-                if (lowBits.mark(referentPointer.rawValue())) {
+                if (refLowBits.mark(referentPointer.rawValue())) {
                     UnsignedWord offset = objRef.subtract(containerPointer);
                     queue.push(containerObject, offset, referentPointer.toObject());
                 }
@@ -365,20 +388,17 @@ public class BfsPathToGcRoots {
     }
 
     private static final class EdgeQueue {
-        private static final int FROM_SLOT = 0;
-        private static final int TO_SLOT = 1;
-
-        private final Object[][] edges;
+        private final Edge[] edges;
         private final UnsignedWord[] locations;
 
         private int count;
 
         EdgeQueue(int capacity)
         {
-            this.edges = new Object[capacity][];
+            this.edges = new Edge[capacity];
             for (int i = 0; i < this.edges.length; i++)
             {
-                this.edges[i] = new Object[TO_SLOT + 1];
+                this.edges[i] = new Edge();
             }
             this.locations = new UnsignedWord[capacity];
         }
@@ -404,7 +424,7 @@ public class BfsPathToGcRoots {
         }
 
         Object getFrom(int index) {
-            return edges[index][FROM_SLOT];
+            return edges[index].from;
         }
 
         UnsignedWord getLocation(int index) {
@@ -412,7 +432,7 @@ public class BfsPathToGcRoots {
         }
 
         Object getTo(int index) {
-            return edges[index][TO_SLOT];
+            return edges[index].to;
         }
 
         int findTo(Object target) {
@@ -431,23 +451,28 @@ public class BfsPathToGcRoots {
 
         private void set(Object from, UnsignedWord location, Object to, int index)
         {
-            edges[index][FROM_SLOT] = from;
-            edges[index][TO_SLOT] = to;
+            edges[index].from = from;
+            edges[index].to = to;
             locations[index] = location;
         }
 
         private void set(Object to, int index)
         {
-            edges[index][TO_SLOT] = to;
+            edges[index].to = to;
         }
+    }
+
+    private static final class Edge {
+        Object from;
+        Object to;
     }
 
     private static final class FindGcRootsToObjectsOperation extends JavaVMOperation {
         private final BfsPathToGcRoots bfs;
-        private final Set<Object> targets;
+        private final Set<OldObject> targets;
         private final PathToGcRootsStore pathStore;
 
-        private FindGcRootsToObjectsOperation(BfsPathToGcRoots bfs, Set<Object> targets, PathToGcRootsStore pathStore) {
+        private FindGcRootsToObjectsOperation(BfsPathToGcRoots bfs, Set<OldObject> targets, PathToGcRootsStore pathStore) {
             super(VMOperationInfos.get(FindGcRootsToObjectsOperation.class, "TBD", SystemEffect.SAFEPOINT));
             this.bfs = bfs;
             this.targets = targets;

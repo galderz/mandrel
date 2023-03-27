@@ -1,6 +1,7 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.jfr.oldobject.OldObjectSample;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 

@@ -1,6 +1,7 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.jfr.oldobject.OldObject;
 import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -112,11 +113,13 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         oldObjects.putIfAbsent(object, new OldObjectInfo(idCounter++, -1, null, 0));
     }
 
-    void addOldObjects(Set<Object> objects, PathToGcRootsStore pathStore) {
+    void addOldObjects(Set<OldObject> objects, PathToGcRootsStore pathStore) {
         System.out.println("JfrOldObjectRepository.addOldObjects");
         final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
 
-        for (Object obj : objects) {
+        for (OldObject oldObject : objects) {
+            final Object obj = oldObject.object;
+
             System.out.println("Build path for: " + obj.toString());
             final int path = pathStore.findPath(obj);
             final Object gcRoot = pathStore.getRoot(path);
