@@ -109,7 +109,7 @@ public class BfsPathToGcRoots {
         // TODO: find path edges in stack
         heapObjectVisitor.initialize(queue, lowBits);
         Heap.getHeap().walkObjects(heapObjectVisitor);
-        Heap.getHeap().walkImageHeapObjects(heapObjectVisitor);
+        // Heap.getHeap().walkImageHeapObjects(heapObjectVisitor); todo already visited in walkObjets
         log.string("BfsPathToGcRoots.findPathEdges queue size ").unsigned(queue.size()).newline();
     }
 
