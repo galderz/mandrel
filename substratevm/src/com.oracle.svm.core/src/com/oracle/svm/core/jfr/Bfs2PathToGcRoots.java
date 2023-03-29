@@ -67,11 +67,17 @@ public class Bfs2PathToGcRoots {
         while (!isComplete(frontiers, queue, log)) {
             final EdgeQueue.Edge current = queue.pop();
             final Object to = current.to;
-            if (to != null && lowBits.mark(Word.objectToUntrackedPointer(to).rawValue()) && canWalk(to)) {
-                final boolean keepWalking = InteriorObjRefWalker.walkObject(to, heapObjectRefVisitor);
-                if (!keepWalking) {
-                    log.string("Stopped walking, is queue full? ").bool(queue.isFull()).newline();
-                    return;
+            if (to != null) {
+                final Word toPointer = Word.objectToUntrackedPointer(to);
+                final long toPointerRaw = toPointer.rawValue();
+                if (lowBits.mark(toPointerRaw)) {
+                    if (canWalk(to)) {
+                        final boolean keepWalking = InteriorObjRefWalker.walkObject(to, heapObjectRefVisitor);
+                        if (!keepWalking) {
+                            log.string("Stopped walking, is queue full? ").bool(queue.isFull()).newline();
+                            return;
+                        }
+                    }
                 }
             }
         }
