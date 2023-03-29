@@ -69,6 +69,10 @@ public class Bfs2PathToGcRoots {
             final Object to = current.to;
             if (to != null) {
                 final Word toPointer = Word.objectToUntrackedPointer(to);
+                if (toPointer.isNull()) {
+                    continue;
+                }
+
                 final long toPointerRaw = toPointer.rawValue();
                 if (lowBits.mark(toPointerRaw)) {
                     if (canWalk(to)) {
