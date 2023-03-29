@@ -245,10 +245,10 @@ public final class JfrOldObjectSampler {
         }
 
         // System.out.println("JfrOldObjectSampler.computePathToGcRoots leak targets: " + leakTargets);
-        final BfsPathToGcRoots bfs = new BfsPathToGcRoots();
+        final Bfs2PathToGcRoots bfs = new Bfs2PathToGcRoots();
         final PathToGcRootsStore pathStore = new PathToGcRootsStore(oldObjects.size()); // todo consider pre-allocating for max numb of tracked leaks and re-use that
         bfs.findPathToGcRoots(oldObjects, pathStore);
-        SubstrateJVM.getOldObjectRepository().addOldObjects(oldObjects, pathStore);
+        // SubstrateJVM.getOldObjectRepository().addOldObjects(oldObjects, pathStore);
         System.out.println("JfrOldObjectSampler.writePathToGcRoots end");
     }
 
