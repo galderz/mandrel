@@ -5,6 +5,7 @@ import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.heap.ObjectReferenceVisitor;
 import com.oracle.svm.core.heap.ObjectVisitor;
+import com.oracle.svm.core.heap.ReferenceAccess;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.VMOperationInfos;
 import com.oracle.svm.core.hub.DynamicHub;
@@ -25,18 +26,30 @@ import java.util.Set;
 public class Bfs2PathToGcRoots {
     private static final RootVisitor rootVisitor = new RootVisitor();
     private static final HeapObjectRefVisitor heapObjectRefVisitor = new HeapObjectRefVisitor();
+    private static final MarkHighBitsVisitor markHighBitsVisitor = new MarkHighBitsVisitor();
+    private static final MarkHighBitsRefVisitor markHighBitsRefVisitor = new MarkHighBitsRefVisitor();
     // private static final RootRefVisitor rootRefVisitor = new RootRefVisitor();
 
     void findPathToGcRoots(Set<Object> targets, PathToGcRootsStore pathStore) {
+        // todo deal with potential issue of getting a new high index in between VM operations?
+
+        Log log = Log.log();
+        log.string("Bfs2PathToGcRoots.findPathToGcRoots").newline();
+        final int objectAlignment = ConfigurationValues.getObjectLayout().getAlignment();
+        final BitMap bitMap = new BitMap(objectAlignment);
+        final HighBitMap highBits = new HighBitMap(bitMap);
+        new MarkHighBitsOperation(highBits).enqueue();
+        final List<Integer> highBitIndexes = highBits.getHighBitIndexes();
+        log.string("High bit indexes:");
+        for (int i = 0; i < highBitIndexes.size(); i++) {
+            log.string(" ").unsigned(highBitIndexes.get(i));
+        }
+        log.newline();
+
         final int classCount = Heap.getHeap().getLoadedClasses().size();
         final int queueCapacity = classCount * (1 << 10);
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
-
-        final int objectAlignment = ConfigurationValues.getObjectLayout().getAlignment();
-        final BitMap bitMap = new BitMap(objectAlignment);
-        // todo hardcoded high bits, should be computed in a separate vm operation?
-        final LowBitMap lowBits = new LowBitMap(List.of(0), bitMap);
-
+        final LowBitMap lowBits = new LowBitMap(highBitIndexes, bitMap);
         new FindGcRootsToObjectsOperation(this, targets, pathStore, queue, lowBits).enqueue();
     }
 
@@ -172,12 +185,64 @@ public class Bfs2PathToGcRoots {
 //        }
 //    }
 
+    private static final class MarkHighBitsOperation extends JavaVMOperation {
+        final HighBitMap highBits;
+
+        private MarkHighBitsOperation(HighBitMap highBits) {
+            super(VMOperationInfos.get(MarkHighBitsOperation.class, "TBD", SystemEffect.SAFEPOINT));
+            this.highBits = highBits;
+        }
+
+        @Override
+        @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while computing paths to GC roots.")
+        protected void operate() {
+            markHighBitsVisitor.initialize(highBits);
+            markHighBitsRefVisitor.initialize(highBits);
+            Heap.getHeap().walkObjects(markHighBitsVisitor);
+        }
+    }
+
+    private static class MarkHighBitsVisitor implements ObjectVisitor {
+        private HighBitMap highBits;
+
+        void initialize(HighBitMap highBits) {
+            this.highBits = highBits;
+        }
+
+        @Override
+        public boolean visitObject(Object obj) {
+            final long address = Word.objectToUntrackedPointer(obj).rawValue();
+            highBits.mark(address);
+            markHighBitsRefVisitor.initialize(highBits);
+            return InteriorObjRefWalker.walkObject(obj, markHighBitsRefVisitor);
+        }
+    }
+
+    private static class MarkHighBitsRefVisitor implements ObjectReferenceVisitor {
+        private HighBitMap highBits;
+
+        void initialize(HighBitMap highBits) {
+            this.highBits = highBits;
+        }
+
+        @Override
+        public boolean visitObjectReference(Pointer objRef, boolean compressed, Object holderObject) {
+            if (objRef.isNull()) {
+                return true;
+            }
+            long referentAddress = ReferenceAccess.singleton().readObjectAsUntrackedPointer(objRef, compressed).rawValue();
+            highBits.mark(referentAddress);
+            return true;
+        }
+    }
+
     private static final class FindGcRootsToObjectsOperation extends JavaVMOperation {
         private final Bfs2PathToGcRoots bfs;
         private final Set<Object> targets;
         private final PathToGcRootsStore pathStore;
         private final EdgeQueue queue;
         private final LowBitMap lowBits;
+
         private final FrontierLevels frontiers;
 
         private FindGcRootsToObjectsOperation(Bfs2PathToGcRoots bfs, Set<Object> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits) {
