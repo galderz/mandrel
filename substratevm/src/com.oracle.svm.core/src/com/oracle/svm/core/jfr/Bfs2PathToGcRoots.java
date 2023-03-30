@@ -51,12 +51,15 @@ public class Bfs2PathToGcRoots {
     }
 
     private void findPaths(Set<Object> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits, FrontierLevels frontiers) {
-        heapObjectRefVisitor.initialize(queue);
+        final Log log = Log.log();
 
         rootVisitor.initialize(queue);
-        Heap.getHeap().walkImageHeapObjects(rootVisitor);
+        heapObjectRefVisitor.initialize(queue);
 
-        final Log log = Log.log();
+        Heap.getHeap().walkImageHeapObjects(rootVisitor);
+        log.string("Root set edges: ").unsigned(queue.size()).newline();
+        // queue.show(-1, log);
+
         frontiers.next = queue.tail(); // Initial frontier is where roots finished
         while (!isComplete(frontiers, queue, log)) {
             final EdgeQueue.Edge current = queue.pop();
@@ -95,7 +98,7 @@ public class Bfs2PathToGcRoots {
     private static void logCompletedFrontier(FrontierLevels frontiers, EdgeQueue queue, Log log) {
         long numberOfEdgesInFrontier = frontiers.next - frontiers.prev;
         log.string("BFS front: ").unsigned(frontiers.current).string(" edges: ").unsigned(numberOfEdgesInFrontier).newline();
-        queue.show(frontiers.current, log);
+        // queue.show(frontiers.current, log);
     }
 
     private static class HeapObjectRefVisitor implements ObjectReferenceVisitor {
@@ -112,6 +115,9 @@ public class Bfs2PathToGcRoots {
             }
 
             Pointer referentPointer = ReferenceAccess.singleton().readObjectAsUntrackedPointer(objRef, compressed);
+            if (referentPointer.isNull()) {
+                return true;
+            }
 //            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
 //            UnsignedWord offset = refPointer.subtract(holderAddress);
             return queue.push(holderObject, WordFactory.zero(), referentPointer.toObject());
@@ -119,7 +125,6 @@ public class Bfs2PathToGcRoots {
     }
 
     private static class RootVisitor implements ObjectVisitor {
-
         private EdgeQueue queue;
 
         public void initialize(EdgeQueue queue) {
@@ -130,10 +135,16 @@ public class Bfs2PathToGcRoots {
             if (obj == null) {
                 return true;
             }
-            queue.push(null, WordFactory.zero(), obj);
+
+            // StaticFieldsSupport.staticObjectFields is a root exposed as Object[]
+            // todo is there a way to link the Object[] that comes from StaticFieldsSupport?
+            // todo expand support for other global data
+            if (obj instanceof Object[]) {
+                queue.push(null, WordFactory.zero(), obj);
+            }
+
             return true;
         }
-
     }
 
 //    private static class RootRefVisitor implements ObjectReferenceVisitor {
@@ -310,7 +321,7 @@ public class Bfs2PathToGcRoots {
             while ((current = peek(showTail, showHead)) != null)
             {
                 showHead++;
-                log.unsigned(iteration).string(" ");
+                log.signed(iteration).string(" ");
                 show(current.from, log);
                 log.string("->");
                 show(current.to, log);
