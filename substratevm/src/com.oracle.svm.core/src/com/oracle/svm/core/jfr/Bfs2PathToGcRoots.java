@@ -2,14 +2,11 @@ package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.heap.Heap;
-import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.heap.ObjectReferenceVisitor;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.heap.ReferenceAccess;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.VMOperationInfos;
-import com.oracle.svm.core.hub.DynamicHub;
-import com.oracle.svm.core.hub.HubType;
 import com.oracle.svm.core.hub.InteriorObjRefWalker;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.thread.JavaVMOperation;
@@ -28,7 +25,6 @@ public class Bfs2PathToGcRoots {
     private static final HeapObjectRefVisitor heapObjectRefVisitor = new HeapObjectRefVisitor();
     private static final MarkHighBitsVisitor markHighBitsVisitor = new MarkHighBitsVisitor();
     private static final MarkHighBitsRefVisitor markHighBitsRefVisitor = new MarkHighBitsRefVisitor();
-    // private static final RootRefVisitor rootRefVisitor = new RootRefVisitor();
 
     void findPathToGcRoots(Set<Object> targets, PathToGcRootsStore pathStore) {
         // todo deal with potential issue of getting a new high index in between VM operations?
@@ -49,90 +45,57 @@ public class Bfs2PathToGcRoots {
         final int classCount = Heap.getHeap().getLoadedClasses().size();
         final int queueCapacity = classCount * (1 << 10);
         final EdgeQueue queue = new EdgeQueue(queueCapacity);
+        log.string("Queue capacity: ").unsigned(queueCapacity).newline();
         final LowBitMap lowBits = new LowBitMap(highBitIndexes, bitMap);
         new FindGcRootsToObjectsOperation(this, targets, pathStore, queue, lowBits).enqueue();
     }
 
     private void findPaths(Set<Object> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits, FrontierLevels frontiers) {
-        final Log log = Log.log();
+        heapObjectRefVisitor.initialize(queue);
+
         rootVisitor.initialize(queue);
         Heap.getHeap().walkImageHeapObjects(rootVisitor);
-        frontiers.next = queue.tail(); // Initial frontier is where roots finished
 
-        heapObjectRefVisitor.initialize(queue);
-//        int iteration = 0;
-//        log.unsigned(iteration).string(" Edge queue size ").unsigned(queue.size()).newline();
-//        showEdges(queue, 0);
-//        EdgeQueue.Edge current;
+        final Log log = Log.log();
+        frontiers.next = queue.tail(); // Initial frontier is where roots finished
         while (!isComplete(frontiers, queue, log)) {
             final EdgeQueue.Edge current = queue.pop();
             final Object to = current.to;
-            if (to != null) {
-                final Word toPointer = Word.objectToUntrackedPointer(to);
-                if (toPointer.isNull()) {
-                    continue;
-                }
-
-                final long toPointerRaw = toPointer.rawValue();
-                if (lowBits.mark(toPointerRaw)) {
-                    if (canWalk(to)) {
-                        final boolean keepWalking = InteriorObjRefWalker.walkObject(to, heapObjectRefVisitor);
-                        if (!keepWalking) {
-                            log.string("Stopped walking, is queue full? ").bool(queue.isFull()).newline();
-                            return;
-                        }
-                    }
+            if (to != null && lowBits.mark(Word.objectToUntrackedPointer(to).rawValue())) {
+                final boolean keepWalking = InteriorObjRefWalker.walkObject(to, heapObjectRefVisitor);
+                if (!keepWalking) {
+                    log.string("Stopped walking, is queue full? ").bool(queue.isFull()).newline();
+                    return;
                 }
             }
         }
     }
 
-    // todo duplicate with InteriorObjRefWalker? Added to avoid "Object with invalid hub type." error
-    private boolean canWalk(Object obj) {
-        final DynamicHub objHub = ObjectHeader.readDynamicHubFromObject(obj);
-        switch (objHub.getHubType()) {
-            case HubType.INSTANCE:
-            case HubType.REFERENCE_INSTANCE:
-            case HubType.POD_INSTANCE:
-            case HubType.STORED_CONTINUATION_INSTANCE:
-            case HubType.OTHER:
-            case HubType.PRIMITIVE_ARRAY:
-            case HubType.OBJECT_ARRAY:
-                return true;
-        }
-        return false;
-    }
-
-    private static boolean isComplete(FrontierLevels frontiers, EdgeQueue queue, Log log)
-    {
-        if (queue.head() < frontiers.next)
-        {
+    private static boolean isComplete(FrontierLevels frontiers, EdgeQueue queue, Log log) {
+        if (queue.head() < frontiers.next) {
             return false;
         }
-        if (queue.head() > frontiers.next)
-        {
+        if (queue.head() > frontiers.next) {
             return true;
         }
-        if (queue.isEmpty())
-        {
+        if (queue.isEmpty()) {
             return true;
         }
         stepFrontier(frontiers, queue, log);
         return false;
     }
 
-    private static void stepFrontier(FrontierLevels frontiers, EdgeQueue queue, Log log)
-    {
-        logCompletedFrontier(frontiers, log);
+    private static void stepFrontier(FrontierLevels frontiers, EdgeQueue queue, Log log) {
+        logCompletedFrontier(frontiers, queue, log);
         frontiers.current++;
         frontiers.prev = frontiers.next;
         frontiers.next = queue.tail();
     }
 
-    private static void logCompletedFrontier(FrontierLevels frontiers, Log log)
-    {
+    private static void logCompletedFrontier(FrontierLevels frontiers, EdgeQueue queue, Log log) {
         long numberOfEdgesInFrontier = frontiers.next - frontiers.prev;
         log.string("BFS front: ").unsigned(frontiers.current).string(" edges: ").unsigned(numberOfEdgesInFrontier).newline();
+        queue.show(frontiers.current, log);
     }
 
     private static class HeapObjectRefVisitor implements ObjectReferenceVisitor {
@@ -148,9 +111,10 @@ public class Bfs2PathToGcRoots {
                 return true;
             }
 
-            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
-            UnsignedWord offset = objRef.subtract(holderAddress);
-            return queue.push(holderObject, offset, objRef.toObject());
+            Pointer referentPointer = ReferenceAccess.singleton().readObjectAsUntrackedPointer(objRef, compressed);
+//            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
+//            UnsignedWord offset = refPointer.subtract(holderAddress);
+            return queue.push(holderObject, WordFactory.zero(), referentPointer.toObject());
         }
     }
 
@@ -337,6 +301,42 @@ public class Bfs2PathToGcRoots {
             return size() == edges.length;
         }
 
+        public void show(long iteration, Log log)
+        {
+            long showTail = tail;
+            long showHead = head;
+
+            Edge current;
+            while ((current = peek(showTail, showHead)) != null)
+            {
+                showHead++;
+                log.unsigned(iteration).string(" ");
+                show(current.from, log);
+                log.string("->");
+                show(current.to, log);
+                log.newline();
+            }
+        }
+
+        private Edge peek(long peekTail, long peekHead)
+        {
+            if (peekHead < peekTail) {
+                int pos = (int) (peekHead % edges.length);
+                Edge e = edges[pos];
+                return e;
+            }
+
+            return null;
+        }
+
+        private static void show(Object obj, Log log) {
+            if (obj == null) {
+                log.string("null");
+            } else {
+                log.string(obj.getClass().getName()).string("@").zhex(System.identityHashCode(obj));
+            }
+        }
+
         private void set(Object from, UnsignedWord location, Object to, int index)
         {
             edges[index].from = from;
@@ -351,32 +351,32 @@ public class Bfs2PathToGcRoots {
         }
     }
 
-    private void showEdges(EdgeQueue queue, int iteration) {
-        final Log log = Log.log();
-        log.string("Bfs2PathToGcRoots.showEdges").newline();
-        log.string("Edge queue size ").unsigned(queue.size()).newline();
-//        for (int i = 0; i < queue.edges.length; i++) {
-//            final Object from = queue.getFrom(i);
-//            final Object to = queue.getTo(i);
-//            if (from == null && to == null)
-//                continue;
-//
-//            final long fromAddress = Word.objectToUntrackedPointer(from).rawValue();
-//            log.unsigned(iteration).string(" ");
-//            show(from, log);
-//            log.string("(").signed(fromAddress).string(")").string("->");
-//            show(to, log);
-//            log.newline();
-//        }
-    }
+//    private void showEdges(EdgeQueue queue, int iteration) {
+//        final Log log = Log.log();
+//        log.string("Bfs2PathToGcRoots.showEdges").newline();
+//        log.string("Edge queue size ").unsigned(queue.size()).newline();
+////        for (int i = 0; i < queue.edges.length; i++) {
+////            final Object from = queue.getFrom(i);
+////            final Object to = queue.getTo(i);
+////            if (from == null && to == null)
+////                continue;
+////
+////            final long fromAddress = Word.objectToUntrackedPointer(from).rawValue();
+////            log.unsigned(iteration).string(" ");
+////            show(from, log);
+////            log.string("(").signed(fromAddress).string(")").string("->");
+////            show(to, log);
+////            log.newline();
+////        }
+//    }
 
-    private static void show(Object obj, Log log) {
-        if (obj == null) {
-            log.string("null");
-        } else {
-            log.string(obj.getClass().getName()).string("@").zhex(System.identityHashCode(obj));
-        }
-    }
+//    private static void show(Object obj, Log log) {
+//        if (obj == null) {
+//            log.string("null");
+//        } else {
+//            log.string(obj.getClass().getName()).string("@").zhex(System.identityHashCode(obj));
+//        }
+//    }
 
     //  0                   1                   2                   3                   4                   5                   6
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
