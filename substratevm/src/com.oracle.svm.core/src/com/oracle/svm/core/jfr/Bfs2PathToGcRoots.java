@@ -16,9 +16,9 @@ import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class Bfs2PathToGcRoots {
     private static final RootVisitor rootVisitor = new RootVisitor();
@@ -26,7 +26,7 @@ public class Bfs2PathToGcRoots {
     private static final MarkHighBitsVisitor markHighBitsVisitor = new MarkHighBitsVisitor();
     private static final MarkHighBitsRefVisitor markHighBitsRefVisitor = new MarkHighBitsRefVisitor();
 
-    void findPathToGcRoots(Set<Object> targets, PathToGcRootsStore pathStore) {
+    void findPathToGcRoots(IdentityHashMap<Object, Boolean> targets, PathToGcRootsStore pathStore) {
         // todo deal with potential issue of getting a new high index in between VM operations?
 
         Log log = Log.log();
@@ -50,7 +50,7 @@ public class Bfs2PathToGcRoots {
         new FindGcRootsToObjectsOperation(this, targets, pathStore, queue, lowBits).enqueue();
     }
 
-    private void findPaths(Set<Object> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits, FrontierLevels frontiers) {
+    private void findPaths(IdentityHashMap<Object, Boolean> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits, FrontierLevels frontiers) {
         final Log log = Log.log();
 
         rootVisitor.initialize(queue);
@@ -65,12 +65,27 @@ public class Bfs2PathToGcRoots {
             final EdgeQueue.Edge current = queue.pop();
             final Object to = current.to;
             if (to != null && lowBits.mark(Word.objectToUntrackedPointer(to).rawValue())) {
+                if (Boolean.TRUE.equals(targets.get(to))) {
+                    log.string("A leak target found: ").string(to.getClass().getName()).string("@").zhex(System.identityHashCode(to)).newline();
+                    // storePathToGcRoot(current, pathStore);
+                }
+
+                heapObjectRefVisitor.setParent(current);
                 final boolean keepWalking = InteriorObjRefWalker.walkObject(to, heapObjectRefVisitor);
                 if (!keepWalking) {
                     log.string("Stopped walking, is queue full? ").bool(queue.isFull()).newline();
                     return;
                 }
             }
+        }
+    }
+
+    private void storePathToGcRoot(EdgeQueue.Edge leak, PathToGcRootsStore pathStore) {
+        int position = 0;
+        final int path = pathStore.addPathElement(position++, leak.location, leak.to);
+        EdgeQueue.Edge current;
+        while ((current = leak.parent) != null) {
+            pathStore.addPathElement(position++, current.location, current.to, path);
         }
     }
 
@@ -103,9 +118,14 @@ public class Bfs2PathToGcRoots {
 
     private static class HeapObjectRefVisitor implements ObjectReferenceVisitor {
         private EdgeQueue queue;
+        private EdgeQueue.Edge parent;
 
         public void initialize(EdgeQueue queue) {
             this.queue = queue;
+        }
+
+        public void setParent(EdgeQueue.Edge parent) {
+            this.parent = parent;
         }
 
         @Override
@@ -120,7 +140,7 @@ public class Bfs2PathToGcRoots {
             }
 //            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
 //            UnsignedWord offset = refPointer.subtract(holderAddress);
-            return queue.push(holderObject, WordFactory.zero(), referentPointer.toObject());
+            return queue.push(holderObject, WordFactory.zero(), referentPointer.toObject(), parent);
         }
     }
 
@@ -140,7 +160,7 @@ public class Bfs2PathToGcRoots {
             // todo is there a way to link the Object[] that comes from StaticFieldsSupport?
             // todo expand support for other global data
             if (obj instanceof Object[]) {
-                queue.push(null, WordFactory.zero(), obj);
+                queue.push(null, WordFactory.zero(), obj, null);
             }
 
             return true;
@@ -223,14 +243,14 @@ public class Bfs2PathToGcRoots {
 
     private static final class FindGcRootsToObjectsOperation extends JavaVMOperation {
         private final Bfs2PathToGcRoots bfs;
-        private final Set<Object> targets;
+        private final IdentityHashMap<Object, Boolean> targets;
         private final PathToGcRootsStore pathStore;
         private final EdgeQueue queue;
         private final LowBitMap lowBits;
 
         private final FrontierLevels frontiers;
 
-        private FindGcRootsToObjectsOperation(Bfs2PathToGcRoots bfs, Set<Object> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits) {
+        private FindGcRootsToObjectsOperation(Bfs2PathToGcRoots bfs, IdentityHashMap<Object, Boolean> targets, PathToGcRootsStore pathStore, EdgeQueue queue, LowBitMap lowBits) {
             super(VMOperationInfos.get(FindGcRootsToObjectsOperation.class, "TBD", SystemEffect.SAFEPOINT));
             this.bfs = bfs;
             this.targets = targets;
@@ -273,14 +293,14 @@ public class Bfs2PathToGcRoots {
             }
         }
 
-        public boolean push(Object from, UnsignedWord location, Object to)
+        public boolean push(Object from, UnsignedWord location, Object to, Edge parent)
         {
             if (tail - head < edges.length) {
                 int pos = (int) (tail % edges.length);
                 if (pos < head) {
                     return false; // wrapping around not supported
                 }
-                set(from, location, to, pos);
+                set(from, location, to, parent, pos);
                 tail++;
                 return true;
             }
@@ -357,17 +377,19 @@ public class Bfs2PathToGcRoots {
             }
         }
 
-        private void set(Object from, UnsignedWord location, Object to, int index)
+        private void set(Object from, UnsignedWord location, Object to, Edge parent, int index)
         {
             edges[index].from = from;
             edges[index].location = location;
             edges[index].to = to;
+            edges[index].parent = parent;
         }
 
         static class Edge {
             Object from;
             UnsignedWord location;
             Object to;
+            Edge parent;
         }
     }
 

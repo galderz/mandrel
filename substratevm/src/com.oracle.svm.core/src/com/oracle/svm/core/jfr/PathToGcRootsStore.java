@@ -5,6 +5,9 @@ import org.graalvm.word.WordFactory;
 
 import java.util.Arrays;
 
+// todo consider renaming to edgestore
+// todo consider reusing Edge instances
+// todo consider integrating leak to boolean here, say by giving a mapping of leak to index
 final class PathToGcRootsStore {
     // [0..99]    leak context
     // [100..199] root context
@@ -18,6 +21,7 @@ final class PathToGcRootsStore {
     private final int rootContext;
     private final int leakContext;
     private final int maxRefChainDepth;
+    private int count;
 
     public PathToGcRootsStore(int capacity) {
         this(capacity, DEFAULT_LEAK_CONTEXT, DEFAULT_ROOT_CONTEXT);
@@ -40,6 +44,12 @@ final class PathToGcRootsStore {
 
     Object getRoot(int path) {
         return paths[path][getIndex(rootPositions[path])];
+    }
+
+    int addPathElement(int position, UnsignedWord location, Object from) {
+        int path = count++;
+        addPathElement(position, location, from, path);
+        return path;
     }
 
     void addPathElement(int position, UnsignedWord location, Object from, int path) {
@@ -81,7 +91,7 @@ final class PathToGcRootsStore {
             return locations[path][getIndex(position)];
         }
 
-        return WordFactory.zero();
+        return null;
     }
 
     Object getElementParent(int position, int path) {

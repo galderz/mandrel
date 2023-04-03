@@ -228,14 +228,15 @@ public final class JfrOldObjectSampler {
 
 //        final PathToGcRoots pathToGcRoots = new PathToGcRoots();
 
-        final Set<Object> oldObjects = Collections.newSetFromMap(new IdentityHashMap<>());
+        // final Set<Object> oldObjects = Collections.newSetFromMap(new IdentityHashMap<>());
+        final IdentityHashMap<Object, Boolean> oldObjects = new IdentityHashMap<>();
 
         Object[] current = list.head();
         while (current != null) {
             final long allocationTime = getAllocationTime(current);
             final Object obj = getReference(current).get();
             if (isAliveAndOlderThan(obj, lastSweep, allocationTime)) {
-                oldObjects.add(obj);
+                oldObjects.put(obj, Boolean.TRUE);
 //                final PathToGcRoots.PathElement[] pathToRoot = pathToGcRoots.findPathToRoot(obj);
 //                if (pathToRoot.length > 0) {
 //                    SubstrateJVM.getOldObjectRepository().addOldObjectsInPathToGcRoot(pathToRoot, oldObjectUtils);
