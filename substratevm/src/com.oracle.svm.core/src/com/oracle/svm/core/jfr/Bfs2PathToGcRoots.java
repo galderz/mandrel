@@ -253,6 +253,12 @@ public class Bfs2PathToGcRoots {
         long prev;
     }
 
+    /**
+     * A queue for edge nodes that enables computing the path to the root from any node.
+     * To avoid losing information in the path to the root,
+     * the queue does not write over any previously queued edge nodes.
+     * So this queue does not behave like a ring or circular queue.
+     */
     private static final class EdgeQueue {
         private final Edge[] edges;
         private long tail = 0;
@@ -271,6 +277,9 @@ public class Bfs2PathToGcRoots {
         {
             if (tail - head < edges.length) {
                 int pos = (int) (tail % edges.length);
+                if (pos < head) {
+                    return false; // wrapping around not supported
+                }
                 set(from, location, to, pos);
                 tail++;
                 return true;
