@@ -67,7 +67,7 @@ public class Bfs2PathToGcRoots {
             if (to != null && lowBits.mark(Word.objectToUntrackedPointer(to).rawValue())) {
                 if (Boolean.TRUE.equals(targets.get(to))) {
                     log.string("A leak target found: ").string(to.getClass().getName()).string("@").zhex(System.identityHashCode(to)).newline();
-                    // storePathToGcRoot(current, pathStore);
+                    storePathToGcRoot(current, pathStore);
                 }
 
                 heapObjectRefVisitor.setParent(current);
@@ -83,8 +83,9 @@ public class Bfs2PathToGcRoots {
     private void storePathToGcRoot(EdgeQueue.Edge leak, PathToGcRootsStore pathStore) {
         int position = 0;
         final int path = pathStore.addPathElement(position++, leak.location, leak.to);
-        EdgeQueue.Edge current;
-        while ((current = leak.parent) != null) {
+        EdgeQueue.Edge current = leak;
+        while ((current = current.parent) != null) {
+            // log.string("Store path to: ").string(current.getClass().getName()).string("@").zhex(System.identityHashCode(current)).newline();
             pathStore.addPathElement(position++, current.location, current.to, path);
         }
     }
