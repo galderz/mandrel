@@ -118,7 +118,7 @@ final class JfrOldObjectRepository implements JfrConstantPool {
             System.out.println("Build path for: " + obj.toString());
             final int path = pathStore.findPath(obj);
             if (path < 0) {
-                // todo add support for other object leaks (e.g. thread locals com.oracle.svm.core.thread.ThreadingSupportImpl$RecurringCallbackTimer)
+                // Some objects might have no paths because they're roots already, e.g. thread locals.
                 oldObjects.putIfAbsent(obj, new OldObjectInfo(idCounter++, -1, null, 0));
                 continue;
             }
