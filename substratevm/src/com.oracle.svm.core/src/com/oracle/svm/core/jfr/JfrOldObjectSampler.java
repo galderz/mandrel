@@ -249,7 +249,7 @@ public final class JfrOldObjectSampler {
         final Bfs2PathToGcRoots bfs = new Bfs2PathToGcRoots();
         final PathToGcRootsStore pathStore = new PathToGcRootsStore(oldObjects.size()); // todo consider pre-allocating for max numb of tracked leaks and re-use that
         bfs.findPathToGcRoots(oldObjects, pathStore);
-        // SubstrateJVM.getOldObjectRepository().addOldObjects(oldObjects, pathStore);
+        SubstrateJVM.getOldObjectRepository().addOldObjects(oldObjects, pathStore);
         System.out.println("JfrOldObjectSampler.writePathToGcRoots end");
     }
 

@@ -43,7 +43,8 @@ final class PathToGcRootsStore {
     }
 
     Object getRoot(int path) {
-        return paths[path][getIndex(rootPositions[path])];
+        final int rootIndex = getIndex(rootPositions[path]);
+        return paths[path][rootIndex];
     }
 
     int addPathElement(int position, UnsignedWord location, Object from) {
@@ -91,7 +92,7 @@ final class PathToGcRootsStore {
             return locations[path][getIndex(position)];
         }
 
-        return null;
+        return WordFactory.zero();
     }
 
     Object getElementParent(int position, int path) {

@@ -1,7 +1,6 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.hub.DynamicHub;
-import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
@@ -12,7 +11,6 @@ import org.graalvm.word.WordFactory;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 final class JfrOldObjectRepository implements JfrConstantPool {
     // TODO key on weak refs rather than obj to avoid leaks?
@@ -112,13 +110,19 @@ final class JfrOldObjectRepository implements JfrConstantPool {
         oldObjects.putIfAbsent(object, new OldObjectInfo(idCounter++, -1, null, 0));
     }
 
-    void addOldObjects(Set<Object> objects, PathToGcRootsStore pathStore) {
+    void addOldObjects(IdentityHashMap<Object, Boolean> objects, PathToGcRootsStore pathStore) {
         System.out.println("JfrOldObjectRepository.addOldObjects");
         final JfrOldObjectUtils oldObjectUtils = ImageSingletons.lookup(JfrOldObjectUtils.class);
 
-        for (Object obj : objects) {
+        for (Object obj : objects.keySet()) {
             System.out.println("Build path for: " + obj.toString());
             final int path = pathStore.findPath(obj);
+            if (path < 0) {
+                // todo add support for other object leaks (e.g. thread locals com.oracle.svm.core.thread.ThreadingSupportImpl$RecurringCallbackTimer)
+                oldObjects.putIfAbsent(obj, new OldObjectInfo(idCounter++, -1, null, 0));
+                continue;
+            }
+
             final Object gcRoot = pathStore.getRoot(path);
             final long gcRootId = oldObjects.computeIfAbsent(gcRoot, k -> {
                 final long id = idCounter++;
