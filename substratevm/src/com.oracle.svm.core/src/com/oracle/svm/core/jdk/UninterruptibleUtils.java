@@ -573,8 +573,13 @@ public class UninterruptibleUtils {
 
         @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
         public static int modifiedUTF8Length(java.lang.String string, boolean addNullTerminator, CharReplacer replacer) {
+            return modifiedUTF8Length(string.length(), string, addNullTerminator, replacer);
+        }
+
+        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+        public static int modifiedUTF8Length(int length, java.lang.String string, boolean addNullTerminator, CharReplacer replacer) {
             int result = 0;
-            for (int index = 0; index < string.length(); index++) {
+            for (int index = 0; index < length; index++) {
                 char ch = StringUtil.charAt(string, index);
                 if (replacer != null) {
                     ch = replacer.replace(ch);
@@ -594,13 +599,18 @@ public class UninterruptibleUtils {
          */
         @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
         public static Pointer toModifiedUTF8(java.lang.String string, Pointer buffer, Pointer bufferEnd, boolean addNullTerminator) {
-            return toModifiedUTF8(string, buffer, bufferEnd, addNullTerminator, null);
+            return toModifiedUTF8(string.length(), string, buffer, bufferEnd, addNullTerminator, null);
         }
 
         @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
         public static Pointer toModifiedUTF8(java.lang.String string, Pointer buffer, Pointer bufferEnd, boolean addNullTerminator, CharReplacer replacer) {
+            return toModifiedUTF8(string.length(), string, buffer, bufferEnd, addNullTerminator, replacer);
+        }
+
+        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+        public static Pointer toModifiedUTF8(int length, java.lang.String string, Pointer buffer, Pointer bufferEnd, boolean addNullTerminator, CharReplacer replacer) {
             Pointer pos = buffer;
-            for (int index = 0; index < string.length(); index++) {
+            for (int index = 0; index < length; index++) {
                 char ch = StringUtil.charAt(string, index);
                 if (replacer != null) {
                     ch = replacer.replace(ch);

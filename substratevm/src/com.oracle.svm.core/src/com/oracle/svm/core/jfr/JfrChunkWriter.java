@@ -29,6 +29,7 @@ import static com.oracle.svm.core.jfr.JfrThreadLocal.getNativeBufferList;
 
 import java.nio.charset.StandardCharsets;
 
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectRepository;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.nativeimage.IsolateThread;
@@ -95,7 +96,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrChunkWriter(JfrGlobalMemory globalMemory, JfrStackTraceRepository stackTraceRepo, JfrMethodRepository methodRepo, JfrTypeRepository typeRepo, JfrSymbolRepository symbolRepo,
-                    JfrThreadRepository threadRepo) {
+                          JfrThreadRepository threadRepo, JfrOldObjectRepository oldObjectRepo) {
         this.lock = new VMMutex("jfrChunkWriter");
         this.globalMemory = globalMemory;
         this.metadata = new JfrMetadata(null);
@@ -106,7 +107,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
          * the write order. This ordering is required to prevent races during flushing without
          * changing epoch.
          */
-        this.flushCheckpointRepos = new JfrRepository[]{stackTraceRepo, methodRepo, typeRepo, symbolRepo};
+        this.flushCheckpointRepos = new JfrRepository[]{stackTraceRepo, methodRepo, typeRepo, symbolRepo, oldObjectRepo};
         this.threadCheckpointRepos = new JfrRepository[]{threadRepo};
     }
 

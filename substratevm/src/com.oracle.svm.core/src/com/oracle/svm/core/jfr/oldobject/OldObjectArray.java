@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2023, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,41 +23,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.jfr;
+
+package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 
-/**
- * Maps JFR types against their IDs in the JDK.
- */
-public enum JfrType {
-    Class("java.lang.Class"),
-    String("java.lang.String"),
-    Thread("java.lang.Thread"),
-    ThreadState("jdk.types.ThreadState"),
-    ThreadGroup("jdk.types.ThreadGroup"),
-    StackTrace("jdk.types.StackTrace"),
-    ClassLoader("jdk.types.ClassLoader"),
-    Method("jdk.types.Method"),
-    Symbol("jdk.types.Symbol"),
-    Module("jdk.types.Module"),
-    Package("jdk.types.Package"),
-    FrameType("jdk.types.FrameType"),
-    GCCause("jdk.types.GCCause"),
-    GCName("jdk.types.GCName"),
-    GCWhen("jdk.types.GCWhen"),
-    VMOperation("jdk.types.VMOperationType"),
-    MonitorInflationCause("jdk.types.InflateCause"),
-    OldObject("jdk.types.OldObject");
+final class OldObjectArray {
+    private final OldObject[] samples;
 
-    private final long id;
-
-    JfrType(String name) {
-        this.id = JfrMetadataTypeLibrary.lookupType(name);
+    OldObjectArray(int capacity) {
+        this.samples = new OldObject[capacity];
+        for (int i = 0; i < this.samples.length; i++) {
+            this.samples[i] = new OldObject();
+        }
     }
 
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    public long getId() {
-        return id;
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    int getCapacity() {
+        return samples.length;
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    void swap(int i, int j) {
+        final OldObject tmp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = tmp;
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    int getIndexOf(OldObject sample) {
+        for (int i = 0; i < samples.length; i++) {
+            if (sample == samples[i]) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    OldObject getSample(int index) {
+        return samples[index];
     }
 }
