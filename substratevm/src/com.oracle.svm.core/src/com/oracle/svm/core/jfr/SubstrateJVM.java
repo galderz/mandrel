@@ -27,6 +27,7 @@ package com.oracle.svm.core.jfr;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -80,6 +81,7 @@ public class SubstrateJVM {
     private final JfrRecorderThread recorderThread;
 
     private final JfrLogging jfrLogging;
+    private final JfrOldObjectSampler oldObjectSampler;
 
     private boolean initialized;
     /*
@@ -115,6 +117,7 @@ public class SubstrateJVM {
         recorderThread = new JfrRecorderThread(globalMemory, unlockedChunkWriter);
 
         jfrLogging = new JfrLogging();
+        oldObjectSampler = new JfrOldObjectSampler();
 
         initialized = false;
         recording = false;
@@ -183,6 +186,11 @@ public class SubstrateJVM {
     @Fold
     public static JfrLogging getJfrLogging() {
         return get().jfrLogging;
+    }
+
+    @Fold
+    public static JfrOldObjectSampler getJfrOldObjectSampler() {
+        return get().oldObjectSampler;
     }
 
     public static Object getHandler(Class<? extends jdk.internal.event.Event> eventClass) {

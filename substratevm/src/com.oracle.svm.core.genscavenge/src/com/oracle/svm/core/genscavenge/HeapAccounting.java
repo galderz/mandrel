@@ -68,6 +68,10 @@ public final class HeapAccounting {
         return edenUsedBytes.get();
     }
 
+    UnsignedWord getUncheckedYoungUsedBytes() {
+        return youngUsedBytes.get();
+    }
+
     @SuppressWarnings("static-method")
     public UnsignedWord getSurvivorSpaceAfterChunkBytes(int survivorIndex) {
         return HeapImpl.getHeapImpl().getYoungGeneration().getSurvivorFromSpaceAt(survivorIndex).getChunkBytes();

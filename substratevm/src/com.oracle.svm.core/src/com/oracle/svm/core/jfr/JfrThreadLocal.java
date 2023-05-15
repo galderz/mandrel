@@ -239,7 +239,13 @@ public class JfrThreadLocal implements ThreadListener {
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public boolean isCurrentThreadExcluded() {
-        Target_java_lang_Thread tjlt = SubstrateUtil.cast(Thread.currentThread(), Target_java_lang_Thread.class);
+        final Thread t = Thread.currentThread();
+        // Note: thread can be null during shutdown, don't remove thread null check
+        if (t == null) {
+            return false;
+        }
+
+        Target_java_lang_Thread tjlt = SubstrateUtil.cast(t, Target_java_lang_Thread.class);
         return tjlt.jfrExcluded;
     }
 
