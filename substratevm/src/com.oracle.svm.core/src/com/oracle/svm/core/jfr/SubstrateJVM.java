@@ -27,6 +27,8 @@ package com.oracle.svm.core.jfr;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectRepository;
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -73,6 +75,7 @@ public class SubstrateJVM {
     private final JfrThreadRepository threadRepo;
     private final JfrStackTraceRepository stackTraceRepo;
     private final JfrMethodRepository methodRepo;
+    private final JfrOldObjectRepository oldObjectRepo;
     private final JfrThreadLocal threadLocal;
     private final JfrGlobalMemory globalMemory;
     private final SamplerBufferPool samplerBufferPool;
@@ -80,6 +83,7 @@ public class SubstrateJVM {
     private final JfrRecorderThread recorderThread;
 
     private final JfrLogging jfrLogging;
+    private final JfrOldObjectSampler oldObjectSampler;
 
     private boolean initialized;
     /*
@@ -107,14 +111,16 @@ public class SubstrateJVM {
         typeRepo = new JfrTypeRepository();
         threadRepo = new JfrThreadRepository();
         methodRepo = new JfrMethodRepository();
+        oldObjectRepo = new JfrOldObjectRepository();
 
         threadLocal = new JfrThreadLocal();
         globalMemory = new JfrGlobalMemory();
         samplerBufferPool = new SamplerBufferPool();
-        unlockedChunkWriter = new JfrChunkWriter(globalMemory, stackTraceRepo, methodRepo, typeRepo, symbolRepo, threadRepo);
+        unlockedChunkWriter = new JfrChunkWriter(globalMemory, stackTraceRepo, methodRepo, typeRepo, symbolRepo, threadRepo, oldObjectRepo);
         recorderThread = new JfrRecorderThread(globalMemory, unlockedChunkWriter);
 
         jfrLogging = new JfrLogging();
+        oldObjectSampler = new JfrOldObjectSampler();
 
         initialized = false;
         recording = false;
@@ -185,6 +191,16 @@ public class SubstrateJVM {
         return get().jfrLogging;
     }
 
+    @Fold
+    public static JfrOldObjectSampler getJfrOldObjectSampler() {
+        return get().oldObjectSampler;
+    }
+
+    @Fold
+    public static JfrOldObjectRepository getJfrOldObjectRepository() {
+        return get().oldObjectRepo;
+    }
+
     public static Object getHandler(Class<? extends jdk.internal.event.Event> eventClass) {
         try {
             Field f = eventClass.getDeclaredField("eventHandler");
@@ -205,6 +221,8 @@ public class SubstrateJVM {
      * triggered yet. So, we don't need to take any precautions here.
      */
     public boolean createJFR(boolean simulateFailure) {
+        SubstrateJVM.getJfrOldObjectSampler().initialize();
+
         if (simulateFailure) {
             throw new IllegalStateException("Unable to start JFR");
         } else if (initialized) {
@@ -577,6 +595,14 @@ public class SubstrateJVM {
         }
     }
 
+    /**
+     * See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}.
+     */
+    void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
+        // todo support skipBFS=true which means using DFS (path-to-gc-roots)
+        oldObjectSampler.emit(cutoff, emitAll);
+    }
+
     public long getChunkStartNanos() {
         JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
         try {
@@ -757,6 +783,7 @@ public class SubstrateJVM {
             stackTraceRepo.teardown();
             methodRepo.teardown();
             typeRepo.teardown();
+            oldObjectRepo.teardown();
 
             initialized = false;
         }
