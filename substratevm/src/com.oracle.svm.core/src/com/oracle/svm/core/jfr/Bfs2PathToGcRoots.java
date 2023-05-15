@@ -139,9 +139,9 @@ public class Bfs2PathToGcRoots {
             if (referentPointer.isNull()) {
                 return true;
             }
-//            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
-//            UnsignedWord offset = refPointer.subtract(holderAddress);
-            return queue.push(holderObject, WordFactory.zero(), referentPointer.toObject(), parent);
+            UnsignedWord holderAddress = Word.objectToUntrackedPointer(holderObject);
+            UnsignedWord offset = objRef.subtract(holderAddress);
+            return queue.push(holderObject, offset, referentPointer.toObject(), parent);
         }
     }
 

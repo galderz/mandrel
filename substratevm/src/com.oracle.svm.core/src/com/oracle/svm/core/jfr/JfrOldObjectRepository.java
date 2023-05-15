@@ -1,6 +1,7 @@
 package com.oracle.svm.core.jfr;
 
 import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.util.UnsignedUtils;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
@@ -136,22 +137,22 @@ final class JfrOldObjectRepository implements JfrConstantPool {
                 final UnsignedWord location = pathStore.getElementLocation(position, path);
                 if (location.notEqual(WordFactory.zero())) {
                     System.out.println("Location is non-zero");
-                    // todo fix field ids
-                    final String fieldName = "tbd";
-                    final Integer modifiers = 1;
-                    oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
+//                    // todo fix field ids
+//                    final String fieldName = "tbd";
+//                    final Integer modifiers = 1;
+//                    oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
 
-//                    final int rawLocation = UnsignedUtils.safeToInt(location);
-//                    // System.out.println("Old object field raw location: " + rawLocation);
-//                    final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, rawLocation);
-//                    if (oldObjectField != null) {
-//                        final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
-//                        // System.out.println("Old object field name: " + fieldName);
-//                        final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
-//                        oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
-//                    } else {
-//                        // System.out.println("Old object field info is null");
-//                    }
+                    final int rawLocation = UnsignedUtils.safeToInt(location);
+                    System.out.println("Old object field raw location: " + rawLocation);
+                    final Object[] oldObjectField = oldObjectUtils.getOldObjectField(hub, rawLocation);
+                    if (oldObjectField != null) {
+                        final String fieldName = JfrOldObjectUtils.getFieldName(oldObjectField);
+                        System.out.println("Old object field name: " + fieldName);
+                        final Integer modifiers = JfrOldObjectUtils.getModifiers(oldObjectField);
+                        oldObjectFields.putIfAbsent(current, new OldObjectField(idCounter++, fieldName, modifiers));
+                    } else {
+                        System.out.println("Old object field info is null");
+                    }
                 } else {
                     System.out.println("Location is zero for " + hub.toString());
                 }
