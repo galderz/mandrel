@@ -224,6 +224,51 @@ public final class JfrNativeEventWriter {
     }
 
     @Uninterruptible(reason = "Accesses a native JFR buffer.", callerMustBe = true)
+    public static void putString(JfrNativeEventWriterData data, String string, int stringLengthLimit, String prefix) {
+        if (string == null && prefix == null) {
+            putByte(data, JfrChunkWriter.StringEncoding.NULL.getValue());
+        } else if (string != null && string.isEmpty() && prefix != null && prefix.isEmpty()) {
+            putByte(data, JfrChunkWriter.StringEncoding.EMPTY_STRING.getValue());
+        } else {
+            Pointer newPosition;
+            if (string != null && string.length() > stringLengthLimit - 3) {
+                int mPrefixUTF8Length = prefix == null ? 0 : UninterruptibleUtils.String.modifiedUTF8Length(prefix, false, null);
+                int mStringUTF8Length = UninterruptibleUtils.String.modifiedUTF8Length(stringLengthLimit - 3, string, false, null);
+                int mEllipsisUTF8Length = UninterruptibleUtils.String.modifiedUTF8Length("...", false, null);
+                int mUTF8Length = mPrefixUTF8Length + mStringUTF8Length + mEllipsisUTF8Length;
+                putByte(data, JfrChunkWriter.StringEncoding.UTF8_BYTE_ARRAY.getValue());
+                putInt(data, mUTF8Length);
+                if (ensureSize(data, mUTF8Length)) {
+                    if (prefix != null) {
+                        newPosition = UninterruptibleUtils.String.toModifiedUTF8(prefix, data.getCurrentPos(), data.getEndPos(), false, null);
+                        data.setCurrentPos(newPosition);
+                    }
+                    newPosition = UninterruptibleUtils.String.toModifiedUTF8(stringLengthLimit - 3, string, data.getCurrentPos(), data.getEndPos(), false, null);
+                    data.setCurrentPos(newPosition);
+                    newPosition = UninterruptibleUtils.String.toModifiedUTF8("...", data.getCurrentPos(), data.getEndPos(), false, null);
+                    data.setCurrentPos(newPosition);
+                }
+            } else {
+                int mPrefixUTF8Length = prefix == null ? 0 : UninterruptibleUtils.String.modifiedUTF8Length(prefix, false, null);
+                int mStringUTF8Length = string == null ? 0 : UninterruptibleUtils.String.modifiedUTF8Length(string, false, null);
+                int mUTF8Length = mPrefixUTF8Length + mStringUTF8Length;
+                putByte(data, JfrChunkWriter.StringEncoding.UTF8_BYTE_ARRAY.getValue());
+                putInt(data, mUTF8Length);
+                if (ensureSize(data, mUTF8Length)) {
+                    if (prefix != null) {
+                        newPosition = UninterruptibleUtils.String.toModifiedUTF8(prefix, data.getCurrentPos(), data.getEndPos(), false, null);
+                        data.setCurrentPos(newPosition);
+                    }
+                    if (string != null) {
+                        newPosition = UninterruptibleUtils.String.toModifiedUTF8(string, data.getCurrentPos(), data.getEndPos(), false, null);
+                        data.setCurrentPos(newPosition);
+                    }
+                }
+            }
+        }
+    }
+
+    @Uninterruptible(reason = "Accesses a native JFR buffer.", callerMustBe = true)
     public static void putEventThread(JfrNativeEventWriterData data) {
         putThread(data, SubstrateJVM.getCurrentThreadId());
     }

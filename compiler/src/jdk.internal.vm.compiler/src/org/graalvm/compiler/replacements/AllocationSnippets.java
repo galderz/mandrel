@@ -64,7 +64,7 @@ public abstract class AllocationSnippets implements Snippets {
             result = formatObject(hub, size, top, fillContents, emitMemoryBarrier, constantSize, profilingData.snippetCounters);
         } else {
             profilingData.snippetCounters.stub.inc();
-            result = callNewInstanceStub(hub);
+            result = callNewInstanceStub(hub, size);
         }
         profileAllocation(profilingData, size);
         return verifyOop(result);
@@ -356,7 +356,7 @@ public abstract class AllocationSnippets implements Snippets {
 
     public abstract void initializeObjectHeader(Word memory, Word hub, boolean isArray);
 
-    protected abstract Object callNewInstanceStub(Word hub);
+    protected abstract Object callNewInstanceStub(Word hub, UnsignedWord size);
 
     protected abstract Object callNewArrayStub(Word hub, int length);
 

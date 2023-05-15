@@ -29,6 +29,7 @@ import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 
 import java.lang.ref.Reference;
 
+import com.oracle.svm.core.heap.Heap;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
@@ -202,6 +203,7 @@ public final class GCImpl implements GC {
         assert VMOperation.isGCInProgress();
         assert getCollectionEpoch().equal(data.getRequestingEpoch()) ||
                         data.getForceFullGC() && GCImpl.getAccounting().getCompleteCollectionCount() == data.getCompleteCollectionCount() : "unnecessary GC?";
+        final HeapAccounting heapAccounting = HeapImpl.getAccounting();
 
         timers.mutator.closeAt(data.getRequestingNanoTime());
         timers.resetAllExceptMutator();
@@ -212,16 +214,20 @@ public final class GCImpl implements GC {
 
         ThreadLocalAllocation.disableAndFlushForAllThreads();
         GenScavengeMemoryPoolMXBeans.notifyBeforeCollection();
-        HeapImpl.getAccounting().notifyBeforeCollection();
+        heapAccounting.notifyBeforeCollection();
 
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
         data.setOutOfMemory(outOfMemory);
 
-        HeapImpl.getAccounting().notifyAfterCollection();
+        heapAccounting.notifyAfterCollection();
         GenScavengeMemoryPoolMXBeans.notifyAfterCollection();
 
         printGCAfter(cause);
+        Heap.getHeap().updateUsedAtGC();
         JfrGCHeapSummaryEvent.emit(JfrGCWhen.AFTER_GC);
+
+        UnsignedWord sizeAfter = heapAccounting.getEdenUsedBytes().add(heapAccounting.getSurvivorUsedBytes()).add(heapAccounting.getOldUsedBytes());
+        JfrOldObjectSampleEvents.updateLastSweep(heapAccounting.getHeapSizesBeforeGc().totalUsed(), sizeAfter);
 
         collectionEpoch = collectionEpoch.add(1);
         timers.mutator.open();

@@ -209,7 +209,7 @@ public final class ThreadLocalAllocation {
     }
 
     @SubstrateForeignCallTarget(stubCallingConvention = false)
-    private static Object slowPathNewInstance(Word objectHeader) {
+    private static Object slowPathNewInstance(Word objectHeader, UnsignedWord size) {
         /*
          * Avoid stack overflow errors while producing memory chunks, because that could leave the
          * heap in an inconsistent state.
@@ -220,6 +220,8 @@ public final class ThreadLocalAllocation {
 
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
+
+            JfrOldObjectSampleEvents.sample(result, size.rawValue(), Integer.MIN_VALUE);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
@@ -284,6 +286,8 @@ public final class ThreadLocalAllocation {
 
             Object result = slowPathNewArrayLikeObject0(hub, length, size, podReferenceMap);
             runSlowPathHooks();
+
+            JfrOldObjectSampleEvents.sample(result, size.rawValue(), length);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();

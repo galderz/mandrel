@@ -532,6 +532,11 @@ public final class Space {
         return accounting.getAlignedChunkBytes();
     }
 
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    UnsignedWord getUncheckedChunkBytes() {
+        return getAlignedChunkBytes().add(accounting.getUnalignedChunkBytes());
+    }
+
     UnsignedWord computeObjectBytes() {
         assert !isEdenSpace() || VMOperation.isGCInProgress() : "eden data is only accurate during a GC";
         return computeAlignedObjectBytes().add(computeUnalignedObjectBytes());
