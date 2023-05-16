@@ -17,7 +17,6 @@ public final class JfrOldObjectSampler {
     private final OldObjectPriorityQueue queue;
     private final OldObjectList list;
     private final SpinLock lock;
-    private long totalAllocated;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
@@ -35,8 +34,6 @@ public final class JfrOldObjectSampler {
         }
 
         try {
-            totalAllocated += allocatedSize;
-
             if (queue.isFull()) {
                 if (queue.peek().span > allocatedSize) {
                     // Sample will not fit, try to scavenge
