@@ -12,45 +12,45 @@ import org.graalvm.nativeimage.Platforms;
  * The traversal can also be used to discover entries that need removing,
  * e.g. if references have been garbage collected.
  */
-public class LeakSampleList {
+public class OldObjectList {
     // Points to the oldest entry added to the list.
     // This would be the first FIFO iterated element.
     // Only gets updated when an entry is removed.
-    LeakSample head;
+    OldObject head;
 
     // Points to the youngest entry added to the list.
     // This would be last FIFO iterated element.
     // Prepending merely updates this pointer.
-    LeakSample tail;
+    OldObject tail;
 
     @Platforms(Platform.HOSTED_ONLY.class)
-    LeakSampleList() {}
+    OldObjectList() {}
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    LeakSample head() {
+    OldObject head() {
         return head;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    LeakSample next(LeakSample current) {
+    OldObject next(OldObject current) {
         return current.previous;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void prepend(LeakSample sample) {
+    void prepend(OldObject sample) {
         if (tail == null) {
             tail = sample;
             head = sample;
             return;
         }
 
-        LeakSample tmp = tail;
+        OldObject tmp = tail;
         tail = sample;
         tmp.previous = sample;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void remove(LeakSample sample) {
+    void remove(OldObject sample) {
         if (head == sample && tail == sample) {
             // Removing last remaining item, null both pointers
             head = null;
@@ -65,7 +65,7 @@ public class LeakSampleList {
         }
 
         // Else, find an element whose previous is item; iow, find item's next element.
-        LeakSample next = findNext(sample);
+        OldObject next = findNext(sample);
 
         assert next != null;
 
@@ -79,8 +79,8 @@ public class LeakSampleList {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private LeakSample findNext(LeakSample target) {
-        LeakSample current = head;
+    private OldObject findNext(OldObject target) {
+        OldObject current = head;
         while (current != null) {
             if (current.previous == target) {
                 return current;

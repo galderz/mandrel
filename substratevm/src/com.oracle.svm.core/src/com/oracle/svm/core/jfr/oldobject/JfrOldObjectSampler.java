@@ -13,17 +13,17 @@ import java.lang.ref.WeakReference;
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
-    private final LeakSamples samples;
-    private final LeakSamplePriorityQueue queue;
-    private final LeakSampleList list;
+    private final OldObjectArray samples;
+    private final OldObjectPriorityQueue queue;
+    private final OldObjectList list;
     private final SpinLock lock;
     private long totalAllocated;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
-        this.samples = new LeakSamples(SAMPLER_SIZE);
-        this.queue = new LeakSamplePriorityQueue(this.samples);
-        this.list = new LeakSampleList();
+        this.samples = new OldObjectArray(SAMPLER_SIZE);
+        this.queue = new OldObjectPriorityQueue(this.samples);
+        this.list = new OldObjectList();
         this.lock = new SpinLock();
     }
 
@@ -62,9 +62,9 @@ public final class JfrOldObjectSampler {
     @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
     private int scavenge() {
         int numDead = 0;
-        LeakSample current = list.head();
+        OldObject current = list.head();
         while (current != null) {
-            LeakSample next = list.next(current);
+            OldObject next = list.next(current);
             final WeakReference<?> ref = current.reference;
             if (ref.get() == null) {
                 remove(current);
@@ -80,8 +80,8 @@ public final class JfrOldObjectSampler {
      * Remove a given sample from the sampler.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private void remove(LeakSample sample) {
-        final LeakSample prev = sample.previous;
+    private void remove(OldObject sample) {
+        final OldObject prev = sample.previous;
         if (prev != null) {
             queue.remove(prev);
             prev.span += sample.span;
@@ -100,7 +100,7 @@ public final class JfrOldObjectSampler {
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {
-        final LeakSample head = queue.poll();
+        final OldObject head = queue.poll();
         list.remove(head);
         head.clear();
     }
@@ -108,7 +108,7 @@ public final class JfrOldObjectSampler {
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void store(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
         final int index = queue.getCount();
-        final LeakSample sample = samples.getSample(index);
+        final OldObject sample = samples.getSample(index);
 
         final Thread thread = Thread.currentThread();
         final long heapUsedAtLastGC = Heap.getHeap().getUsedAtLastGC();

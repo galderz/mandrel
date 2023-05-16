@@ -4,13 +4,13 @@ import com.oracle.svm.core.Uninterruptible;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-final class LeakSamplePriorityQueue {
-    private final LeakSamples samples;
+final class OldObjectPriorityQueue {
+    private final OldObjectArray samples;
     private int count;
     private long total;
 
     @Platforms(Platform.HOSTED_ONLY.class)
-    LeakSamplePriorityQueue(LeakSamples samples) {
+    OldObjectPriorityQueue(OldObjectArray samples) {
         this.samples = samples;
     }
 
@@ -31,15 +31,15 @@ final class LeakSamplePriorityQueue {
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(LeakSample sample) {
+    void push(OldObject sample) {
         count++;
         moveUp(count - 1);
         total += sample.span;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    LeakSample peek() {
-        return count == 0 ? LeakSample.EMPTY : samples.getSample(0);
+    OldObject peek() {
+        return count == 0 ? OldObject.EMPTY : samples.getSample(0);
     }
 
     /**
@@ -47,12 +47,12 @@ final class LeakSamplePriorityQueue {
      * The head of the queue is the sample with the smallest span.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    LeakSample poll() {
+    OldObject poll() {
         if (count == 0) {
-            return LeakSample.EMPTY;
+            return OldObject.EMPTY;
         }
 
-        final LeakSample head = peek();
+        final OldObject head = peek();
         samples.swap(0, count - 1);
         count--;
         moveDown(0);
@@ -66,7 +66,7 @@ final class LeakSamplePriorityQueue {
      * then it polls it to remove it.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void remove(LeakSample sample) {
+    void remove(OldObject sample) {
         final long span = sample.span;
         sample.span = 0L;
         moveUp(samples.getIndexOf(sample));

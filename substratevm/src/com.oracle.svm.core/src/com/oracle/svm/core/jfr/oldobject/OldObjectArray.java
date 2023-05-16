@@ -4,14 +4,14 @@ import com.oracle.svm.core.Uninterruptible;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-final class LeakSamples {
-    private final LeakSample[] samples;
+final class OldObjectArray {
+    private final OldObject[] samples;
 
     @Platforms(Platform.HOSTED_ONLY.class)
-    LeakSamples(int capacity) {
-        this.samples = new LeakSample[capacity];
+    OldObjectArray(int capacity) {
+        this.samples = new OldObject[capacity];
         for (int i = 0; i < this.samples.length; i++) {
-            this.samples[i] = new LeakSample();
+            this.samples[i] = new OldObject();
         }
     }
 
@@ -22,13 +22,13 @@ final class LeakSamples {
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     void swap(int i, int j) {
-        final LeakSample tmp = samples[i];
+        final OldObject tmp = samples[i];
         samples[i] = samples[j];
         samples[j] = tmp;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    int getIndexOf(LeakSample sample) {
+    int getIndexOf(OldObject sample) {
         for (int i = 0; i < samples.length; i++) {
             if (sample == samples[i]) {
                 return i;
@@ -39,7 +39,7 @@ final class LeakSamples {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    LeakSample getSample(int index) {
+    OldObject getSample(int index) {
         return samples[index];
     }
 }

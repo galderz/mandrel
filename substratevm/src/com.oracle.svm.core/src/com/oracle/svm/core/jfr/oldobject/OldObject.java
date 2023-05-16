@@ -4,8 +4,8 @@ import com.oracle.svm.core.Uninterruptible;
 
 import java.lang.ref.WeakReference;
 
-final class LeakSample {
-    static final LeakSample EMPTY = new LeakSample();
+final class OldObject {
+    static final OldObject EMPTY = new OldObject();
 
     WeakReference<?> reference;
     long span;
@@ -14,7 +14,7 @@ final class LeakSample {
     long stackTraceId;
     long heapUsedAtLastGC;
     int arrayLength;
-    LeakSample previous;
+    OldObject previous;
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
