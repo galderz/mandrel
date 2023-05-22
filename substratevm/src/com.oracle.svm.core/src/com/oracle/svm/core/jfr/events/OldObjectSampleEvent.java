@@ -25,7 +25,7 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, usedAtLastGC); // used memory at last gc
             JfrNativeEventWriter.putLong(data, objectId); // object id
             JfrNativeEventWriter.putInt(data, arrayLength); // array length
-            JfrNativeEventWriter.putLong(data,0); // todo path to gc roots
+            JfrNativeEventWriter.putLong(data,0); // todo gc root address (path-to-gc-roots)
             JfrNativeEventWriter.endSmallEvent(data);
         }
     }

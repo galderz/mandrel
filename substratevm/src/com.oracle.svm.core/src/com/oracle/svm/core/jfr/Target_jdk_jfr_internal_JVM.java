@@ -409,8 +409,6 @@ public final class Target_jdk_jfr_internal_JVM {
     /** See {@link JVM#emitOldObjectSamples}. */
     @Substitute
     public void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
-        // todo handle emitAll=false
-        // todo support skipBFS=true which means using DFS
         SubstrateJVM.get().emitOldObjectSamples(cutoff, emitAll, skipBFS);
     }
 

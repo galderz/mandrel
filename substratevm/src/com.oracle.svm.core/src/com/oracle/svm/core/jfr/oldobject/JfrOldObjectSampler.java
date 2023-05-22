@@ -127,7 +127,7 @@ public final class JfrOldObjectSampler {
         list.prepend(sample);
     }
 
-    public void emit(long cutoff, JfrChunkWriter chunkWriter) {
+    public void emit(long cutoff) {
         lock.lock();
 
         try {
@@ -135,27 +135,10 @@ public final class JfrOldObjectSampler {
                 // No reference chains
                 OldObjectEventEmitter.emitUnchained(list);
             }
+
+            // todo support cutoff > 0 (path-to-gc-roots)
         } finally {
             lock.unlock();
         }
     }
-
-//    private void writeEvents(JfrChunkWriter chunkWriter) {
-//        OldObject current;
-//        int count = 0;
-//
-////        // First pass to associate a live sample with its immediate edge,
-////        // in preparation for writing checkpoint information.
-////        current = list.head();
-////        while (current != null) {
-////            final Object obj = current.reference.get();
-////            if (obj != null) {
-////                SubstrateJVM.getJfrOldObjectRepository().putOldObject(obj);
-////                count++;
-////            }
-////
-////            current = list.next(current);
-////        }
-//    }
-
 }

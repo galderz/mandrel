@@ -597,14 +597,9 @@ public class SubstrateJVM {
      * See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}.
      */
     void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
-        JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
-        try {
-            oldObjectSampler.emit(cutoff, chunkWriter);
-        } catch (Throwable t) {
-            t.printStackTrace();
-        } finally {
-            chunkWriter.unlock();
-        }
+        // todo handle emitAll=false which means only emitting events for objects older than last GC cycle (full and/or incremental?)
+        // todo support skipBFS=true which means using DFS (path-to-gc-roots)
+        oldObjectSampler.emit(cutoff);
     }
 
     public long getChunkStartNanos() {

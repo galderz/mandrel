@@ -29,19 +29,4 @@ final class OldObjectEventEmitter {
             current = list.next(current);
         }
     }
-
-//    private static final class EmitUnchained extends JavaVMOperation {
-//        final JfrOldObjectSampler oldObjectSampler;
-//
-//        protected EmitUnchained(JfrOldObjectSampler oldObjectSampler) {
-//            super(VMOperationInfos.get(EmitUnchained.class, "TBD", SystemEffect.SAFEPOINT));
-//            this.oldObjectSampler = oldObjectSampler;
-//        }
-//
-//        @Override
-//        @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while computing paths to GC roots.")
-//        protected void operate() {
-//            // TODO: Customise this generated block
-//        }
-//    }
 }

@@ -12,15 +12,11 @@ import com.oracle.svm.core.jfr.JfrRepository;
 import com.oracle.svm.core.jfr.JfrType;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.jfr.traceid.JfrTraceIdEpoch;
-import com.oracle.svm.core.jfr.utils.JfrVisited;
 import com.oracle.svm.core.locks.VMMutex;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.StackValue;
-import org.graalvm.nativeimage.c.struct.RawField;
-import org.graalvm.nativeimage.c.struct.RawStructure;
-import org.graalvm.word.Pointer;
 import org.graalvm.word.WordFactory;
 
 public final class JfrOldObjectRepository implements JfrRepository {
@@ -58,7 +54,7 @@ public final class JfrOldObjectRepository implements JfrRepository {
             JfrNativeEventWriter.putLong(data, pointer.rawValue());
             JfrNativeEventWriter.putLong(data, SubstrateJVM.getTypeRepository().getClassId(obj.getClass()));
             JfrNativeEventWriter.putLong(data, 0L); // todo description
-            JfrNativeEventWriter.putLong(data, WordFactory.zero().rawValue()); // todo path to gc roots
+            JfrNativeEventWriter.putLong(data, WordFactory.zero().rawValue()); // todo parent address (path-to-gc-roots)
             if (!JfrNativeEventWriter.commit(data)) {
                 return -1;
             }
@@ -71,22 +67,6 @@ public final class JfrOldObjectRepository implements JfrRepository {
             mutex.unlock();
         }
     }
-
-//    @Uninterruptible(reason = "Epoch must not change while in this method.")
-//    private void serializeOldObject(JfrOldObjectTableEntry entry, JfrOldObjectEpochData epochData) {
-//    }
-
-//    @Uninterruptible(reason = "Locking without transition and result is only valid until epoch changes.", callerMustBe = true)
-//    public JfrOldObjectTableEntry putOldObject0(Object obj, JfrOldObjectEpochData epochData) {
-//        JfrOldObjectTableEntry entry = StackValue.get(JfrOldObjectTableEntry.class);
-//        final Word pointer = Word.objectToUntrackedPointer(obj);
-//        entry.setHash(UninterruptibleUtils.Long.hashCode(pointer.rawValue()));
-//        entry.setRawOldObject(pointer);
-//        entry.setParent(WordFactory.zero());
-//        entry.setGcRootId(0);
-//        entry.setSkipLength(0);
-//        return (JfrOldObjectTableEntry) epochData.table.getOrPut(entry);
-//    }
 
     @Override
     @Uninterruptible(reason = "Locking without transition requires that the whole critical section is uninterruptible.")
@@ -118,92 +98,17 @@ public final class JfrOldObjectRepository implements JfrRepository {
         return epoch ? epochData0 : epochData1;
     }
 
-    @Uninterruptible(reason = "Result is only valid until epoch changes.", callerMustBe = true)
-    private JfrBuffer getCurrentBuffer() {
-        JfrOldObjectEpochData epochData = getEpochData(false);
-        if (epochData.buffer.isNull()) {
-            epochData.buffer = JfrBufferAccess.allocate(JfrBufferType.C_HEAP);
-        }
-        return epochData.buffer;
-    }
-
-    @RawStructure
-    public interface JfrOldObjectTableEntry extends JfrVisited {
-        @RawField
-        Pointer getRawOldObject();
-
-        @RawField
-        void setRawOldObject(Pointer pointer);
-
-        @RawField
-        Pointer getParent();
-
-        @RawField
-        void setParent(Pointer pointer);
-
-        @RawField
-        long getGcRootId();
-
-        @RawField
-        void setGcRootId(long id);
-
-        @RawField
-        int getSkipLength();
-
-        @RawField
-        void setSkipLength(int skipLength);
-
-        @RawField
-        long getClassId();
-
-        @RawField
-        void setClassId(long id);
-    }
-
-//    public static final class JfrOldObjectTable extends AbstractUninterruptibleHashtable {
-//        private long nextId;
-//
-//        @Override
-//        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-//        protected JfrOldObjectTableEntry[] createTable(int length) {
-//            return new JfrOldObjectTableEntry[length];
-//        }
-//
-//        @Override
-//        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-//        protected boolean isEqual(UninterruptibleEntry a, UninterruptibleEntry b) {
-//            JfrOldObjectTableEntry entry1 = (JfrOldObjectTableEntry) a;
-//            JfrOldObjectTableEntry entry2 = (JfrOldObjectTableEntry) b;
-//            return entry1.getRawOldObject() == entry2.getRawOldObject();
-//        }
-//
-//        @Override
-//        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-//        protected UninterruptibleEntry copyToHeap(UninterruptibleEntry valueOnStack) {
-//            JfrOldObjectTableEntry result = (JfrOldObjectTableEntry) copyToHeap(valueOnStack, SizeOf.unsigned(JfrOldObjectTableEntry.class));
-//            if (result.isNonNull()) {
-//                result.setId(++nextId);
-//            }
-//            return result;
-//        }
-//    }
-
     private static class JfrOldObjectEpochData {
-        // private final JfrOldObjectTable table;
         private int unflushedEntries;
         private JfrBuffer buffer;
 
         @Platforms(Platform.HOSTED_ONLY.class)
         JfrOldObjectEpochData() {
-            // this.table = new JfrOldObjectTable();
             this.unflushedEntries = 0;
         }
 
         @Uninterruptible(reason = "May write current epoch data.")
         void clear(boolean flushpoint) {
-            // if (!flushpoint) {
-            //    table.clear();
-            // }
             unflushedEntries = 0;
             JfrBufferAccess.reinitialize(buffer);
         }
