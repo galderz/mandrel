@@ -27,6 +27,7 @@ package com.oracle.svm.core.jfr;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectRepository;
 import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
@@ -74,6 +75,7 @@ public class SubstrateJVM {
     private final JfrThreadRepository threadRepo;
     private final JfrStackTraceRepository stackTraceRepo;
     private final JfrMethodRepository methodRepo;
+    private final JfrOldObjectRepository oldObjectRepo;
     private final JfrThreadLocal threadLocal;
     private final JfrGlobalMemory globalMemory;
     private final SamplerBufferPool samplerBufferPool;
@@ -109,11 +111,12 @@ public class SubstrateJVM {
         typeRepo = new JfrTypeRepository();
         threadRepo = new JfrThreadRepository();
         methodRepo = new JfrMethodRepository();
+        oldObjectRepo = new JfrOldObjectRepository();
 
         threadLocal = new JfrThreadLocal();
         globalMemory = new JfrGlobalMemory();
         samplerBufferPool = new SamplerBufferPool();
-        unlockedChunkWriter = new JfrChunkWriter(globalMemory, stackTraceRepo, methodRepo, typeRepo, symbolRepo, threadRepo);
+        unlockedChunkWriter = new JfrChunkWriter(globalMemory, stackTraceRepo, methodRepo, typeRepo, symbolRepo, threadRepo, oldObjectRepo);
         recorderThread = new JfrRecorderThread(globalMemory, unlockedChunkWriter);
 
         jfrLogging = new JfrLogging();
@@ -191,6 +194,11 @@ public class SubstrateJVM {
     @Fold
     public static JfrOldObjectSampler getJfrOldObjectSampler() {
         return get().oldObjectSampler;
+    }
+
+    @Fold
+    public static JfrOldObjectRepository getJfrOldObjectRepository() {
+        return get().oldObjectRepo;
     }
 
     public static Object getHandler(Class<? extends jdk.internal.event.Event> eventClass) {
@@ -585,6 +593,20 @@ public class SubstrateJVM {
         }
     }
 
+    /**
+     * See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}.
+     */
+    void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
+        JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
+        try {
+            oldObjectSampler.emit(cutoff, chunkWriter);
+        } catch (Throwable t) {
+            t.printStackTrace();
+        } finally {
+            chunkWriter.unlock();
+        }
+    }
+
     public long getChunkStartNanos() {
         JfrChunkWriter chunkWriter = unlockedChunkWriter.lock();
         try {
@@ -765,6 +787,7 @@ public class SubstrateJVM {
             stackTraceRepo.teardown();
             methodRepo.teardown();
             typeRepo.teardown();
+            oldObjectRepo.teardown();
 
             initialized = false;
         }

@@ -2,6 +2,7 @@ package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.jfr.JfrChunkWriter;
 import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
@@ -125,4 +126,36 @@ public final class JfrOldObjectSampler {
         queue.push(sample);
         list.prepend(sample);
     }
+
+    public void emit(long cutoff, JfrChunkWriter chunkWriter) {
+        lock.lock();
+
+        try {
+            if (cutoff <= 0) {
+                // No reference chains
+                OldObjectEventEmitter.emitUnchained(list);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+//    private void writeEvents(JfrChunkWriter chunkWriter) {
+//        OldObject current;
+//        int count = 0;
+//
+////        // First pass to associate a live sample with its immediate edge,
+////        // in preparation for writing checkpoint information.
+////        current = list.head();
+////        while (current != null) {
+////            final Object obj = current.reference.get();
+////            if (obj != null) {
+////                SubstrateJVM.getJfrOldObjectRepository().putOldObject(obj);
+////                count++;
+////            }
+////
+////            current = list.next(current);
+////        }
+//    }
+
 }
