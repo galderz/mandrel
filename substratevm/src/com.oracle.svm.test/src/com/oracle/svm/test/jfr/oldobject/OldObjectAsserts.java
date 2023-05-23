@@ -5,22 +5,23 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedObject;
 import org.junit.Assert;
+import org.junit.rules.TestName;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 final class OldObjectAsserts {
-    static Consumer<RecordedEvent> assertOldObjectEvent(String expectedTypeName, String stackMethodName) {
-        return assertOldObjectEvent(expectedTypeName, stackMethodName, Integer.MIN_VALUE);
+    static Consumer<RecordedEvent> assertOldObjectEvent(TestName stackMethodName, String expectedTypeName) {
+        return assertOldObjectEvent(stackMethodName, expectedTypeName, Integer.MIN_VALUE);
     }
 
-    static Consumer<RecordedEvent> assertOldObjectEvent(String expectedTypeName, String stackMethodName, int expectedArrayLength) {
+    static Consumer<RecordedEvent> assertOldObjectEvent(TestName stackMethodName, String expectedTypeName, int expectedArrayLength) {
         return event -> {
             Assert.assertEquals(0, event.getDuration().toMillis());
 
             final List<RecordedFrame> frames = event.getStackTrace().getFrames();
             Assert.assertTrue(frames.size() > 0);
-            Assert.assertTrue(frames.stream().anyMatch(e -> e.getMethod().getName().equals(stackMethodName)));
+            Assert.assertTrue(frames.stream().anyMatch(e -> stackMethodName.getMethodName().equals(e.getMethod().getName())));
 
             final RecordedObject object = event.getValue("object");
             Assert.assertNotNull(object);

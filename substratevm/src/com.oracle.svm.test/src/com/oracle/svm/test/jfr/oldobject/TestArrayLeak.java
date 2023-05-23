@@ -14,7 +14,7 @@ import java.util.Map;
 
 import static com.oracle.svm.test.jfr.oldobject.OldObjectAsserts.assertOldObjectEvent;
 
-public class TestPlainObjectLeak extends JfrRecordingTest {
+public class TestArrayLeak extends JfrRecordingTest {
     static Object leak;
 
     @Rule
@@ -37,37 +37,23 @@ public class TestPlainObjectLeak extends JfrRecordingTest {
     }
 
     @Test
-    public void testSampleQueueNotFull() throws Throwable {
+    public void testArrayLeak() throws Throwable {
         Recording recording = startOldObjectRecording();
 
-        NodeNotFull node = new NodeNotFull();
+        Object[] node = new Object[3];
         leak = node;
         for (int i = 0; i < 1_000_000; i++) {
-            node.value = new NodeNotFull();
-            node.left = new NodeNotFull();
-            node.right = new NodeNotFull();
-            node = node.right;
+            Object[] value = new Object[100];
+            node[0] = value;
+            Object[] left = new Object[3];
+            node[1] = left;
+            Object[] right = new Object[3];
+            node[2] = right;
+            node = right;
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> events.forEach(assertOldObjectEvent(name, NodeNotFull.class.getName())));
-    }
-
-    @Test
-    public void testSampleQueueFull() throws Throwable {
-        Recording recording = startOldObjectRecording();
-
-        NodeFull node = new NodeFull();
-        leak = node;
-        for (int i = 0; i < 10_000_000; i++) {
-            node.value = new NodeFull();
-            node.left = new NodeFull();
-            node.right = new NodeFull();
-            node = node.right;
-        }
-
-        blackhole(leak);
-        stopRecording(recording, events -> events.forEach(assertOldObjectEvent(name, NodeFull.class.getName())));
+        stopRecording(recording, events -> events.forEach(assertOldObjectEvent(name, "[Ljava.lang.Object;", 100)));
     }
 
     private Recording startOldObjectRecording() throws Throwable {
@@ -81,17 +67,5 @@ public class TestPlainObjectLeak extends JfrRecordingTest {
         if (obj.hashCode() == System.nanoTime()) {
             System.out.println(obj);
         }
-    }
-
-    static class NodeNotFull {
-        NodeNotFull left;
-        NodeNotFull right;
-        Object value;
-    }
-
-    static class NodeFull {
-        NodeFull left;
-        NodeFull right;
-        Object value;
     }
 }
