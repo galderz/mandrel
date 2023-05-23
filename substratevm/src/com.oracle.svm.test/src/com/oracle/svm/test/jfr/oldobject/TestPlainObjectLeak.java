@@ -1,44 +1,12 @@
 package com.oracle.svm.test.jfr.oldobject;
 
-import com.oracle.svm.core.jfr.JfrEvent;
-import com.oracle.svm.test.jfr.JfrRecordingTest;
 import jdk.jfr.Recording;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static com.oracle.svm.test.jfr.oldobject.OldObjectAsserts.assertOldObjectEvent;
-
-public class TestPlainObjectLeak extends JfrRecordingTest {
-    static Object leak;
-
-    @Rule
-    public TestName name = new TestName();
-
-    @Before
-    public void triggerUpdateOfLastKnownHeapUsage() {
-        // Trigger GC before tests to get a reading of last known heap usage for the first executed test.
-        System.gc();
-        System.gc();
-    }
-
-    @After
-    public void garbageCollectLeak() {
-        // Force previous tests objects to be garbage collected.
-        // The scavenge logic in the sampler should clear those from the queue.
-        leak = null;
-        System.gc();
-        System.gc();
-    }
-
+public class TestPlainObjectLeak extends JfrOldObjectTest {
     @Test
     public void testSampleQueueNotFull() throws Throwable {
-        Recording recording = startOldObjectRecording();
+        Recording recording = startRecording();
 
         NodeNotFull node = new NodeNotFull();
         leak = node;
@@ -50,12 +18,12 @@ public class TestPlainObjectLeak extends JfrRecordingTest {
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> events.forEach(assertOldObjectEvent(name, NodeNotFull.class.getName())));
+        stopRecording(recording, events -> filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent));
     }
 
     @Test
     public void testSampleQueueFull() throws Throwable {
-        Recording recording = startOldObjectRecording();
+        Recording recording = startRecording();
 
         NodeFull node = new NodeFull();
         leak = node;
@@ -67,20 +35,7 @@ public class TestPlainObjectLeak extends JfrRecordingTest {
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> events.forEach(assertOldObjectEvent(name, NodeFull.class.getName())));
-    }
-
-    private Recording startOldObjectRecording() throws Throwable {
-        final String[] events = {JfrEvent.OldObjectSample.getName()};
-        Map<String, String> settings = new HashMap<>();
-        settings.put("old-objects-stack-trace", "true");
-        return startRecording(events, getDefaultConfiguration(), settings);
-    }
-
-    private static void blackhole(Object obj) {
-        if (obj.hashCode() == System.nanoTime()) {
-            System.out.println(obj);
-        }
+        stopRecording(recording, events -> filterEventsByType(NodeFull.class, events).forEach(this::assertOldObjectEvent));
     }
 
     static class NodeNotFull {
