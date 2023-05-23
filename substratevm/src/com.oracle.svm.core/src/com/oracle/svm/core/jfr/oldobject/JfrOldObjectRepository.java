@@ -53,7 +53,7 @@ public final class JfrOldObjectRepository implements JfrRepository {
             JfrNativeEventWriter.putLong(data, objectId);
             JfrNativeEventWriter.putLong(data, pointer.rawValue());
             JfrNativeEventWriter.putLong(data, SubstrateJVM.getTypeRepository().getClassId(obj.getClass()));
-            JfrNativeEventWriter.putLong(data, 0L); // todo description
+            JfrNativeEventWriter.putLong(data, 0L); // todo old object description
             JfrNativeEventWriter.putLong(data, WordFactory.zero().rawValue()); // todo parent address (path-to-gc-roots)
             if (!JfrNativeEventWriter.commit(data)) {
                 return -1;

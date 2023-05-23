@@ -2,8 +2,9 @@ package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
-import com.oracle.svm.core.jfr.JfrChunkWriter;
+import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrTicks;
+import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
 import org.graalvm.nativeimage.Platform;
@@ -115,10 +116,7 @@ public final class JfrOldObjectSampler {
         if (thread == null) {
             sample.set(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
         } else {
-            // todo see if segfaults for retrieving stacktrace id go away
-            //      https://gist.github.com/galderz/51020f04735ace36610cab1dd8c27c2c
-            // final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 4);
-            final long stackTraceId = 1;
+            final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
             final long threadId = JavaThreads.getThreadId(thread);
             sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         }
