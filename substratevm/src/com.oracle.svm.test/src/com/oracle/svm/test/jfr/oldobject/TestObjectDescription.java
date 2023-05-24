@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class TestObjectDescription extends JfrOldObjectTest {
     @Test
-    public void testThreadGroupName() throws Throwable {
+    public void testThreadGroup() throws Throwable {
         Recording recording = startRecording();
 
         Node node = new Node();
