@@ -8,7 +8,6 @@ import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 final class OldObjectEventEmitter {
 
     // Making callees not uninterruptible to deal with WeakReference.get()
-    // todo move to VM operation
     @Uninterruptible(reason = "Prevent JFR recording and epoch change.", calleeMustBe = false)
     static void emitUnchained(OldObjectList list) {
         final long timestamp = JfrTicks.elapsedTicks();
