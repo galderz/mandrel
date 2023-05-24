@@ -1,6 +1,7 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.jdk.UninterruptibleUtils;
 import com.oracle.svm.core.jfr.JfrBuffer;
 import com.oracle.svm.core.jfr.JfrBufferAccess;
 import com.oracle.svm.core.jfr.JfrBufferType;
@@ -53,7 +54,7 @@ public final class JfrOldObjectRepository implements JfrRepository {
             JfrNativeEventWriter.putLong(data, objectId);
             JfrNativeEventWriter.putLong(data, pointer.rawValue());
             JfrNativeEventWriter.putLong(data, SubstrateJVM.getTypeRepository().getClassId(obj.getClass()));
-            JfrNativeEventWriter.putLong(data, 0L); // todo old object description
+            writeDescription(obj, data);
             JfrNativeEventWriter.putLong(data, WordFactory.zero().rawValue()); // todo parent address (path-to-gc-roots)
             if (!JfrNativeEventWriter.commit(data)) {
                 return -1;
@@ -66,6 +67,22 @@ public final class JfrOldObjectRepository implements JfrRepository {
         } finally {
             mutex.unlock();
         }
+    }
+
+    @Uninterruptible(reason = "Locking without transition and result is only valid until epoch changes.", callerMustBe = true)
+    private static void writeDescription(Object obj, JfrNativeEventWriterData data) {
+        if (obj instanceof ThreadGroup) {
+            String prefix = "Thread Group: ";
+            String threadGroupName = ((ThreadGroup) obj).getName();
+            JfrNativeEventWriter.putString(data, threadGroupName, null, prefix, null);
+            return;
+        }
+
+        // todo class name description
+        // todo thread name description
+        // todo size description
+        // todo ellipsis description
+        JfrNativeEventWriter.putLong(data, 0L);
     }
 
     @Override

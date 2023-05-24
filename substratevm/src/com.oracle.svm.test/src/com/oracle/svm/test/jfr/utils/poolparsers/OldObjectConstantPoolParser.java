@@ -19,7 +19,7 @@ public final class OldObjectConstantPoolParser extends ConstantPoolParser {
             addFoundId(input.readLong()); // Id.
             Assert.assertTrue("Address can't be 0", input.readLong() != 0); // Address
             addExpectedId(JfrType.Class, input.readLong()); // ClassId.
-            input.readLong(); // todo old object description
+            input.readUTF(); // Description
             input.readLong(); // todo parent address (path-to-gc-roots)
         }
     }
