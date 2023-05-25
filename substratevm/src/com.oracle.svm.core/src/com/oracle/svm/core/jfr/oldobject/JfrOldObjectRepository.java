@@ -90,8 +90,6 @@ public final class JfrOldObjectRepository implements JfrRepository {
             return;
         }
 
-        // todo class name description
-        // todo thread name description
         // todo size description
         // todo ellipsis description
         JfrNativeEventWriter.putLong(data, 0L);
