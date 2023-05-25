@@ -83,6 +83,12 @@ public final class JfrOldObjectRepository implements JfrRepository {
             JfrNativeEventWriter.putString(data, threadName, null, prefix, null);
             return;
         }
+        if (obj instanceof Class) {
+            String prefix = "Class Name: ";
+            String className = ((Class<?>) obj).getName();
+            JfrNativeEventWriter.putString(data, className, null, prefix, null);
+            return;
+        }
 
         // todo class name description
         // todo thread name description
