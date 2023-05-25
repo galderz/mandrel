@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,12 +54,14 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
         }
     }
 
-    Stream<RecordedEvent> filterEventsByType(Class<?> type, List<RecordedEvent> events) {
+    Collection<RecordedEvent> filterEventsByType(Class<?> type, List<RecordedEvent> events) {
         return filterEventsByTypeName(type.getName(), events);
     }
 
-    Stream<RecordedEvent> filterEventsByTypeName(String typeName, List<RecordedEvent> events) {
-        return events.stream().filter(e -> typeName.equals(e.<RecordedObject>getValue("object").getClass().getName()));
+    Collection<RecordedEvent> filterEventsByTypeName(String typeName, List<RecordedEvent> events) {
+        final List<RecordedEvent> filteredEvents = events.stream().filter(e -> typeName.equals(e.<RecordedObject>getValue("object").getClass("type").getName())).toList();
+        Assert.assertFalse(filteredEvents.isEmpty());
+        return filteredEvents;
     }
 
     void assertOldObjectEvent(RecordedEvent event) {

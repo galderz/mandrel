@@ -21,14 +21,14 @@ public class TestObjectDescription extends JfrOldObjectTest {
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(this::assertOldObjectDescription));
+        stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescription("Thread Group: My Thread Group", e)));
 
     }
 
-    private void assertOldObjectDescription(RecordedEvent event) {
+    private void assertDescription(String expected, RecordedEvent event) {
         final RecordedObject object = event.getValue("object");
         String description = object.getValue("description");
-        Assert.assertEquals("Thread Group: My Thread Group", description);
+        Assert.assertEquals(expected, description);
     }
 
     static class Node {
