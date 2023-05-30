@@ -21,6 +21,8 @@ import org.graalvm.nativeimage.StackValue;
 import org.graalvm.word.WordFactory;
 
 public final class JfrOldObjectRepository implements JfrRepository {
+    private static final int OBJECT_DESCRIPTION_MAX_SIZE = 100;
+
     private final VMMutex mutex;
     private final JfrOldObjectEpochData epochData0;
     private final JfrOldObjectEpochData epochData1;
@@ -74,24 +76,23 @@ public final class JfrOldObjectRepository implements JfrRepository {
         if (obj instanceof ThreadGroup) {
             String prefix = "Thread Group: ";
             String threadGroupName = ((ThreadGroup) obj).getName();
-            JfrNativeEventWriter.putString(data, threadGroupName, null, prefix, null);
+            JfrNativeEventWriter.putString(data, threadGroupName, OBJECT_DESCRIPTION_MAX_SIZE, prefix);
             return;
         }
         if (obj instanceof Thread) {
             String prefix = "Thread Name: ";
             String threadName = ((Thread) obj).getName();
-            JfrNativeEventWriter.putString(data, threadName, null, prefix, null);
+            JfrNativeEventWriter.putString(data, threadName, OBJECT_DESCRIPTION_MAX_SIZE, prefix);
             return;
         }
         if (obj instanceof Class) {
             String prefix = "Class Name: ";
             String className = ((Class<?>) obj).getName();
-            JfrNativeEventWriter.putString(data, className, null, prefix, null);
+            JfrNativeEventWriter.putString(data, className, OBJECT_DESCRIPTION_MAX_SIZE, prefix);
             return;
         }
 
         // todo size description
-        // todo ellipsis description
         JfrNativeEventWriter.putLong(data, 0L);
     }
 
