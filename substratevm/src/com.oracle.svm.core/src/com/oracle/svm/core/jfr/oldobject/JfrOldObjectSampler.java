@@ -19,6 +19,7 @@ public final class JfrOldObjectSampler {
     private final OldObjectPriorityQueue queue;
     private final OldObjectList list;
     private final SpinLock lock;
+    private long lastSweep = Long.MAX_VALUE;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
@@ -125,18 +126,22 @@ public final class JfrOldObjectSampler {
         list.prepend(sample);
     }
 
-    public void emit(long cutoff) {
+    public void emit(long cutoff, boolean emitAll) {
         lock.lock();
 
         try {
             if (cutoff <= 0) {
                 // No reference chains
-                OldObjectEventEmitter.emitUnchained(list);
+                OldObjectEventEmitter.emitUnchained(list, emitAll ? Long.MAX_VALUE : lastSweep);
             }
 
             // todo support cutoff > 0 (path-to-gc-roots)
         } finally {
             lock.unlock();
         }
+    }
+
+    public void setLastSweep(long lastSweep) {
+        this.lastSweep = lastSweep;
     }
 }

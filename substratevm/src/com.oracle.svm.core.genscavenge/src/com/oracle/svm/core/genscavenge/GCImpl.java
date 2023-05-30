@@ -30,6 +30,7 @@ import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 import java.lang.ref.Reference;
 
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
@@ -209,6 +210,7 @@ public final class GCImpl implements GC {
         printGCBefore(cause.getName());
         boolean outOfMemory = collectImpl(cause, data.getRequestingNanoTime(), data.getForceFullGC());
         printGCAfter(cause.getName());
+        JfrOldObjectSampleEvents.updateLastSweep(sizeBefore, getChunkBytes());
 
         finishCollection();
         timers.mutator.open();

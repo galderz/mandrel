@@ -17,6 +17,10 @@ final class JfrOldObjectSampleEventSupport {
             SubstrateJVM.getJfrOldObjectSampler().sample(result, allocatedSize, arrayLength);
         }
     }
+
+    public void updateLastSweep(long timestamp) {
+        SubstrateJVM.getJfrOldObjectSampler().setLastSweep(timestamp);
+    }
 }
 
 @AutomaticallyRegisteredFeature

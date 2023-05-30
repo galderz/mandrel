@@ -9,15 +9,15 @@ final class OldObjectEventEmitter {
 
     // Making callees not uninterruptible to deal with WeakReference.get()
     @Uninterruptible(reason = "Prevent JFR recording and epoch change.", calleeMustBe = false)
-    static void emitUnchained(OldObjectList list) {
+    static void emitUnchained(OldObjectList list, long lastSweep) {
         final long timestamp = JfrTicks.elapsedTicks();
 
         OldObject current = list.head();
         while (current != null) {
             final Object obj = current.reference.get();
-            if (obj != null) {
+            final long allocationTime = current.allocationTime;
+            if (isAliveAndOlderThan(lastSweep, obj, allocationTime)) {
                 final long objectId = SubstrateJVM.getJfrOldObjectRepository().serializeOldObject(obj);
-                final long allocationTime = current.allocationTime;
                 final long threadId = current.threadId;
                 final long stackTraceId = current.stackTraceId;
                 final long heapUsedAtLastGC = current.heapUsedAtLastGC;
@@ -27,5 +27,9 @@ final class OldObjectEventEmitter {
 
             current = list.next(current);
         }
+    }
+
+    private static boolean isAliveAndOlderThan(long lastSweep, Object obj, long allocationTime) {
+        return obj != null && allocationTime < lastSweep;
     }
 }

@@ -9,7 +9,7 @@ final class OldObject {
 
     WeakReference<?> reference;
     long span;
-    long allocationTime;
+    long allocationTime; // nanoseconds
     long threadId;
     long stackTraceId;
     long heapUsedAtLastGC;
