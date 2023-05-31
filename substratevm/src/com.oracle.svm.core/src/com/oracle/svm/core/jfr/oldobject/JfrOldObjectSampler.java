@@ -17,7 +17,6 @@ public final class JfrOldObjectSampler {
 
     private final OldObjectArray samples;
     private final OldObjectPriorityQueue queue;
-    private final OldObjectList list;
     private final SpinLock lock;
     private long lastSweep = Long.MAX_VALUE;
 
@@ -25,7 +24,6 @@ public final class JfrOldObjectSampler {
     public JfrOldObjectSampler() {
         this.samples = new OldObjectArray(SAMPLER_SIZE);
         this.queue = new OldObjectPriorityQueue(this.samples);
-        this.list = new OldObjectList();
         this.lock = new SpinLock();
     }
 
@@ -62,16 +60,12 @@ public final class JfrOldObjectSampler {
     @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
     private int scavenge() {
         int numDead = 0;
-        OldObject current = list.head();
-        while (current != null) {
-            OldObject next = list.next(current);
-            final WeakReference<?> ref = current.reference;
-            if (ref.get() == null) {
-                remove(current);
+        for (int i = 0; i < samples.getCapacity(); i++) {
+            final OldObject sample = samples.getSample(i);
+            if (sample.reference != null && sample.reference.get() == null) {
+                remove(sample);
                 numDead++;
             }
-
-            current = next;
         }
         return numDead;
     }
@@ -88,7 +82,6 @@ public final class JfrOldObjectSampler {
             queue.push(prev);
         }
         queue.remove(sample);
-        list.remove(sample);
         sample.clear();
     }
 
@@ -100,9 +93,7 @@ public final class JfrOldObjectSampler {
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {
-        final OldObject head = queue.poll();
-        list.remove(head);
-        head.clear();
+        queue.poll().clear();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -123,7 +114,6 @@ public final class JfrOldObjectSampler {
         }
 
         queue.push(sample);
-        list.prepend(sample);
     }
 
     public void emit(long cutoff, boolean emitAll) {
@@ -132,7 +122,7 @@ public final class JfrOldObjectSampler {
         try {
             if (cutoff <= 0) {
                 // No reference chains
-                OldObjectEventEmitter.emitUnchained(list, emitAll ? Long.MAX_VALUE : lastSweep);
+                OldObjectEventEmitter.emitUnchained(samples, emitAll ? Long.MAX_VALUE : lastSweep);
             }
 
             // todo support cutoff > 0 (path-to-gc-roots)
