@@ -1,9 +1,12 @@
 package com.oracle.svm.test.jfr.oldobject;
 
 import jdk.jfr.Recording;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestPlainObjectLeak extends JfrOldObjectTest {
+    private static final int DEFAULT_OLD_OBJECT_QUEUE_SIZE = 256;
+
     @Test
     public void testSampleQueueNotFull() throws Throwable {
         Recording recording = startRecording();
@@ -18,7 +21,10 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent));
+        stopRecording(recording, events -> {
+            Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
+            filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent);
+        });
     }
 
     @Test
@@ -27,7 +33,7 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
 
         NodeFull node = new NodeFull();
         leak = node;
-        for (int i = 0; i < 10_000_000; i++) {
+        for (int i = 0; i < 40_000_000; i++) {
             node.value = new NodeFull();
             node.left = new NodeFull();
             node.right = new NodeFull();
@@ -35,7 +41,10 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
         }
 
         blackhole(leak);
-        stopRecording(recording, events -> filterEventsByType(NodeFull.class, events).forEach(this::assertOldObjectEvent));
+        stopRecording(recording, events -> {
+            Assert.assertEquals(DEFAULT_OLD_OBJECT_QUEUE_SIZE, events.size());
+            filterEventsByType(NodeFull.class, events).forEach(this::assertOldObjectEvent);
+        });
     }
 
     static class NodeNotFull {
