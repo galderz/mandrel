@@ -1,6 +1,8 @@
 package com.oracle.svm.test.jfr.oldobject;
 
+import com.oracle.svm.core.jfr.JfrEvent;
 import jdk.jfr.Recording;
+import jdk.jfr.consumer.RecordedEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,6 +27,12 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
             Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
             filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent);
         });
+    }
+
+    static class NodeFull {
+        NodeFull left;
+        NodeFull right;
+        Object value;
     }
 
     @Test
@@ -53,9 +61,30 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
         Object value;
     }
 
-    static class NodeFull {
-        NodeFull left;
-        NodeFull right;
+    @Test
+    public void testNoStackTrace() throws Throwable {
+        Recording recording = startRecording(new String[]{JfrEvent.OldObjectSample.getName()});
+
+        NodeNoStack node = new NodeNoStack();
+        leak = node;
+        for (int i = 0; i < 1_000_000; i++) {
+            node.value = new NodeNoStack();
+            node.left = new NodeNoStack();
+            node.right = new NodeNoStack();
+            node = node.right;
+        }
+
+        blackhole(leak);
+        stopRecording(recording, events -> filterEventsByType(NodeNoStack.class, events).forEach(this::assertNoStackTrace));
+    }
+
+    static class NodeNoStack {
+        NodeNoStack left;
+        NodeNoStack right;
         Object value;
+    }
+
+    private void assertNoStackTrace(RecordedEvent event) {
+        Assert.assertNull(event.getStackTrace());
     }
 }
