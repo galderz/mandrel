@@ -221,6 +221,8 @@ public class SubstrateJVM {
      * triggered yet. So, we don't need to take any precautions here.
      */
     public boolean createJFR(boolean simulateFailure) {
+        SubstrateJVM.getJfrOldObjectSampler().initialize();
+
         if (simulateFailure) {
             throw new IllegalStateException("Unable to start JFR");
         } else if (initialized) {

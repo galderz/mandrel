@@ -1,15 +1,12 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import org.graalvm.nativeimage.Platform;
-import org.graalvm.nativeimage.Platforms;
 
 final class OldObjectPriorityQueue {
     private final OldObjectArray samples;
     private int count;
     private long total;
 
-    @Platforms(Platform.HOSTED_ONLY.class)
     OldObjectPriorityQueue(OldObjectArray samples) {
         this.samples = samples;
     }

@@ -1,13 +1,10 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import org.graalvm.nativeimage.Platform;
-import org.graalvm.nativeimage.Platforms;
 
 final class OldObjectArray {
     private final OldObject[] samples;
 
-    @Platforms(Platform.HOSTED_ONLY.class)
     OldObjectArray(int capacity) {
         this.samples = new OldObject[capacity];
         for (int i = 0; i < this.samples.length; i++) {

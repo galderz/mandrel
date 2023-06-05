@@ -7,6 +7,9 @@ import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.locks.SpinLock;
 import com.oracle.svm.core.thread.JavaThreads;
+import jdk.jfr.internal.LogLevel;
+import jdk.jfr.internal.LogTag;
+import jdk.jfr.internal.Logger;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -15,13 +18,19 @@ import java.lang.ref.WeakReference;
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
-    private final OldObjectArray samples;
-    private final OldObjectPriorityQueue queue;
-    private final SpinLock lock;
+    private OldObjectArray samples;
+    private OldObjectPriorityQueue queue;
+    private SpinLock lock;
     private long lastSweep = Long.MAX_VALUE;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
+    }
+
+    public void initialize() {
+        if (Logger.shouldLog(LogTag.JFR, LogLevel.DEBUG)) {
+            Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize object sampler: old-object-queue-size=" + SAMPLER_SIZE);
+        }
         this.samples = new OldObjectArray(SAMPLER_SIZE);
         this.queue = new OldObjectPriorityQueue(this.samples);
         this.lock = new SpinLock();
