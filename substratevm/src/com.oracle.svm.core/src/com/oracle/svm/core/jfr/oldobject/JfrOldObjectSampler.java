@@ -16,8 +16,9 @@ import org.graalvm.nativeimage.Platforms;
 import java.lang.ref.WeakReference;
 
 public final class JfrOldObjectSampler {
-    private static final int SAMPLER_SIZE = 256;
+    public static final int DEFAULT_SAMPLER_SIZE = 256;
 
+    private int oldObjectQueueSize;
     private OldObjectArray samples;
     private OldObjectPriorityQueue queue;
     private SpinLock lock;
@@ -27,11 +28,15 @@ public final class JfrOldObjectSampler {
     public JfrOldObjectSampler() {
     }
 
+    public void configure(int oldObjectQueueSize) {
+        this.oldObjectQueueSize = oldObjectQueueSize;
+    }
+
     public void initialize() {
         if (Logger.shouldLog(LogTag.JFR, LogLevel.DEBUG)) {
-            Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize object sampler: old-object-queue-size=" + SAMPLER_SIZE);
+            Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize object sampler: old-object-queue-size=" + oldObjectQueueSize);
         }
-        this.samples = new OldObjectArray(SAMPLER_SIZE);
+        this.samples = new OldObjectArray(oldObjectQueueSize);
         this.queue = new OldObjectPriorityQueue(this.samples);
         this.lock = new SpinLock();
     }
