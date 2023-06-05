@@ -45,6 +45,9 @@ public final class JfrOldObjectSampler {
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
         final boolean success = lock.tryLock();
         if (!success) {
+            if (Logger.shouldLog(LogTag.JFR, LogLevel.TRACE)) {
+                Logger.log(LogTag.JFR, LogLevel.TRACE, "Skipping old object sample due to lock contention");
+            }
             return;
         }
 
