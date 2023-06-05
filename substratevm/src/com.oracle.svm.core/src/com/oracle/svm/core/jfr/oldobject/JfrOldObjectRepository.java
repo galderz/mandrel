@@ -1,7 +1,6 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.jdk.UninterruptibleUtils;
 import com.oracle.svm.core.jfr.JfrBuffer;
 import com.oracle.svm.core.jfr.JfrBufferAccess;
 import com.oracle.svm.core.jfr.JfrBufferType;
@@ -92,7 +91,7 @@ public final class JfrOldObjectRepository implements JfrRepository {
             return;
         }
 
-        // todo size description
+        // Size description not implemented since that relies on runtime reflection.
         JfrNativeEventWriter.putLong(data, 0L);
     }
 
