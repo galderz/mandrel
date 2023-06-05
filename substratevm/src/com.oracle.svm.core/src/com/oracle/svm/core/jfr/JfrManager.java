@@ -40,7 +40,6 @@ import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
 import com.oracle.svm.core.option.RuntimeOptionKey;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
-import org.graalvm.nativebridge.In;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
