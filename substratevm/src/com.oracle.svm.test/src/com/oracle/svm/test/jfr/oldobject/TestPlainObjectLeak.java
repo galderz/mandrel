@@ -41,7 +41,7 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
 
         NodeFull node = new NodeFull();
         leak = node;
-        for (int i = 0; i < 40_000_000; i++) {
+        for (int i = 0; i < 50_000_000; i++) {
             node.value = new NodeFull();
             node.left = new NodeFull();
             node.right = new NodeFull();

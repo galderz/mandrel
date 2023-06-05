@@ -5,7 +5,6 @@ import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrNativeEventWriter;
 import com.oracle.svm.core.jfr.JfrNativeEventWriterData;
 import com.oracle.svm.core.jfr.JfrNativeEventWriterDataAccess;
-import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.nativeimage.StackValue;
 
 public class OldObjectSampleEvent {

@@ -34,7 +34,7 @@ public final class JfrOldObjectSampler {
 
     public void initialize() {
         if (Logger.shouldLog(LogTag.JFR, LogLevel.DEBUG)) {
-            Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize object sampler: old-object-queue-size=" + oldObjectQueueSize);
+            Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize old object sampler: old-object-queue-size=" + oldObjectQueueSize);
         }
         this.samples = new OldObjectArray(oldObjectQueueSize);
         this.queue = new OldObjectPriorityQueue(this.samples);
@@ -45,9 +45,6 @@ public final class JfrOldObjectSampler {
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
         final boolean success = lock.tryLock();
         if (!success) {
-            if (Logger.shouldLog(LogTag.JFR, LogLevel.TRACE)) {
-                Logger.log(LogTag.JFR, LogLevel.TRACE, "Skipping old object sample due to lock contention");
-            }
             return;
         }
 
@@ -103,10 +100,8 @@ public final class JfrOldObjectSampler {
     }
 
     /**
-     * Evict the sample with the smallest span from the sampler.
-     * This includes removing it from the head of the queue,
-     * as well as adjusting the list view links
-     * and clearing its data.
+     * Evict the sample with the smallest span from the sampler,
+     * by removing the head of the queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {

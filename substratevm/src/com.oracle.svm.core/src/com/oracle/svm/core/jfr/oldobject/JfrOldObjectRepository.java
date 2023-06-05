@@ -105,14 +105,14 @@ public final class JfrOldObjectRepository implements JfrRepository {
 
         mutex.lockNoTransition();
         try {
-            JfrOldObjectEpochData epochData = getEpochData(!flushpoint);
+            JfrOldObjectEpochData epochData = getEpochData(true);
             int count = epochData.unflushedEntries;
             if (count != 0) {
                 writer.writeCompressedLong(JfrType.OldObject.getId());
                 writer.writeCompressedInt(count);
                 writer.write(epochData.buffer);
             }
-            epochData.clear(flushpoint);
+            epochData.clear();
             return count == 0 ? EMPTY : NON_EMPTY;
         } finally {
             mutex.unlock();
@@ -135,7 +135,7 @@ public final class JfrOldObjectRepository implements JfrRepository {
         }
 
         @Uninterruptible(reason = "May write current epoch data.")
-        void clear(boolean flushpoint) {
+        void clear() {
             unflushedEntries = 0;
             JfrBufferAccess.reinitialize(buffer);
         }

@@ -8,10 +8,10 @@ import org.graalvm.word.UnsignedWord;
 import java.lang.ref.WeakReference;
 
 public class JfrOldObjectSampleEvents {
-    static void sample(Object result, long allocatedSize, int arrayLength) {
+    static void sample(Object obj, long allocatedSize, int arrayLength) {
         if (hasJfrSupport()) {
             // Instantiate weak reference at the last possible time before allocations are not allowed
-            jfrSupport().sample(new WeakReference<>(result), allocatedSize, arrayLength);
+            jfrSupport().sample(new WeakReference<>(obj), allocatedSize, arrayLength);
         }
     }
 
