@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.oracle.svm.core.option.RuntimeOptionKey;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -59,6 +60,7 @@ import jdk.jfr.internal.PrivateAccess;
 import jdk.jfr.internal.SecuritySupport;
 import jdk.jfr.internal.Utils;
 import jdk.jfr.internal.jfc.JFC;
+import org.graalvm.nativeimage.RuntimeOptions;
 
 /**
  * Called during VM startup and teardown. Also triggers the JFR argument parsing.
@@ -169,6 +171,9 @@ public class JfrManager {
             }
 
             OldObjectSample.updateSettingPathToGcRoots(s, pathToGcRoots);
+//            Logger.log(LogTag.JFR_SYSTEM, LogLevel.INFO, "Calling initSampler()...");
+//            // SubstrateJVM.getJfrOldObjectSampler().initSampler();
+//            Logger.log(LogTag.JFR_SYSTEM, LogLevel.INFO, "Returned initSampler()");
 
             if (duration != null) {
                 if (duration < 1000L * 1000L * 1000L) {
@@ -300,16 +305,38 @@ public class JfrManager {
     }
 
     private static Map<JfrStartArgument, String> parseStartFlightRecording() {
-        Map<JfrStartArgument, String> optionsMap = new HashMap<>();
-        String text = SubstrateOptions.StartFlightRecording.getValue();
+        return parseArguments(SubstrateOptions.StartFlightRecording, JfrStartArgument.values());
+//        Map<JfrStartArgument, String> optionsMap = new HashMap<>();
+//        String text = SubstrateOptions.StartFlightRecording.getValue();
+//        if (!text.isEmpty()) {
+//            JfrStartArgument[] possibleArguments = JfrStartArgument.values();
+//            String[] options = text.split(",");
+//            for (String option : options) {
+//                String[] keyVal = option.split("=");
+//                JfrStartArgument arg = findArgument(possibleArguments, keyVal[0]);
+//                if (arg == null) {
+//                    throw VMError.shouldNotReachHere("Unknown argument '" + keyVal[0] + "' in " + SubstrateOptions.StartFlightRecording.getName());
+//                }
+//                optionsMap.put(arg, keyVal[1]);
+//            }
+//        }
+//        return optionsMap;
+    }
+
+//    private static Map<JfrRecorderArgument, String> parseFlightRecorderOptions() {
+//
+//    }
+
+    private static <T extends JfrCmdLineArgument> Map<T, String> parseArguments(RuntimeOptionKey<String> runtimeOptionKey, T[] possibleArguments) {
+        Map<T, String> optionsMap = new HashMap<>();
+        String text = runtimeOptionKey.getValue();
         if (!text.isEmpty()) {
-            JfrStartArgument[] possibleArguments = JfrStartArgument.values();
             String[] options = text.split(",");
             for (String option : options) {
                 String[] keyVal = option.split("=");
-                JfrStartArgument arg = findArgument(possibleArguments, keyVal[0]);
+                T arg = findArgument(possibleArguments, keyVal[0]);
                 if (arg == null) {
-                    throw VMError.shouldNotReachHere("Unknown argument '" + keyVal[0] + "' in " + SubstrateOptions.StartFlightRecording.getName());
+                    throw VMError.shouldNotReachHere("Unknown argument '" + keyVal[0] + "' in " + runtimeOptionKey.getName());
                 }
                 optionsMap.put(arg, keyVal[1]);
             }
@@ -433,16 +460,20 @@ public class JfrManager {
         return idx;
     }
 
-    private static JfrStartArgument findArgument(JfrStartArgument[] possibleArguments, String value) {
-        for (JfrStartArgument arg : possibleArguments) {
-            if (arg.cmdLineKey.equals(value)) {
+    private static <T extends JfrCmdLineArgument> T findArgument(T[] possibleArguments, String value) {
+        for (T arg : possibleArguments) {
+            if (arg.getCmdLineKey().equals(value)) {
                 return arg;
             }
         }
         return null;
     }
 
-    private enum JfrStartArgument {
+    private interface JfrCmdLineArgument {
+        String getCmdLineKey();
+    }
+
+    private enum JfrStartArgument implements JfrCmdLineArgument {
         Name("name"),
         Settings("settings"),
         Delay("delay"),
@@ -458,6 +489,26 @@ public class JfrManager {
 
         JfrStartArgument(String key) {
             this.cmdLineKey = key;
+        }
+
+        @Override
+        public String getCmdLineKey() {
+            return cmdLineKey;
+        }
+    }
+
+    private enum JfrRecorderArgument implements JfrCmdLineArgument {
+        OldObjectQueueSize("old-object-queue-size");
+
+        private final String cmdLineKey;
+
+        JfrRecorderArgument(String key) {
+            this.cmdLineKey = key;
+        }
+
+        @Override
+        public String getCmdLineKey() {
+            return cmdLineKey;
         }
     }
 }

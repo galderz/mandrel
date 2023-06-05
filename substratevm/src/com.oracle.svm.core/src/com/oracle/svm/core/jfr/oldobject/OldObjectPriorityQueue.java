@@ -9,7 +9,7 @@ final class OldObjectPriorityQueue {
     private int count;
     private long total;
 
-    @Platforms(Platform.HOSTED_ONLY.class)
+    // @Platforms(Platform.HOSTED_ONLY.class)
     OldObjectPriorityQueue(OldObjectArray samples) {
         this.samples = samples;
     }

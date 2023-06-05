@@ -15,16 +15,21 @@ import java.lang.ref.WeakReference;
 public final class JfrOldObjectSampler {
     private static final int SAMPLER_SIZE = 256;
 
-    private final OldObjectArray samples;
-    private final OldObjectPriorityQueue queue;
-    private final SpinLock lock;
+    private OldObjectArray samples;
+    private OldObjectPriorityQueue queue;
+    private SpinLock lock;
     private long lastSweep = Long.MAX_VALUE;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectSampler() {
+    }
+
+    public void initSampler() {
+        System.out.println("Init sampler");
         this.samples = new OldObjectArray(SAMPLER_SIZE);
         this.queue = new OldObjectPriorityQueue(this.samples);
         this.lock = new SpinLock();
+        System.out.println("this.samples=" + this.samples);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -55,8 +60,8 @@ public final class JfrOldObjectSampler {
             lock.unlock();
         }
     }
-
     // Making callees not uninterruptible to deal with WeakReference.get()
+
     @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
     private int scavenge() {
         int numDead = 0;

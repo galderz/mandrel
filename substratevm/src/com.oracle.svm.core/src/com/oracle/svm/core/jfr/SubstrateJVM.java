@@ -340,6 +340,8 @@ public class SubstrateJVM {
 
         JfrBeginRecordingOperation vmOp = new JfrBeginRecordingOperation();
         vmOp.enqueue();
+
+        System.out.println("begin recording");
     }
 
     /**
