@@ -26,37 +26,36 @@
 
 package com.oracle.svm.core.genscavenge;
 
+import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.jfr.HasJfrSupport;
+import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrTicks;
-import org.graalvm.compiler.api.replacements.Fold;
-import org.graalvm.nativeimage.ImageSingletons;
+import com.oracle.svm.core.jfr.SubstrateJVM;
 import org.graalvm.word.UnsignedWord;
 
 import java.lang.ref.WeakReference;
 
 public class JfrOldObjectSampleEvents {
     static void sample(Object obj, long allocatedSize, int arrayLength) {
-        if (hasJfrSupport()) {
+        if (HasJfrSupport.get()) {
             // Instantiate weak reference at the last possible time before allocations are not allowed
-            jfrSupport().sample(new WeakReference<>(obj), allocatedSize, arrayLength);
+            sample(new WeakReference<>(obj), allocatedSize, arrayLength);
+        }
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    public static void sample(WeakReference<Object> result, long allocatedSize, int arrayLength) {
+        if (JfrEvent.OldObjectSample.shouldEmit()) {
+            SubstrateJVM.getJfrOldObjectSampler().sample(result, allocatedSize, arrayLength);
         }
     }
 
     static void updateLastSweep(UnsignedWord sizeBefore, UnsignedWord sizeAfter) {
         final long timestamp = JfrTicks.elapsedTicks();
-        if (timestamp > 0 && hasJfrSupport()) {
+        if (timestamp > 0 && HasJfrSupport.get()) {
             if (sizeAfter.belowThan(sizeBefore)) {
-                jfrSupport().updateLastSweep(timestamp);
+                SubstrateJVM.getJfrOldObjectSampler().setLastSweep(timestamp);
             }
         }
-    }
-
-    @Fold
-    static boolean hasJfrSupport() {
-        return ImageSingletons.contains(JfrOldObjectSampleEventSupport.class);
-    }
-
-    @Fold
-    static JfrOldObjectSampleEventSupport jfrSupport() {
-        return ImageSingletons.lookup(JfrOldObjectSampleEventSupport.class);
     }
 }
