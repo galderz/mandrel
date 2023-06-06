@@ -108,7 +108,7 @@ public class JfrManager {
         };
     }
 
-    private void parseFlightRecorderOptions() {
+    private static void parseFlightRecorderOptions() {
         final Map<JfrRecorderOptionArgument, String> options = parseArguments(SubstrateOptions.FlightRecorderOptions, JfrRecorderOptionArgument.values());
         final String oldObjectQueueSizeArg = options.get(JfrRecorderOptionArgument.OldObjectQueueSize);
         final int oldObjectQueueSize = oldObjectQueueSizeArg != null ? Integer.parseInt(oldObjectQueueSizeArg) : JfrOldObjectSampler.DEFAULT_SAMPLER_SIZE;
