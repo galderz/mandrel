@@ -483,7 +483,6 @@ public class JfrManager {
         }
     }
 
-
     private enum JfrRecorderOptionArgument implements JfrCmdLineArgument {
         OldObjectQueueSize("old-object-queue-size");
 
