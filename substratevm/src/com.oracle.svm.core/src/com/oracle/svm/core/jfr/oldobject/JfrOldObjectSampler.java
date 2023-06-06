@@ -115,12 +115,15 @@ public final class JfrOldObjectSampler {
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void remove(OldObject sample) {
-        final OldObject prev = sample.previous;
-        if (prev != null) {
+        final int sampleIndex = samples.getIndexOf(sample);
+        final int prevIndex = sampleIndex == 0 ? samples.getCapacity() - 1 : sampleIndex - 1;
+        final OldObject prev = samples.getSample(prevIndex);
+        if (prev.reference != null) {
             queue.remove(prev);
             prev.span += sample.span;
             queue.push(prev);
         }
+
         queue.remove(sample);
         sample.clear();
     }
