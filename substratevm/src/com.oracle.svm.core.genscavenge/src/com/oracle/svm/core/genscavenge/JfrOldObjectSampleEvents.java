@@ -38,7 +38,8 @@ import java.lang.ref.WeakReference;
 public class JfrOldObjectSampleEvents {
     static void sample(Object obj, long allocatedSize, int arrayLength) {
         if (HasJfrSupport.get()) {
-            // Instantiate weak reference at the last possible time before allocations are not allowed
+            // Instantiate weak reference at the last possible time before allocations are not
+            // allowed
             sample(new WeakReference<>(obj), allocatedSize, arrayLength);
         }
     }

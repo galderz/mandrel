@@ -126,8 +126,7 @@ public final class JfrOldObjectSampler {
     }
 
     /**
-     * Evict the sample with the smallest span from the sampler,
-     * by removing the head of the queue.
+     * Evict the sample with the smallest span from the sampler, by removing the head of the queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {

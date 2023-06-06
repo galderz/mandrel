@@ -31,10 +31,10 @@ import com.oracle.svm.core.jdk.UninterruptibleUtils;
 import com.oracle.svm.core.util.VMError;
 
 /**
- * A non-reentrant spin lock.
- * The main difference when compared with {@link VMMutex} is that it provides a tryLock() method.
- * This is useful for situations when trying to skip an action if a lock cannot be obtained.
- * A good example of this is the sampling logic in the old object sample JFR event.
+ * A non-reentrant spin lock. The main difference when compared with {@link VMMutex} is that it
+ * provides a tryLock() method. This is useful for situations when trying to skip an action if a
+ * lock cannot be obtained. A good example of this is the sampling logic in the old object sample
+ * JFR event.
  */
 public final class SpinLock {
     private static final int NOT_HELD = -1;
@@ -42,10 +42,9 @@ public final class SpinLock {
     private final UninterruptibleUtils.AtomicLong lock = new UninterruptibleUtils.AtomicLong(NOT_HELD);
 
     /**
-     * Acquires the lock if it's not held by another thread.
-     * Otherwise, if the lock cannot be acquired it returns right away.
-     * This lock is non-reentrant so if the lock is already held by the current thread,
-     * the method throws a {@link RuntimeException}.
+     * Acquires the lock if it's not held by another thread. Otherwise, if the lock cannot be
+     * acquired it returns right away. This lock is non-reentrant so if the lock is already held by
+     * the current thread, the method returns false.
      *
      * @return true if the lock was acquired, false otherwise.
      */
@@ -71,9 +70,8 @@ public final class SpinLock {
     }
 
     /**
-     * Attempts to acquire a lock.
-     * If the lock cannot be acquired, it spins until it can be obtained.
-     * This lock is non-reentrant so if the lock is already held by the current thread,
+     * Attempts to acquire a lock. If the lock cannot be acquired, it spins until it can be
+     * obtained. This lock is non-reentrant so if the lock is already held by the current thread,
      * the method throws a {@link RuntimeException}.
      */
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
@@ -88,9 +86,8 @@ public final class SpinLock {
     }
 
     /**
-     * Attempts to release this lock.
-     * If unlock() is called without having called lock(),
-     * a {@link RuntimeException} will be raised.
+     * Attempts to release this lock. If unlock() is called without having called lock(), a
+     * {@link RuntimeException} will be raised.
      */
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public void unlock() {

@@ -51,8 +51,8 @@ final class OldObjectPriorityQueue {
     /**
      * Inserts the specified old object into this queue.
      * <p>
-     * This method does not check if the queue has enough capacity.
-     * It's up to the caller decide how to deal with a full queue.
+     * This method does not check if the queue has enough capacity. It's up to the caller decide how
+     * to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     public void push(OldObject sample) {
@@ -62,8 +62,8 @@ final class OldObjectPriorityQueue {
     /**
      * Inserts the old object sample data into this queue.
      * <p>
-     * This method does not check if the queue has enough capacity.
-     * It's up to the caller decide how to deal with a full queue.
+     * This method does not check if the queue has enough capacity. It's up to the caller decide how
+     * to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     public void push(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
@@ -79,8 +79,8 @@ final class OldObjectPriorityQueue {
     }
 
     /**
-     * Removes and return the head of the queue.
-     * The head of the queue is the sample with the smallest span.
+     * Removes and return the head of the queue. The head of the queue is the sample with the
+     * smallest span.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     OldObject poll() {
@@ -96,9 +96,8 @@ final class OldObjectPriorityQueue {
     }
 
     /**
-     * Removes a sample from the queue.
-     * It moves the sample all the way to the top to become the head,
-     * then it polls it to remove it.
+     * Removes a sample from the queue. It moves the sample all the way to the top to become the
+     * head, then it polls it to remove it.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     void remove(OldObject sample) {

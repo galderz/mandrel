@@ -96,7 +96,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrChunkWriter(JfrGlobalMemory globalMemory, JfrStackTraceRepository stackTraceRepo, JfrMethodRepository methodRepo, JfrTypeRepository typeRepo, JfrSymbolRepository symbolRepo,
-                          JfrThreadRepository threadRepo, JfrOldObjectRepository oldObjectRepo) {
+                    JfrThreadRepository threadRepo, JfrOldObjectRepository oldObjectRepo) {
         this.lock = new VMMutex("jfrChunkWriter");
         this.globalMemory = globalMemory;
         this.metadata = new JfrMetadata(null);

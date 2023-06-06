@@ -35,9 +35,9 @@ import org.junit.Test;
 
 public class TestObjectDescription extends JfrOldObjectTest {
     /**
-     * Destroy thread groups to avoid leak building its parent's groups array.
-     * Keep destroy outside the test so that java monitors created during the synchronized block access
-     * don't end up polluting the recording.
+     * Destroy thread groups to avoid leak building its parent's groups array. Keep destroy outside
+     * the test so that java monitors created during the synchronized block access don't end up
+     * polluting the recording.
      */
     @After
     public void destroyThreadGroups() {
@@ -66,7 +66,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
     }
 
     private static void assertDescription(String expected, RecordedEvent event) {
-        final String description = event.<RecordedObject>getValue("object").getValue("description");
+        final String description = event.<RecordedObject> getValue("object").getValue("description");
         Assert.assertEquals(expected, description);
     }
 
@@ -92,7 +92,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
     }
 
     private static void assertDescriptionLimit(String expected, int expectedSize, RecordedEvent event) {
-        final String description = event.<RecordedObject>getValue("object").getValue("description");
+        final String description = event.<RecordedObject> getValue("object").getValue("description");
         Assert.assertEquals(expectedSize, description.length());
         Assert.assertTrue(description.contains(expected));
     }
