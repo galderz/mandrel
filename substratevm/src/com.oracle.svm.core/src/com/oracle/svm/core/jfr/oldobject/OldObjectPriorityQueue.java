@@ -28,6 +28,8 @@ package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 
+import java.lang.ref.WeakReference;
+
 final class OldObjectPriorityQueue {
     private final OldObjectArray samples;
     private int count;
@@ -47,13 +49,26 @@ final class OldObjectPriorityQueue {
     }
 
     /**
-     * Inserts the specified Sample into this queue.
+     * Inserts the specified old object into this queue.
      * <p>
      * This method does not check if the queue has enough capacity.
      * It's up to the caller decide how to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void push(OldObject sample) {
+    public void push(OldObject sample) {
+        push(sample.reference, sample.span, sample.allocationTime, sample.threadId, sample.stackTraceId, sample.heapUsedAtLastGC, sample.arrayLength);
+    }
+
+    /**
+     * Inserts the old object sample data into this queue.
+     * <p>
+     * This method does not check if the queue has enough capacity.
+     * It's up to the caller decide how to deal with a full queue.
+     */
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    public void push(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+        final OldObject sample = samples.getSample(count);
+        sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         count++;
         moveUp(count - 1);
     }
@@ -95,12 +110,13 @@ final class OldObjectPriorityQueue {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private void moveUp(int i) {
-        int parent = parent(i);
-        while (i > 0 && getSpanAt(i) < getSpanAt(parent)) {
-            samples.swap(i, parent);
-            i = parent;
-            parent = parent(i);
+    private void moveUp(final int i) {
+        int current = i;
+        int parent = parent(current);
+        while (current > 0 && getSpanAt(current) < getSpanAt(parent)) {
+            samples.swap(current, parent);
+            current = parent;
+            parent = parent(current);
         }
     }
 
@@ -115,29 +131,30 @@ final class OldObjectPriorityQueue {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    private void moveDown(int i) {
+    private void moveDown(final int i) {
+        int current = i;
         do {
             int j = -1;
-            int r = right(i);
-            if (r < count && getSpanAt(r) < getSpanAt(i)) {
-                int l = left(i);
+            int r = right(current);
+            if (r < count && getSpanAt(r) < getSpanAt(current)) {
+                int l = left(current);
                 if (getSpanAt(l) < getSpanAt(r)) {
                     j = l;
                 } else {
                     j = r;
                 }
             } else {
-                int l = left(i);
-                if (l < count && getSpanAt(l) < getSpanAt(i)) {
+                int l = left(current);
+                if (l < count && getSpanAt(l) < getSpanAt(current)) {
                     j = l;
                 }
             }
 
             if (j >= 0) {
-                samples.swap(i, j);
+                samples.swap(current, j);
             }
-            i = j;
-        } while (i >= 0);
+            current = j;
+        } while (current >= 0);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
