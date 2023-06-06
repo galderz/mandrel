@@ -136,22 +136,17 @@ public final class JfrOldObjectSampler {
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void store(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
-        final int index = queue.getCount();
-        final OldObject sample = samples.getSample(index);
-
         final Thread thread = Thread.currentThread();
         final long heapUsedAtLastGC = Heap.getHeap().getUsedAtLastGC();
 
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            sample.set(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
+            queue.push(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
         } else {
             final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
             final long threadId = JavaThreads.getThreadId(thread);
-            sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+            queue.push(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         }
-
-        queue.push(sample);
     }
 
     public void emit(long cutoff, boolean emitAll) {
