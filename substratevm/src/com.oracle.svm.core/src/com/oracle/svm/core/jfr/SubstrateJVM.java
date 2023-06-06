@@ -615,7 +615,7 @@ public class SubstrateJVM {
     /**
      * See {@link JVM#emitOldObjectSamples(long, boolean, boolean)}.
      */
-    void emitOldObjectSamples(long cutoff, boolean emitAll, boolean skipBFS) {
+    void emitOldObjectSamples(long cutoff, boolean emitAll, @SuppressWarnings("unused") boolean skipBFS) {
         // todo support skipBFS=true which means using DFS (path-to-gc-roots)
         oldObjectSampler.emit(cutoff, emitAll);
     }
