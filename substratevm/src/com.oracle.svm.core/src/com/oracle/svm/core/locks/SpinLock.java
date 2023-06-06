@@ -57,6 +57,7 @@ public final class SpinLock {
             return false;
         }
 
+        @SuppressWarnings("deprecation")
         final long threadId = thread.getId();
         if (!lock.compareAndSet(NOT_HELD, threadId)) {
             if (threadId == lock.get()) {
@@ -77,6 +78,7 @@ public final class SpinLock {
      */
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public void lock() {
+        @SuppressWarnings("deprecation")
         final long threadId = Thread.currentThread().getId();
         while (!lock.compareAndSet(NOT_HELD, threadId)) {
             if (threadId == lock.get()) {
@@ -92,6 +94,7 @@ public final class SpinLock {
      */
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public void unlock() {
+        @SuppressWarnings("deprecation")
         final long threadId = Thread.currentThread().getId();
         if (!lock.compareAndSet(threadId, NOT_HELD)) {
             throw VMError.shouldNotReachHere("Unlock called without holding the lock");
