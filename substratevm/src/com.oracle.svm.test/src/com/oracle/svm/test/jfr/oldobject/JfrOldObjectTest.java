@@ -47,12 +47,12 @@ import java.util.Map;
 public abstract class JfrOldObjectTest extends JfrRecordingTest {
     static Object leak;
 
-    @Rule
-    public TestName name = new TestName();
+    @Rule public TestName name = new TestName();
 
     @Before
     public void triggerUpdateOfLastKnownHeapUsage() {
-        // Trigger GC before tests to get a reading of last known heap usage for the first executed test.
+        // Trigger GC before tests to get a reading of last known heap usage for the first executed
+        // test.
         System.gc();
         System.gc();
     }
@@ -84,7 +84,7 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
     }
 
     Collection<RecordedEvent> filterEventsByTypeName(String typeName, List<RecordedEvent> events) {
-        final List<RecordedEvent> filteredEvents = events.stream().filter(e -> typeName.equals(e.<RecordedObject>getValue("object").getClass("type").getName())).toList();
+        final List<RecordedEvent> filteredEvents = events.stream().filter(e -> typeName.equals(e.<RecordedObject> getValue("object").getClass("type").getName())).toList();
         Assert.assertFalse(filteredEvents.isEmpty());
         return filteredEvents;
     }
