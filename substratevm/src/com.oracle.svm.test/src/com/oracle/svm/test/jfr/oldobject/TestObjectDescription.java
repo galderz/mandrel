@@ -65,7 +65,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
         stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescription("Thread Group: My Thread Group", e)));
     }
 
-    private void assertDescription(String expected, RecordedEvent event) {
+    private static void assertDescription(String expected, RecordedEvent event) {
         final String description = event.<RecordedObject>getValue("object").getValue("description");
         Assert.assertEquals(expected, description);
     }
@@ -91,7 +91,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
         stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescriptionLimit("xxx...", objectDescriptionMaxSize + prefixSize, e)));
     }
 
-    private void assertDescriptionLimit(String expected, int expectedSize, RecordedEvent event) {
+    private static void assertDescriptionLimit(String expected, int expectedSize, RecordedEvent event) {
         final String description = event.<RecordedObject>getValue("object").getValue("description");
         Assert.assertEquals(expectedSize, description.length());
         Assert.assertTrue(description.contains(expected));
