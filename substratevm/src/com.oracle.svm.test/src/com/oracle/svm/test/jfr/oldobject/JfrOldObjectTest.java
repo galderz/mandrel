@@ -54,7 +54,6 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
         // Trigger GC before tests to get a reading of last known heap usage for the first executed
         // test.
         System.gc();
-        System.gc();
     }
 
     @After
