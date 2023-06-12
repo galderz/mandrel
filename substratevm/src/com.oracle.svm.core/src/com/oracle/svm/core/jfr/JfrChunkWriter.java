@@ -107,7 +107,7 @@ public final class JfrChunkWriter implements JfrUnlockedChunkWriter {
          * the write order. This ordering is required to prevent races during flushing without
          * changing epoch.
          */
-        this.flushCheckpointRepos = new JfrRepository[]{stackTraceRepo, methodRepo, typeRepo, symbolRepo, oldObjectRepo};
+        this.flushCheckpointRepos = new JfrRepository[]{stackTraceRepo, methodRepo, oldObjectRepo, typeRepo, symbolRepo};
         this.threadCheckpointRepos = new JfrRepository[]{threadRepo};
     }
 
