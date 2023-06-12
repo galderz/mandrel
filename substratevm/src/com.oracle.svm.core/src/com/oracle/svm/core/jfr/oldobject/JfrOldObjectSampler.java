@@ -31,8 +31,9 @@ import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.jfr.SubstrateJVM;
-import com.oracle.svm.core.locks.SpinLock;
+import com.oracle.svm.core.thread.JavaSpinLockUtils;
 import com.oracle.svm.core.thread.JavaThreads;
+import jdk.internal.misc.Unsafe;
 import jdk.jfr.internal.LogLevel;
 import jdk.jfr.internal.LogTag;
 import jdk.jfr.internal.Logger;
@@ -42,12 +43,14 @@ import org.graalvm.nativeimage.Platforms;
 import java.lang.ref.WeakReference;
 
 public final class JfrOldObjectSampler {
+    private static final Unsafe U = Unsafe.getUnsafe();
+    private static final long LOCK_OFFSET = U.objectFieldOffset(JfrOldObjectSampler.class, "lock");
     public static final int DEFAULT_SAMPLER_SIZE = 256;
 
+    @SuppressWarnings("unused") private volatile int lock;
     private int queueSize;
     private OldObjectArray samples;
     private OldObjectPriorityQueue queue;
-    private SpinLock lock;
     private long lastSweep = Long.MAX_VALUE;
 
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -64,12 +67,11 @@ public final class JfrOldObjectSampler {
         }
         this.samples = new OldObjectArray(queueSize);
         this.queue = new OldObjectPriorityQueue(this.samples);
-        this.lock = new SpinLock();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
-        final boolean success = lock.tryLock();
+        final boolean success = JavaSpinLockUtils.tryLock(this, LOCK_OFFSET);
         if (!success) {
             return;
         }
@@ -92,7 +94,7 @@ public final class JfrOldObjectSampler {
 
             store(ref, allocatedSize, JfrTicks.elapsedTicks(), arrayLength);
         } finally {
-            lock.unlock();
+            JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }
     }
 
@@ -151,8 +153,9 @@ public final class JfrOldObjectSampler {
         }
     }
 
+    @Uninterruptible(reason = "Accesses allocation sampler.")
     public void emit(long cutoff, boolean emitAll) {
-        lock.lock();
+        JavaSpinLockUtils.lockNoTransition(this, LOCK_OFFSET);
 
         try {
             if (cutoff <= 0) {
@@ -162,7 +165,7 @@ public final class JfrOldObjectSampler {
 
             // todo support cutoff > 0 (path-to-gc-roots)
         } finally {
-            lock.unlock();
+            JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }
     }
 
