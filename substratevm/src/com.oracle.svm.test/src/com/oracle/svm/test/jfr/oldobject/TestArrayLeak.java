@@ -46,7 +46,6 @@ public class TestArrayLeak extends JfrOldObjectTest {
             node = right;
         }
 
-        blackhole(leak);
         stopRecording(recording, events -> filterEventsByTypeName("[Ljava.lang.Object;", events).forEach(e -> assertOldObjectEvent(100, e)));
     }
 }

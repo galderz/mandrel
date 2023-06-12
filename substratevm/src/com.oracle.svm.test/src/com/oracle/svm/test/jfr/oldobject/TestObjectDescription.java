@@ -61,7 +61,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
             node = node.right;
         }
 
-        blackhole(leak);
+        // blackhole(leak);
         stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescription("Thread Group: My Thread Group", e)));
     }
 
@@ -87,7 +87,6 @@ public class TestObjectDescription extends JfrOldObjectTest {
             node = node.right;
         }
 
-        blackhole(leak);
         stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescriptionLimit("xxx...", objectDescriptionMaxSize + prefixSize, e)));
     }
 

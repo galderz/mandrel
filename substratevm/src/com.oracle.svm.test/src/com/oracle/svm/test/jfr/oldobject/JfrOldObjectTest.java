@@ -72,12 +72,6 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
         return startRecording(events, getDefaultConfiguration(), settings);
     }
 
-    static void blackhole(Object obj) {
-        if (obj.hashCode() == System.nanoTime()) {
-            System.out.println(obj);
-        }
-    }
-
     Collection<RecordedEvent> filterEventsByType(Class<?> type, List<RecordedEvent> events) {
         return filterEventsByTypeName(type.getName(), events);
     }
