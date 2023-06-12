@@ -125,11 +125,6 @@ public final class JfrOldObjectRepository implements JfrRepository {
     @Override
     @Uninterruptible(reason = "Locking without transition requires that the whole critical section is uninterruptible.")
     public int write(JfrChunkWriter writer, boolean flushpoint) {
-        if (flushpoint) {
-            // Not supported
-            return EMPTY;
-        }
-
         mutex.lockNoTransition();
         try {
             JfrOldObjectEpochData epochData = getEpochData(true);
