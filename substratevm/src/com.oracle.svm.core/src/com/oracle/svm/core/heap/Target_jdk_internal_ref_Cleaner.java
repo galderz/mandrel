@@ -27,6 +27,9 @@ package com.oracle.svm.core.heap;
 import java.lang.ref.Cleaner;
 import java.lang.ref.ReferenceQueue;
 
+import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.annotate.AnnotateOriginal;
+import com.oracle.svm.core.util.VMError;
 import org.graalvm.nativeimage.hosted.FieldValueTransformer;
 
 import com.oracle.svm.core.annotate.Alias;
@@ -101,6 +104,15 @@ final class Target_jdk_internal_ref_CleanerImpl {
                 }
             }
         }
+    }
+}
+
+@TargetClass(className = "jdk.internal.ref.CleanerImpl$PhantomCleanableRef")
+final class Target_jdk_internal_ref_CleanerImpl_PhantomCleanableRef {
+    @Substitute
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    Object get() {
+        throw VMError.shouldNotReachHere("get");
     }
 }
 

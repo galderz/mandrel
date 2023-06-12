@@ -757,7 +757,13 @@ public class AnnotationSubstitutionProcessor extends SubstitutionProcessor {
             }
             register(methodSubstitutions, annotated, original, substitution);
         } else if (keepOriginalAnnotation != null) {
-            register(methodSubstitutions, annotated, original, original);
+            AnnotateOriginal annotateOriginalAnnotation = lookupAnnotation(annotatedMethod, AnnotateOriginal.class);
+            if (annotateOriginalAnnotation != null) {
+                AnnotatedMethod substitution = new AnnotatedMethod(original, annotated);
+                register(methodSubstitutions, annotated, original, substitution);
+            } else {
+                register(methodSubstitutions, annotated, original, original);
+            }
         }
     }
 

@@ -33,8 +33,7 @@ import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 
 final class OldObjectEventEmitter {
 
-    // Making callees not uninterruptible to deal with WeakReference.get()
-    @Uninterruptible(reason = "Prevent JFR recording and epoch change.", calleeMustBe = false)
+    @Uninterruptible(reason = "Prevent JFR recording and epoch change.")
     static void emitUnchained(OldObjectArray samples, long lastSweep) {
         final long timestamp = JfrTicks.elapsedTicks();
 
@@ -55,6 +54,7 @@ final class OldObjectEventEmitter {
         }
     }
 
+    @Uninterruptible(reason = "Prevent JFR recording and epoch change.")
     private static boolean isAliveAndOlderThan(long lastSweep, Object obj, long allocationTime) {
         return obj != null && allocationTime < lastSweep;
     }
