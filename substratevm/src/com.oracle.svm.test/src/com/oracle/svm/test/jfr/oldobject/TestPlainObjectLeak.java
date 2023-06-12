@@ -48,7 +48,7 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
             node = node.right;
         }
 
-        blackhole(leak);
+        // blackhole(leak);
         stopRecording(recording, events -> {
             Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
             filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent);
@@ -74,7 +74,7 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
             node = node.right;
         }
 
-        blackhole(leak);
+        // blackhole(leak);
         stopRecording(recording, events -> {
             Assert.assertTrue("Expected number of events emitted to be full or close to full, but instead was " + events.size(), events.size() > DEFAULT_OLD_OBJECT_QUEUE_SIZE * 0.8);
             filterEventsByType(NodeFull.class, events).forEach(this::assertOldObjectEvent);
@@ -100,7 +100,6 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
             node = node.right;
         }
 
-        blackhole(leak);
         stopRecording(recording, events -> filterEventsByType(NodeNoStack.class, events).forEach(this::assertNoStackTrace));
     }
 
