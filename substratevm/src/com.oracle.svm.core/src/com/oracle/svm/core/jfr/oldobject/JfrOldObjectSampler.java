@@ -98,8 +98,7 @@ public final class JfrOldObjectSampler {
         }
     }
 
-    // Making callees not uninterruptible to deal with WeakReference.get()
-    @Uninterruptible(reason = "Accesses allocation sampler.", calleeMustBe = false)
+    @Uninterruptible(reason = "Accesses allocation sampler.")
     private int scavenge() {
         int numDead = 0;
         for (int i = 0; i < samples.getCapacity(); i++) {

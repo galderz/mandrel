@@ -29,6 +29,7 @@ import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.util.function.BooleanSupplier;
 
+import com.oracle.svm.core.annotate.AnnotateOriginal;
 import org.graalvm.compiler.nodes.java.ReachabilityFenceNode;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -120,6 +121,8 @@ public final class Target_java_lang_ref_Reference<T> {
     }
 
     @KeepOriginal
+    @AnnotateOriginal
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     native T get();
 
     @Substitute

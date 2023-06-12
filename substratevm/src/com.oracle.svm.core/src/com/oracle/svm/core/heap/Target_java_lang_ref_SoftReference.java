@@ -26,7 +26,9 @@ package com.oracle.svm.core.heap;
 
 import java.lang.ref.SoftReference;
 
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.annotate.Alias;
+import com.oracle.svm.core.annotate.AnnotateOriginal;
 import com.oracle.svm.core.annotate.RecomputeFieldValue;
 import com.oracle.svm.core.annotate.TargetClass;
 
@@ -43,4 +45,8 @@ final class Target_java_lang_ref_SoftReference<T> {
     /** The {@link #clock} value when {@code get()} was last called. */
     @Alias @RecomputeFieldValue(kind = RecomputeFieldValue.Kind.Reset) //
     long timestamp;
+
+    @AnnotateOriginal
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    native T get();
 }
