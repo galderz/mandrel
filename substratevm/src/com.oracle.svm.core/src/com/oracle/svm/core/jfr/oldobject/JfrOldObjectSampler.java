@@ -51,6 +51,7 @@ public final class JfrOldObjectSampler {
     private int queueSize;
     private OldObjectArray samples;
     private OldObjectPriorityQueue queue;
+    private OldObjectList list;
     private long lastSweep = Long.MAX_VALUE;
 
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -67,6 +68,7 @@ public final class JfrOldObjectSampler {
         }
         this.samples = new OldObjectArray(queueSize);
         this.queue = new OldObjectPriorityQueue(this.samples);
+        this.list = new OldObjectList();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -101,12 +103,16 @@ public final class JfrOldObjectSampler {
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private int scavenge() {
         int numDead = 0;
-        for (int i = 0; i < samples.getCapacity(); i++) {
-            final OldObject sample = samples.getSample(i);
-            if (sample.reference != null && sample.reference.get() == null) {
-                remove(sample);
+        OldObject current = list.head();
+        while (current != null) {
+            OldObject next = list.next(current);
+            final WeakReference<?> ref = current.reference;
+            if (ref.get() == null) {
+                remove(current);
                 numDead++;
             }
+
+            current = next;
         }
         return numDead;
     }
@@ -116,16 +122,17 @@ public final class JfrOldObjectSampler {
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void remove(OldObject sample) {
-        final int sampleIndex = samples.getIndexOf(sample);
-        final int prevIndex = sampleIndex == 0 ? samples.getCapacity() - 1 : sampleIndex - 1;
-        final OldObject prev = samples.getSample(prevIndex);
-        if (prev.reference != null) {
+        final OldObject prev = sample.previous;
+        if (prev != null) {
+            // To keep samples evenly distributed over time,
+            // the weight of a sample that is removed should be redistributed.
+            // Here it gets redistributed to the sample that came just after in time.
             queue.remove(prev);
             prev.span += sample.span;
             queue.push(prev);
         }
-
         queue.remove(sample);
+        list.remove(sample);
         sample.clear();
     }
 
@@ -134,22 +141,30 @@ public final class JfrOldObjectSampler {
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void evict() {
-        queue.poll().clear();
+        final OldObject head = queue.poll();
+        list.remove(head);
+        head.clear();
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     private void store(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
+        final OldObject sample = queuePush(ref, allocatedSize, allocatedTime, arrayLength);
+        list.prepend(sample);
+    }
+
+    @Uninterruptible(reason = "Accesses allocation sampler.")
+    private OldObject queuePush(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
         final Thread thread = Thread.currentThread();
         final long heapUsedAtLastGC = Heap.getHeap().getUsedAtLastGC();
 
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
-            queue.push(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
-        } else {
-            final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
-            final long threadId = JavaThreads.getThreadId(thread);
-            queue.push(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+            return queue.push(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
         }
+
+        final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
+        final long threadId = JavaThreads.getThreadId(thread);
+        return queue.push(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
@@ -159,7 +174,7 @@ public final class JfrOldObjectSampler {
         try {
             if (cutoff <= 0) {
                 // No reference chains
-                OldObjectEventEmitter.emitUnchained(samples, emitAll ? Long.MAX_VALUE : lastSweep);
+                OldObjectEventEmitter.emitUnchained(list, emitAll ? Long.MAX_VALUE : lastSweep);
             }
 
             // todo support cutoff > 0 (path-to-gc-roots)

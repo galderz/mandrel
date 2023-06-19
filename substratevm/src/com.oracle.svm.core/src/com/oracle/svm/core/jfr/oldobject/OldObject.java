@@ -40,6 +40,7 @@ final class OldObject {
     long stackTraceId;
     long heapUsedAtLastGC;
     int arrayLength;
+    OldObject previous;
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
     void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
@@ -61,5 +62,6 @@ final class OldObject {
         this.stackTraceId = 0L;
         this.heapUsedAtLastGC = 0L;
         this.arrayLength = 0;
+        this.previous = null;
     }
 }

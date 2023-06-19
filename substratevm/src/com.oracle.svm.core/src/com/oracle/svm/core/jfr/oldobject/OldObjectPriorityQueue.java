@@ -66,11 +66,12 @@ final class OldObjectPriorityQueue {
      * to deal with a full queue.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    public void push(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+    public OldObject push(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
         final OldObject sample = samples.getSample(count);
         sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         count++;
         moveUp(count - 1);
+        return sample;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
