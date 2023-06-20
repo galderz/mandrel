@@ -49,7 +49,7 @@ public final class OldObjectList {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void remove(OldObject sample) {
+    public void remove(OldObject sample) {
         if (head == sample && tail == sample) {
             // Removing last remaining item, null both pointers
             head = null;

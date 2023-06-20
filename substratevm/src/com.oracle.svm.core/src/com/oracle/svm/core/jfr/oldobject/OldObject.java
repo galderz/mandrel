@@ -54,7 +54,7 @@ public final class OldObject {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void clear() {
+    public void clear() {
         this.reference = null;
         this.span = 0L;
         this.allocationTime = 0L;
