@@ -30,7 +30,7 @@ import com.oracle.svm.core.Uninterruptible;
 
 import java.lang.ref.WeakReference;
 
-final class OldObject {
+public final class OldObject {
     static final OldObject EMPTY = new OldObject();
 
     WeakReference<?> reference;
@@ -63,5 +63,37 @@ final class OldObject {
         this.heapUsedAtLastGC = 0L;
         this.arrayLength = 0;
         this.previous = null;
+    }
+
+    public WeakReference<?> getReference() {
+        return reference;
+    }
+
+    public long getSpan() {
+        return span;
+    }
+
+    public long getAllocationTime() {
+        return allocationTime;
+    }
+
+    public long getThreadId() {
+        return threadId;
+    }
+
+    public long getStackTraceId() {
+        return stackTraceId;
+    }
+
+    public long getHeapUsedAtLastGC() {
+        return heapUsedAtLastGC;
+    }
+
+    public int getArrayLength() {
+        return arrayLength;
+    }
+
+    public OldObject getPrevious() {
+        return previous;
     }
 }

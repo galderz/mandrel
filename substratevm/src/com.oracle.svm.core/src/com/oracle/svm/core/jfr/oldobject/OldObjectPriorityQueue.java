@@ -30,7 +30,7 @@ import com.oracle.svm.core.Uninterruptible;
 
 import java.lang.ref.WeakReference;
 
-final class OldObjectPriorityQueue {
+public final class OldObjectPriorityQueue {
     private final OldObjectArray samples;
     private int count;
 
@@ -38,8 +38,12 @@ final class OldObjectPriorityQueue {
         this.samples = samples;
     }
 
+    public OldObjectPriorityQueue(int capacity) {
+        this.samples = new OldObjectArray(capacity);
+    }
+
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    boolean isFull() {
+    public boolean isFull() {
         return count == samples.getCapacity();
     }
 
@@ -75,7 +79,7 @@ final class OldObjectPriorityQueue {
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    OldObject peek() {
+    public OldObject peek() {
         return count == 0 ? OldObject.EMPTY : samples.getSample(0);
     }
 
@@ -84,7 +88,7 @@ final class OldObjectPriorityQueue {
      * smallest span.
      */
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    OldObject poll() {
+    public OldObject poll() {
         if (count == 0) {
             return OldObject.EMPTY;
         }
