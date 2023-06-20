@@ -12,7 +12,7 @@ import org.graalvm.nativeimage.Platforms;
  * The traversal can also be used to discover entries that need removing,
  * e.g. if references have been garbage collected.
  */
-final class OldObjectList {
+public final class OldObjectList {
     // Points to the oldest entry added to the list.
     // This would be the first FIFO iterated element.
     // Only gets updated when an entry is removed.
@@ -23,20 +23,20 @@ final class OldObjectList {
     // Prepending merely updates this pointer.
     OldObject tail;
 
-    OldObjectList() {}
+    public OldObjectList() {}
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    OldObject head() {
+    public OldObject head() {
         return head;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    OldObject next(OldObject current) {
+    public OldObject next(OldObject current) {
         return current.previous;
     }
 
     @Uninterruptible(reason = "Accesses allocation sampler.")
-    void prepend(OldObject sample) {
+    public void prepend(OldObject sample) {
         if (tail == null) {
             tail = sample;
             head = sample;
