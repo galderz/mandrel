@@ -42,7 +42,7 @@ final class OldObject {
     int arrayLength;
     OldObject previous;
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
         this.reference = ref;
         this.span = allocatedSize;
@@ -53,7 +53,7 @@ final class OldObject {
         this.arrayLength = arrayLength;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void clear() {
         this.reference = null;
         this.span = 0L;

@@ -25,17 +25,17 @@ final class OldObjectList {
 
     OldObjectList() {}
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject head() {
         return head;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject next(OldObject current) {
         return current.previous;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void prepend(OldObject sample) {
         if (tail == null) {
             tail = sample;
@@ -48,7 +48,7 @@ final class OldObjectList {
         tmp.previous = sample;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void remove(OldObject sample) {
         if (head == sample && tail == sample) {
             // Removing last remaining item, null both pointers
@@ -77,7 +77,7 @@ final class OldObjectList {
         }
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private OldObject findNext(OldObject target) {
         OldObject current = head;
         while (current != null) {

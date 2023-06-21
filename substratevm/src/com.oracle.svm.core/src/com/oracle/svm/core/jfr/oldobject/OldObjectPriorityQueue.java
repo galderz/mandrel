@@ -38,12 +38,12 @@ final class OldObjectPriorityQueue {
         this.samples = samples;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     boolean isFull() {
         return count == samples.getCapacity();
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     int getCount() {
         return count;
     }
@@ -54,7 +54,7 @@ final class OldObjectPriorityQueue {
      * This method does not check if the queue has enough capacity. It's up to the caller decide how
      * to deal with a full queue.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     public void push(OldObject sample) {
         push(sample.reference, sample.span, sample.allocationTime, sample.threadId, sample.stackTraceId, sample.heapUsedAtLastGC, sample.arrayLength);
     }
@@ -65,7 +65,7 @@ final class OldObjectPriorityQueue {
      * This method does not check if the queue has enough capacity. It's up to the caller decide how
      * to deal with a full queue.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     public OldObject push(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
         final OldObject sample = samples.getSample(count);
         sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
@@ -74,7 +74,7 @@ final class OldObjectPriorityQueue {
         return sample;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject peek() {
         return count == 0 ? OldObject.EMPTY : samples.getSample(0);
     }
@@ -83,7 +83,7 @@ final class OldObjectPriorityQueue {
      * Removes and return the head of the queue. The head of the queue is the sample with the
      * smallest span.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject poll() {
         if (count == 0) {
             return OldObject.EMPTY;
@@ -100,7 +100,7 @@ final class OldObjectPriorityQueue {
      * Removes a sample from the queue. It moves the sample all the way to the top to become the
      * head, then it polls it to remove it.
      */
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void remove(OldObject sample) {
         final long span = sample.span;
         sample.span = 0L;
@@ -109,7 +109,7 @@ final class OldObjectPriorityQueue {
         poll();
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private void moveUp(final int i) {
         int current = i;
         int parent = parent(current);
@@ -120,17 +120,17 @@ final class OldObjectPriorityQueue {
         }
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private long getSpanAt(int index) {
         return samples.getSample(index).span;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private static int parent(int i) {
         return (i - 1) / 2;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private void moveDown(final int i) {
         int current = i;
         do {
@@ -157,12 +157,12 @@ final class OldObjectPriorityQueue {
         } while (current >= 0);
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private static int left(int i) {
         return 2 * i + 1;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     private static int right(int i) {
         return 2 * i + 2;
     }

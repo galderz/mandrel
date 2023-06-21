@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectProfiler;
 import com.oracle.svm.core.option.RuntimeOptionKey;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
@@ -110,8 +110,8 @@ public class JfrManager {
     private static void parseFlightRecorderOptions() {
         final Map<JfrRecorderOptionArgument, String> options = parseArguments(SubstrateOptions.FlightRecorderOptions, JfrRecorderOptionArgument.values());
         final String oldObjectQueueSizeArg = options.get(JfrRecorderOptionArgument.OldObjectQueueSize);
-        final int oldObjectQueueSize = oldObjectQueueSizeArg != null ? Integer.parseInt(oldObjectQueueSizeArg) : JfrOldObjectSampler.DEFAULT_SAMPLER_SIZE;
-        SubstrateJVM.getJfrOldObjectSampler().configure(oldObjectQueueSize);
+        final int oldObjectQueueSize = oldObjectQueueSizeArg != null ? Integer.parseInt(oldObjectQueueSizeArg) : JfrOldObjectProfiler.DEFAULT_SAMPLER_SIZE;
+        SubstrateJVM.getJfrOldObjectProfiler().configure(oldObjectQueueSize);
     }
 
     private static void parseFlightRecorderLogging(String option) {

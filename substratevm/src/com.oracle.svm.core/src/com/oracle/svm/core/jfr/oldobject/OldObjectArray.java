@@ -38,19 +38,19 @@ final class OldObjectArray {
         }
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     int getCapacity() {
         return samples.length;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     void swap(int i, int j) {
         final OldObject tmp = samples[i];
         samples[i] = samples[j];
         samples[j] = tmp;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     int getIndexOf(OldObject sample) {
         for (int i = 0; i < samples.length; i++) {
             if (sample == samples[i]) {
@@ -61,7 +61,7 @@ final class OldObjectArray {
         return -1;
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject getSample(int index) {
         return samples[index];
     }
