@@ -44,10 +44,10 @@ public class JfrOldObjectSampleEvents {
         }
     }
 
-    @Uninterruptible(reason = "Accesses allocation sampler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     public static void sample(WeakReference<Object> result, long allocatedSize, int arrayLength) {
         if (JfrEvent.OldObjectSample.shouldEmit()) {
-            SubstrateJVM.getJfrOldObjectSampler().sample(result, allocatedSize, arrayLength);
+            SubstrateJVM.getJfrOldObjectProfiler().sample(result, allocatedSize, arrayLength);
         }
     }
 
@@ -55,7 +55,7 @@ public class JfrOldObjectSampleEvents {
         final long timestamp = JfrTicks.elapsedTicks();
         if (timestamp > 0 && HasJfrSupport.get()) {
             if (sizeAfter.belowThan(sizeBefore)) {
-                SubstrateJVM.getJfrOldObjectSampler().setLastSweep(timestamp);
+                SubstrateJVM.getJfrOldObjectProfiler().setLastSweep(timestamp);
             }
         }
     }

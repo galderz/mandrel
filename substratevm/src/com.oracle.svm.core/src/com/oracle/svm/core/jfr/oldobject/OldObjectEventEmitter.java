@@ -27,28 +27,41 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.jfr.JfrTicks;
-import com.oracle.svm.core.jfr.SubstrateJVM;
-import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 
 final class OldObjectEventEmitter {
+    private final OldObjectList list;
+    private final OldObjectEffects effects;
+
+    OldObjectEventEmitter(OldObjectList list, OldObjectEffects effects) {
+        this.list = list;
+        this.effects = effects;
+    }
+
+    @Uninterruptible(reason = "Accesses allocation profiler.")
+    void emit(long cutoff, long lastSweep) {
+        if (cutoff <= 0) {
+            // No reference chains
+            emitUnchained(list, lastSweep);
+        }
+
+        // todo support cutoff > 0 (path-to-gc-roots)
+    }
 
     @Uninterruptible(reason = "Prevent JFR recording and epoch change.")
-    static void emitUnchained(OldObjectList list, long lastSweep) {
-        final long timestamp = JfrTicks.elapsedTicks();
+    private void emitUnchained(OldObjectList list, long lastSweep) {
+        final long timestamp = effects.elapsedTicks();
 
         OldObject current = list.head();
         while (current != null) {
             if (current.reference != null) {
                 final Object obj = current.reference.get();
                 final long allocationTime = current.allocationTime;
-                if (isAliveAndOlderThan(lastSweep, obj, allocationTime)) {
-                    final long objectId = SubstrateJVM.getJfrOldObjectRepository().serializeOldObject(obj);
+                if (effects.isAlive(current.reference) && isOlderThan(lastSweep, allocationTime)) {
                     final long threadId = current.threadId;
                     final long stackTraceId = current.stackTraceId;
                     final long heapUsedAtLastGC = current.heapUsedAtLastGC;
                     final int arrayLength = current.arrayLength;
-                    OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+                    effects.emit(obj, timestamp, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
                 }
             }
 
@@ -57,7 +70,7 @@ final class OldObjectEventEmitter {
     }
 
     @Uninterruptible(reason = "Prevent JFR recording and epoch change.")
-    private static boolean isAliveAndOlderThan(long lastSweep, Object obj, long allocationTime) {
-        return obj != null && allocationTime < lastSweep;
+    private static boolean isOlderThan(long lastSweep, long allocationTime) {
+        return allocationTime < lastSweep;
     }
 }

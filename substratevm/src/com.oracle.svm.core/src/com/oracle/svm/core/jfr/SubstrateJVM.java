@@ -27,8 +27,8 @@ package com.oracle.svm.core.jfr;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectProfiler;
 import com.oracle.svm.core.jfr.oldobject.JfrOldObjectRepository;
-import com.oracle.svm.core.jfr.oldobject.JfrOldObjectSampler;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -83,7 +83,7 @@ public class SubstrateJVM {
     private final JfrRecorderThread recorderThread;
 
     private final JfrLogging jfrLogging;
-    private final JfrOldObjectSampler oldObjectSampler;
+    private final JfrOldObjectProfiler oldObjectProfiler;
 
     private boolean initialized;
     /*
@@ -120,7 +120,7 @@ public class SubstrateJVM {
         recorderThread = new JfrRecorderThread(globalMemory, unlockedChunkWriter);
 
         jfrLogging = new JfrLogging();
-        oldObjectSampler = new JfrOldObjectSampler();
+        oldObjectProfiler = new JfrOldObjectProfiler();
 
         initialized = false;
         recording = false;
@@ -192,8 +192,8 @@ public class SubstrateJVM {
     }
 
     @Fold
-    public static JfrOldObjectSampler getJfrOldObjectSampler() {
-        return get().oldObjectSampler;
+    public static JfrOldObjectProfiler getJfrOldObjectProfiler() {
+        return get().oldObjectProfiler;
     }
 
     @Fold
@@ -221,7 +221,7 @@ public class SubstrateJVM {
      * triggered yet. So, we don't need to take any precautions here.
      */
     public boolean createJFR(boolean simulateFailure) {
-        SubstrateJVM.getJfrOldObjectSampler().initialize();
+        SubstrateJVM.getJfrOldObjectProfiler().initialize();
 
         if (simulateFailure) {
             throw new IllegalStateException("Unable to start JFR");
@@ -600,7 +600,7 @@ public class SubstrateJVM {
      */
     void emitOldObjectSamples(long cutoff, boolean emitAll, @SuppressWarnings("unused") boolean skipBFS) {
         // todo support skipBFS=true which means using DFS (path-to-gc-roots)
-        oldObjectSampler.emit(cutoff, emitAll);
+        oldObjectProfiler.emit(cutoff, emitAll);
     }
 
     public long getChunkStartNanos() {
