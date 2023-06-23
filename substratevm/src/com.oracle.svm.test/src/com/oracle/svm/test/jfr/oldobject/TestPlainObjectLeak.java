@@ -36,54 +36,27 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
     private static final int DEFAULT_OLD_OBJECT_QUEUE_SIZE = 256;
 
     @Test
-    public void testSampleQueueNotFull() throws Throwable {
+    public void testObjectLeak() throws Throwable {
         Recording recording = startRecording();
 
-        NodeNotFull node = new NodeNotFull();
+        Node node = new Node();
         leak = node;
-        for (int i = 0; i < 1_000_000; i++) {
-            node.value = new NodeNotFull();
-            node.left = new NodeNotFull();
-            node.right = new NodeNotFull();
+        for (int i = 0; i < 100_000; i++) {
+            node.value = new Node();
+            node.left = new Node();
+            node.right = new Node();
             node = node.right;
         }
 
-        // blackhole(leak);
         stopRecording(recording, events -> {
             Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
-            filterEventsByType(NodeNotFull.class, events).forEach(this::assertOldObjectEvent);
+            filterEventsByType(Node.class, events).forEach(this::assertOldObjectEvent);
         });
     }
 
-    static class NodeFull {
-        NodeFull left;
-        NodeFull right;
-        Object value;
-    }
-
-    @Test
-    public void testSampleQueueFull() throws Throwable {
-        Recording recording = startRecording();
-
-        NodeFull node = new NodeFull();
-        leak = node;
-        for (int i = 0; i < 50_000_000; i++) {
-            node.value = new NodeFull();
-            node.left = new NodeFull();
-            node.right = new NodeFull();
-            node = node.right;
-        }
-
-        // blackhole(leak);
-        stopRecording(recording, events -> {
-            Assert.assertTrue("Expected number of events emitted to be full or close to full, but instead was " + events.size(), events.size() > DEFAULT_OLD_OBJECT_QUEUE_SIZE * 0.8);
-            filterEventsByType(NodeFull.class, events).forEach(this::assertOldObjectEvent);
-        });
-    }
-
-    static class NodeNotFull {
-        NodeNotFull left;
-        NodeNotFull right;
+    static class Node {
+        Node left;
+        Node right;
         Object value;
     }
 

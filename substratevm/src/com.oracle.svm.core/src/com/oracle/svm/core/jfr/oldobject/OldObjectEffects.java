@@ -4,7 +4,7 @@ import com.oracle.svm.core.Uninterruptible;
 
 import java.lang.ref.WeakReference;
 
-interface OldObjectEffects {
+public interface OldObjectEffects {
     @Uninterruptible(reason = "Accesses allocation profiler.")
     long elapsedTicks();
 
@@ -12,10 +12,19 @@ interface OldObjectEffects {
     boolean isAlive(WeakReference<?> ref);
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long usedAtLastGC, int arrayLength);
+    void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength);
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     default boolean isDead(WeakReference<?> ref) {
         return !isAlive(ref);
     }
+
+    @Uninterruptible(reason = "Accesses allocation aprofiler.")
+    long getThreadId(Thread thread);
+
+    @Uninterruptible(reason = "Accesses allocation aprofiler.")
+    long getStackTraceId();
+
+    @Uninterruptible(reason = "Accesses allocation aprofiler.")
+    long getHeapUsedAtLastGC();
 }

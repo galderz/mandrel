@@ -1,10 +1,6 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.heap.Heap;
-import com.oracle.svm.core.jfr.JfrEvent;
-import com.oracle.svm.core.jfr.SubstrateJVM;
-import com.oracle.svm.core.thread.JavaThreads;
 
 import java.lang.ref.WeakReference;
 
@@ -89,22 +85,22 @@ final class OldObjectSampler {
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     private void store(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
-        final OldObject sample = queuePush(ref, allocatedSize, allocatedTime, arrayLength);
+        final OldObject sample = push(ref, allocatedSize, allocatedTime, arrayLength);
         list.prepend(sample);
     }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    private OldObject queuePush(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
+    private OldObject push(WeakReference<?> ref, long allocatedSize, long allocatedTime, int arrayLength) {
         final Thread thread = Thread.currentThread();
-        final long heapUsedAtLastGC = Heap.getHeap().getUsedAtLastGC();
+        final long heapUsedAtLastGC = effects.getHeapUsedAtLastGC();
 
         // Note: thread can be null during shutdown, don't remove thread null check
         if (thread == null) {
             return queue.push(ref, allocatedSize, allocatedTime, 0L, 0L, heapUsedAtLastGC, arrayLength);
         }
 
-        final long stackTraceId = SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
-        final long threadId = JavaThreads.getThreadId(thread);
+        final long stackTraceId = effects.getStackTraceId();
+        final long threadId = effects.getThreadId(thread);
         return queue.push(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
     }
 
