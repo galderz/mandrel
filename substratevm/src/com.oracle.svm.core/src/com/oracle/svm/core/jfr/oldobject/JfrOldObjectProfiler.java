@@ -1,10 +1,13 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaSpinLockUtils;
+import com.oracle.svm.core.thread.JavaThreads;
 import jdk.internal.misc.Unsafe;
 import jdk.jfr.internal.LogLevel;
 import jdk.jfr.internal.LogTag;
@@ -22,9 +25,7 @@ public final class JfrOldObjectProfiler {
     @SuppressWarnings("unused") private volatile int lock;
     private int queueSize;
     private long lastSweep = Long.MAX_VALUE;
-    private final OldObjectEffects effects = new DefaultEffects();
-    private OldObjectSampler sampler;
-    private OldObjectEventEmitter eventEmitter;
+    private OldObjectProfiler profiler;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectProfiler() {
@@ -38,20 +39,20 @@ public final class JfrOldObjectProfiler {
         if (Logger.shouldLog(LogTag.JFR, LogLevel.DEBUG)) {
             Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize old object sampler: old-object-queue-size=" + queueSize);
         }
-        final OldObjectList list = new OldObjectList();
-        this.sampler = new OldObjectSampler(queueSize, list, effects);
-        this.eventEmitter = new OldObjectEventEmitter(list, effects);
+        final OldObjectEffects effects = new DefaultEffects();
+        this.profiler = new OldObjectProfiler(queueSize, effects);
     }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
+        // todo can lock be moved into profiler.sample?
         final boolean success = JavaSpinLockUtils.tryLock(this, LOCK_OFFSET);
         if (!success) {
             return;
         }
 
         try {
-            sampler.sample(ref, allocatedSize, arrayLength);
+            profiler.sample(ref, allocatedSize, arrayLength);
         } finally {
             JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }
@@ -62,7 +63,7 @@ public final class JfrOldObjectProfiler {
         JavaSpinLockUtils.lockNoTransition(this, LOCK_OFFSET);
 
         try {
-            eventEmitter.emit(cutoff, emitAll ? Long.MAX_VALUE : lastSweep);
+            profiler.emit(cutoff, emitAll ? Long.MAX_VALUE : lastSweep);
         } finally {
             JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }
@@ -86,10 +87,28 @@ public final class JfrOldObjectProfiler {
         }
 
         @Override
-        @Uninterruptible(reason = "Accesses allocation profiler.")
+        @Uninterruptible(reason = "Accesses allocation aprofiler.")
         public void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
             final long objectId = SubstrateJVM.getJfrOldObjectRepository().serializeOldObject(aliveObject);
             OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation aprofiler.")
+        public long getThreadId(Thread thread) {
+            return JavaThreads.getThreadId(thread);
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation aprofiler.")
+        public long getStackTraceId() {
+            return SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation aprofiler.")
+        public long getHeapUsedAtLastGC() {
+            return Heap.getHeap().getUsedAtLastGC();
         }
     }
 }
