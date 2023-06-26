@@ -5,12 +5,10 @@ import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
 /**
- * A singly linked list view of the queue.
- * An item's previous is the item that was added to the queue after the item itself.
- * The list is iterated in FIFO order, starting with the element added first
- * and following previous links to find elements added after.
- * The traversal can also be used to discover entries that need removing,
- * e.g. if references have been garbage collected.
+ * A singly linked list view of the queue. An item's previous is the item that was added to the
+ * queue after the item itself. The list is iterated in FIFO order, starting with the element added
+ * first and following previous links to find elements added after. The traversal can also be used
+ * to discover entries that need removing, e.g. if references have been garbage collected.
  */
 final class OldObjectList {
     // Points to the oldest entry added to the list.
@@ -23,7 +21,8 @@ final class OldObjectList {
     // Prepending merely updates this pointer.
     OldObject tail;
 
-    OldObjectList() {}
+    OldObjectList() {
+    }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     OldObject head() {
