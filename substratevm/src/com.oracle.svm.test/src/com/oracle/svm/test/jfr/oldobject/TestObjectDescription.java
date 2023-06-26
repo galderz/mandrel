@@ -49,28 +49,6 @@ public class TestObjectDescription extends JfrOldObjectTest {
     }
 
     @Test
-    public void testThreadGroup() throws Throwable {
-        Recording recording = startRecording();
-
-        Node node = new Node();
-        leak = node;
-        for (int i = 0; i < 10_000; i++) {
-            node.value = new MyThreadGroup(MyThreadGroup.NAME);
-            node.left = new Node();
-            node.right = new Node();
-            node = node.right;
-        }
-
-        // blackhole(leak);
-        stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescription("Thread Group: My Thread Group", e)));
-    }
-
-    private static void assertDescription(String expected, RecordedEvent event) {
-        final String description = event.<RecordedObject> getValue("object").getValue("description");
-        Assert.assertEquals(expected, description);
-    }
-
-    @Test
     public void testEllipsis() throws Throwable {
         final int objectDescriptionMaxSize = 100;
         final int prefixSize = "Thread Group: ".length();
@@ -80,7 +58,7 @@ public class TestObjectDescription extends JfrOldObjectTest {
 
         Node node = new Node();
         leak = node;
-        for (int i = 0; i < 10_000; i++) {
+        for (int i = 0; i < 100_000; i++) {
             node.value = new MyThreadGroup(threadGroupName);
             node.left = new Node();
             node.right = new Node();

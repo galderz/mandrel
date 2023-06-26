@@ -33,6 +33,7 @@ import java.lang.ref.WeakReference;
 final class OldObjectPriorityQueue {
     private final OldObjectArray samples;
     private int count;
+    private long total;
 
     OldObjectPriorityQueue(OldObjectArray samples) {
         this.samples = samples;
@@ -71,6 +72,7 @@ final class OldObjectPriorityQueue {
         sample.set(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         count++;
         moveUp(count - 1);
+        total += sample.span;
         return sample;
     }
 
@@ -93,6 +95,7 @@ final class OldObjectPriorityQueue {
         samples.swap(0, count - 1);
         count--;
         moveDown(0);
+        total -= head.span;
         return head;
     }
 
@@ -165,5 +168,10 @@ final class OldObjectPriorityQueue {
     @Uninterruptible(reason = "Accesses allocation profiler.")
     private static int right(int i) {
         return 2 * i + 2;
+    }
+
+    @Uninterruptible(reason = "Accesses allocation profiler.")
+    long total() {
+        return total;
     }
 }
