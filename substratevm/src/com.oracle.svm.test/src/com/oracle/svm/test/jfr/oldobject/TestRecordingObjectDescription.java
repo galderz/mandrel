@@ -49,7 +49,7 @@ public class TestRecordingObjectDescription extends JfrOldObjectTest {
     }
 
     @Test
-    public void testEllipsis() throws Throwable {
+    public void testThreadGroupEllipsis() throws Throwable {
         final int objectDescriptionMaxSize = 100;
         final int prefixSize = "Thread Group: ".length();
         final String threadGroupName = "x".repeat(2 * objectDescriptionMaxSize);
@@ -72,6 +72,7 @@ public class TestRecordingObjectDescription extends JfrOldObjectTest {
         final String description = event.<RecordedObject> getValue("object").getValue("description");
         Assert.assertEquals(expectedSize, description.length());
         Assert.assertTrue(description.contains(expected));
+        Assert.assertTrue(description.contains("Thread Group: x"));
     }
 
     static class Node {
