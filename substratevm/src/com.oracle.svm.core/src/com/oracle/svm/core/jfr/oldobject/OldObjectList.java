@@ -54,11 +54,6 @@ final class OldObjectList {
     }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    OldObject next(OldObject current) {
-        return current.previous;
-    }
-
-    @Uninterruptible(reason = "Accesses allocation profiler.")
     void prepend(OldObject sample) {
         if (tail == null) {
             tail = sample;

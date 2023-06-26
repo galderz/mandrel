@@ -41,14 +41,14 @@ final class OldObjectEventEmitter {
     void emit(long cutoff, long lastSweep) {
         if (cutoff <= 0) {
             // No reference chains
-            emitUnchained(list, lastSweep);
+            emitUnchained(lastSweep);
         }
 
         // todo support cutoff > 0 (path-to-gc-roots)
     }
 
     @Uninterruptible(reason = "Prevent JFR recording and epoch change.")
-    private void emitUnchained(OldObjectList list, long lastSweep) {
+    private void emitUnchained(long lastSweep) {
         final long timestamp = effects.elapsedTicks();
 
         OldObject current = list.head();
@@ -65,7 +65,7 @@ final class OldObjectEventEmitter {
                 }
             }
 
-            current = list.next(current);
+            current = current.previous;
         }
     }
 

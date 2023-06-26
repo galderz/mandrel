@@ -110,6 +110,7 @@ final class Target_jdk_internal_ref_CleanerImpl {
 final class Target_jdk_internal_ref_CleanerImpl_PhantomCleanableRef {
     @Substitute
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    @SuppressWarnings("static-method")
     Object get() {
         throw VMError.shouldNotReachHere("get");
     }

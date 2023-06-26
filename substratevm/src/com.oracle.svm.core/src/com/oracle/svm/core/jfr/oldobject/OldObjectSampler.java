@@ -75,7 +75,7 @@ final class OldObjectSampler {
         int numDead = 0;
         OldObject current = list.head();
         while (current != null) {
-            OldObject next = list.next(current);
+            OldObject next = current.previous;
             final WeakReference<?> ref = current.reference;
             if (ref.get() == null) {
                 remove(current);
