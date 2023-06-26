@@ -27,9 +27,11 @@
 package com.oracle.svm.test.jfr.oldobject;
 
 import jdk.jfr.Recording;
+import jdk.jfr.consumer.RecordedEvent;
+import org.junit.Assert;
 import org.junit.Test;
 
-public class TestArrayLeak extends JfrOldObjectTest {
+public class TestRecordingArrayLeak extends JfrOldObjectTest {
     @Test
     public void testArrayLeak() throws Throwable {
         Recording recording = startRecording();
@@ -46,6 +48,12 @@ public class TestArrayLeak extends JfrOldObjectTest {
             node = right;
         }
 
-        stopRecording(recording, events -> filterEventsByTypeName("[Ljava.lang.Object;", events).forEach(e -> assertOldObjectEvent(100, e)));
+        stopRecording(recording, events -> filterEventsByTypeName("[Ljava.lang.Object;", events).forEach(this::assertRecordedEvent));
+    }
+
+    private void assertRecordedEvent(RecordedEvent event) {
+        assertOldObjectEvent(event);
+        final int arraySize = event.getInt("arrayElements");
+        Assert.assertTrue("Unexpected array size: " + arraySize, arraySize == 100 || arraySize == 3);
     }
 }

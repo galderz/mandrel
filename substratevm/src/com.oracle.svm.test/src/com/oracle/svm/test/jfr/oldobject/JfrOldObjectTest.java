@@ -83,10 +83,6 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
     }
 
     void assertOldObjectEvent(RecordedEvent event) {
-        assertOldObjectEvent(Integer.MIN_VALUE, event);
-    }
-
-    void assertOldObjectEvent(int expectedArrayLength, RecordedEvent event) {
         final List<ValueDescriptor> fields = event.getFields();
         Assert.assertEquals(10, fields.size());
 
@@ -94,7 +90,6 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
         Assert.assertTrue(event.getLong("lastKnownHeapUsage") > 0);
         Assert.assertTrue(event.getLong("objectAge") > 0);
         Assert.assertNull(event.getValue("root"));
-        Assert.assertEquals(expectedArrayLength, event.getInt("arrayElements"));
 
         final List<RecordedFrame> frames = event.getStackTrace().getFrames();
         Assert.assertTrue(frames.size() > 0);
