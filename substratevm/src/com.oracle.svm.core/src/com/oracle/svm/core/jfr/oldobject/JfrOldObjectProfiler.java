@@ -18,11 +18,15 @@ import org.graalvm.nativeimage.Platforms;
 import java.lang.ref.WeakReference;
 
 public final class JfrOldObjectProfiler {
-    private static final Unsafe U = Unsafe.getUnsafe();
-    private static final long LOCK_OFFSET = U.objectFieldOffset(JfrOldObjectProfiler.class, "lock");
     public static final int DEFAULT_SAMPLER_SIZE = 256;
 
+    // Moving locking to OldObjectProfiler class cannot easily be done.
+    // For starters Unsafe needs to be accessible there,
+    // but there might be other issues.
+    private static final Unsafe U = Unsafe.getUnsafe();
+    private static final long LOCK_OFFSET = U.objectFieldOffset(JfrOldObjectProfiler.class, "lock");
     @SuppressWarnings("unused") private volatile int lock;
+
     private int queueSize;
     private long lastSweep = Long.MAX_VALUE;
     private OldObjectProfiler profiler;
@@ -45,7 +49,6 @@ public final class JfrOldObjectProfiler {
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     public void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
-        // todo can lock be moved into profiler.sample?
         final boolean success = JavaSpinLockUtils.tryLock(this, LOCK_OFFSET);
         if (!success) {
             return;
