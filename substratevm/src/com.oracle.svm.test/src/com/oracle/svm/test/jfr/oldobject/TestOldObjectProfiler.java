@@ -240,7 +240,7 @@ public class TestOldObjectProfiler {
         Assert.assertEquals("a-sample", testSample.obj);
         Assert.assertEquals(21, testSample.timestamp);
         Assert.assertEquals(20, testSample.allocationTime);
-        Assert.assertEquals(30, testSample.threadId);
+        Assert.assertEquals(1, testSample.threadId);
         Assert.assertEquals(40, testSample.stackTraceId);
         Assert.assertEquals(50, testSample.heapUsedAtLastGC);
         Assert.assertEquals(-1, testSample.arrayLength);
@@ -285,12 +285,6 @@ public class TestOldObjectProfiler {
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
             testSamples[tail++].set(aliveObject, timestamp, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
-        }
-
-        @Override
-        @Uninterruptible(reason = "Accesses allocation profiler.")
-        public long getThreadId(Thread thread) {
-            return 30;
         }
 
         @Override
