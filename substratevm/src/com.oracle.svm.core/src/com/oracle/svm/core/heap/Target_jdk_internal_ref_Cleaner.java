@@ -28,7 +28,6 @@ import java.lang.ref.Cleaner;
 import java.lang.ref.ReferenceQueue;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.annotate.AnnotateOriginal;
 import com.oracle.svm.core.util.VMError;
 import org.graalvm.nativeimage.hosted.FieldValueTransformer;
 
