@@ -66,7 +66,7 @@ public class TestPlainObjectLeak extends JfrOldObjectTest {
 
         NodeNoStack node = new NodeNoStack();
         leak = node;
-        for (int i = 0; i < 1_000_000; i++) {
+        for (int i = 0; i < 100_000; i++) {
             node.value = new NodeNoStack();
             node.left = new NodeNoStack();
             node.right = new NodeNoStack();

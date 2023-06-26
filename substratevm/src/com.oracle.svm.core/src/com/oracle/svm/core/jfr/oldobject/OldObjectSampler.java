@@ -9,6 +9,7 @@ final class OldObjectSampler {
     private final OldObjectPriorityQueue queue;
     private final OldObjectList list;
     private final OldObjectEffects effects;
+    private long totalAllocated;
 
     OldObjectSampler(int queueSize, OldObjectList list, OldObjectEffects effects) {
         this.samples = new OldObjectArray(queueSize);
@@ -19,9 +20,14 @@ final class OldObjectSampler {
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     void sample(WeakReference<Object> ref, long allocatedSize, int arrayLength) {
+        totalAllocated += allocatedSize;
+        long span = totalAllocated - queue.total();
         if (queue.isFull()) {
-            if (queue.peek().span > allocatedSize) {
+            if (queue.peek().span > span) {
                 // Sample will not fit, try to scavenge
+                // HotSpot code scavenges when it gets notified that a sample was GC'd,
+                // but such mechanism doesn't exist in substratevm.
+                // So, instead just attempt to scavenge when the queue is full.
                 int numDead = scavenge();
                 if (numDead == 0) {
                     // Sample will not fit and all objects still in use, return early
