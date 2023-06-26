@@ -26,52 +26,37 @@
 
 package com.oracle.svm.test.jfr.oldobject;
 
+import com.oracle.svm.core.jfr.JfrEvent;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedObject;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TestObjectDescription extends JfrOldObjectTest {
-    /**
-     * Destroy thread groups to avoid leak building its parent's groups array. Keep destroy outside
-     * the test so that java monitors created during the synchronized block access don't end up
-     * polluting the recording.
-     */
-    @After
-    public void destroyThreadGroups() {
-        Node current = (Node) leak;
-        while (current != null && current.value instanceof ThreadGroup) {
-            ((ThreadGroup) current.value).destroy();
-            current = current.right;
-        }
-    }
+public class TestRecordingPlainObjectLeak extends JfrOldObjectTest {
+    private static final int DEFAULT_OLD_OBJECT_QUEUE_SIZE = 256;
 
     @Test
-    public void testEllipsis() throws Throwable {
-        final int objectDescriptionMaxSize = 100;
-        final int prefixSize = "Thread Group: ".length();
-        final String threadGroupName = "x".repeat(2 * objectDescriptionMaxSize);
-
+    public void testObjectLeak() throws Throwable {
         Recording recording = startRecording();
 
         Node node = new Node();
         leak = node;
         for (int i = 0; i < 100_000; i++) {
-            node.value = new MyThreadGroup(threadGroupName);
+            node.value = new Node();
             node.left = new Node();
             node.right = new Node();
             node = node.right;
         }
 
-        stopRecording(recording, events -> filterEventsByType(MyThreadGroup.class, events).forEach(e -> assertDescriptionLimit("xxx...", objectDescriptionMaxSize + prefixSize, e)));
+        stopRecording(recording, events -> {
+            Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
+            filterEventsByType(Node.class, events).forEach(this::assertRecordedEvent);
+        });
     }
 
-    private static void assertDescriptionLimit(String expected, int expectedSize, RecordedEvent event) {
-        final String description = event.<RecordedObject> getValue("object").getValue("description");
-        Assert.assertEquals(expectedSize, description.length());
-        Assert.assertTrue(description.contains(expected));
+    private void assertRecordedEvent(RecordedEvent event) {
+        assertOldObjectEvent(event);
+        Assert.assertEquals(Integer.MIN_VALUE, event.getInt("arrayElements"));
     }
 
     static class Node {
@@ -80,11 +65,29 @@ public class TestObjectDescription extends JfrOldObjectTest {
         Object value;
     }
 
-    public static final class MyThreadGroup extends ThreadGroup {
-        public static final String NAME = "My Thread Group";
+    @Test
+    public void testNoStackTrace() throws Throwable {
+        Recording recording = startRecording(new String[]{JfrEvent.OldObjectSample.getName()});
 
-        public MyThreadGroup(String name) {
-            super(name);
+        NodeNoStack node = new NodeNoStack();
+        leak = node;
+        for (int i = 0; i < 100_000; i++) {
+            node.value = new NodeNoStack();
+            node.left = new NodeNoStack();
+            node.right = new NodeNoStack();
+            node = node.right;
         }
+
+        stopRecording(recording, events -> filterEventsByType(NodeNoStack.class, events).forEach(this::assertNoStackTrace));
+    }
+
+    static class NodeNoStack {
+        NodeNoStack left;
+        NodeNoStack right;
+        Object value;
+    }
+
+    private void assertNoStackTrace(RecordedEvent event) {
+        Assert.assertNull(event.getStackTrace());
     }
 }
