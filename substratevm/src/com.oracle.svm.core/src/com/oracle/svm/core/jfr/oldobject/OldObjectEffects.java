@@ -20,9 +20,6 @@ public interface OldObjectEffects {
     }
 
     @Uninterruptible(reason = "Accesses allocation aprofiler.")
-    long getThreadId(Thread thread);
-
-    @Uninterruptible(reason = "Accesses allocation aprofiler.")
     long getStackTraceId();
 
     @Uninterruptible(reason = "Accesses allocation aprofiler.")

@@ -98,12 +98,6 @@ public final class JfrOldObjectProfiler {
 
         @Override
         @Uninterruptible(reason = "Accesses allocation aprofiler.")
-        public long getThreadId(Thread thread) {
-            return JavaThreads.getThreadId(thread);
-        }
-
-        @Override
-        @Uninterruptible(reason = "Accesses allocation aprofiler.")
         public long getStackTraceId() {
             return SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
         }
