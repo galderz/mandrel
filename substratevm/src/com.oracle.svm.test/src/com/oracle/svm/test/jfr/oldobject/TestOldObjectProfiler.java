@@ -265,6 +265,7 @@ public class TestOldObjectProfiler {
         Assert.assertNotNull(testSample);
         Assert.assertEquals("a-sample", testSample.obj);
         Assert.assertEquals(21, testSample.timestamp);
+        Assert.assertEquals(10, testSample.objectSize);
         Assert.assertEquals(20, testSample.allocationTime);
         Assert.assertEquals(1, testSample.threadId);
         Assert.assertEquals(40, testSample.stackTraceId);
@@ -353,7 +354,7 @@ public class TestOldObjectProfiler {
     private static final class TestSample {
         Object obj;
         long timestamp;
-        long allocatedSize;
+        long objectSize;
         long allocationTime;
         long threadId;
         long stackTraceId;
@@ -364,7 +365,7 @@ public class TestOldObjectProfiler {
         void set(Object obj, long timestamp, long allocatedSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
             this.obj = obj;
             this.timestamp = timestamp;
-            this.allocatedSize = allocatedSize;
+            this.objectSize = allocatedSize;
             this.allocationTime = allocationTime;
             this.threadId = threadId;
             this.stackTraceId = stackTraceId;
