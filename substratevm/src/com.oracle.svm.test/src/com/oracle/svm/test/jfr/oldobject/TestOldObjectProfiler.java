@@ -309,8 +309,8 @@ public class TestOldObjectProfiler {
 
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
-        public void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
-            testSamples[tail++].set(aliveObject, timestamp, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+        public void emit(Object aliveObject, long timestamp, long allocatedSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+            testSamples[tail++].set(aliveObject, timestamp, allocatedSize, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         }
 
         @Override
@@ -345,7 +345,7 @@ public class TestOldObjectProfiler {
             head = 0;
             tail = 0;
             for (TestSample testSample : testSamples) {
-                testSample.set(null, 0, 0, 0, 0, 0, 0);
+                testSample.set(null, 0, 0, 0, 0, 0, 0, 0);
             }
         }
     }
@@ -353,6 +353,7 @@ public class TestOldObjectProfiler {
     private static final class TestSample {
         Object obj;
         long timestamp;
+        long allocatedSize;
         long allocationTime;
         long threadId;
         long stackTraceId;
@@ -360,9 +361,10 @@ public class TestOldObjectProfiler {
         int arrayLength;
 
         @Uninterruptible(reason = "Accesses allocation profiler.")
-        void set(Object obj, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+        void set(Object obj, long timestamp, long allocatedSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
             this.obj = obj;
             this.timestamp = timestamp;
+            this.allocatedSize = allocatedSize;
             this.allocationTime = allocationTime;
             this.threadId = threadId;
             this.stackTraceId = stackTraceId;

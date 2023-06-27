@@ -38,16 +38,16 @@ public interface OldObjectEffects {
     boolean isAlive(WeakReference<?> ref);
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength);
+    void emit(Object aliveObject, long timestamp, long allocatedSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength);
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     default boolean isDead(WeakReference<?> ref) {
         return !isAlive(ref);
     }
 
-    @Uninterruptible(reason = "Accesses allocation aprofiler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     long getStackTraceId();
 
-    @Uninterruptible(reason = "Accesses allocation aprofiler.")
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     long getHeapUsedAtLastGC();
 }

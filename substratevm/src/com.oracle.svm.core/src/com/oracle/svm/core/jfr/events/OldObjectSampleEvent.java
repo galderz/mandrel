@@ -31,11 +31,12 @@ import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrNativeEventWriter;
 import com.oracle.svm.core.jfr.JfrNativeEventWriterData;
 import com.oracle.svm.core.jfr.JfrNativeEventWriterDataAccess;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.StackValue;
 
 public class OldObjectSampleEvent {
     @Uninterruptible(reason = "Accesses a JFR buffer.")
-    public static void emit(long timestamp, long objectId, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+    public static void emit(long timestamp, long objectId, long objectSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
         if (JfrEvent.OldObjectSample.shouldEmit()) {
             JfrNativeEventWriterData data = StackValue.get(JfrNativeEventWriterData.class);
             JfrNativeEventWriterDataAccess.initializeThreadLocalNativeBuffer(data);
@@ -46,6 +47,9 @@ public class OldObjectSampleEvent {
             JfrNativeEventWriter.putLong(data, threadId); // thread id
             JfrNativeEventWriter.putLong(data, stackTraceId); // stack trace id
             JfrNativeEventWriter.putLong(data, allocationTime); // allocation time
+            if (JavaVersionUtil.JAVA_SPEC >= 18) {
+                JfrNativeEventWriter.putLong(data, objectSize); // object size
+            }
             JfrNativeEventWriter.putLong(data, timestamp - allocationTime); // object age
             JfrNativeEventWriter.putLong(data, heapUsedAtLastGC); // used memory at last gc
             JfrNativeEventWriter.putLong(data, objectId); // object id

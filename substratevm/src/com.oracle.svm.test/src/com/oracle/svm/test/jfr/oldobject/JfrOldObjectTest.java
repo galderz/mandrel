@@ -33,6 +33,7 @@ import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedObject;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -84,7 +85,11 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
 
     void assertOldObjectEvent(RecordedEvent event) {
         final List<ValueDescriptor> fields = event.getFields();
-        Assert.assertEquals(10, fields.size());
+        if (JavaVersionUtil.JAVA_SPEC >= 18) {
+            Assert.assertEquals(11, fields.size());
+        } else {
+            Assert.assertEquals(10, fields.size());
+        }
 
         Assert.assertEquals(0, event.getDuration().toMillis());
         Assert.assertTrue(event.getLong("lastKnownHeapUsage") > 0);
@@ -97,6 +102,11 @@ public abstract class JfrOldObjectTest extends JfrRecordingTest {
 
         final long allocationTime = event.getLong("allocationTime");
         Assert.assertTrue(allocationTime > 0);
+
+        if (JavaVersionUtil.JAVA_SPEC >= 18) {
+            final long objectSize = event.getLong("objectSize");
+            Assert.assertTrue(objectSize > 0);
+        }
 
         final long startTime = event.getLong("startTime");
         Assert.assertTrue(startTime > 0);

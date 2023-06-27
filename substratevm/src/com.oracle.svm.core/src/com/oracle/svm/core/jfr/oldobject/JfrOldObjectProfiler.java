@@ -115,20 +115,20 @@ public final class JfrOldObjectProfiler {
         }
 
         @Override
-        @Uninterruptible(reason = "Accesses allocation aprofiler.")
-        public void emit(Object aliveObject, long timestamp, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
+        @Uninterruptible(reason = "Accesses allocation profiler.")
+        public void emit(Object aliveObject, long timestamp, long objectSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
             final long objectId = SubstrateJVM.getJfrOldObjectRepository().serializeOldObject(aliveObject);
-            OldObjectSampleEvent.emit(timestamp, objectId, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+            OldObjectSampleEvent.emit(timestamp, objectId, objectSize, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
         }
 
         @Override
-        @Uninterruptible(reason = "Accesses allocation aprofiler.")
+        @Uninterruptible(reason = "Accesses allocation profiler.")
         public long getStackTraceId() {
             return SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
         }
 
         @Override
-        @Uninterruptible(reason = "Accesses allocation aprofiler.")
+        @Uninterruptible(reason = "Accesses allocation profiler.")
         public long getHeapUsedAtLastGC() {
             return Heap.getHeap().getUsedAtLastGC();
         }

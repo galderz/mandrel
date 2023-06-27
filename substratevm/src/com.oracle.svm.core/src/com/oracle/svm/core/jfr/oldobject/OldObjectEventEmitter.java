@@ -57,11 +57,12 @@ final class OldObjectEventEmitter {
                 final Object obj = current.reference.get();
                 final long allocationTime = current.allocationTime;
                 if (effects.isAlive(current.reference) && isOlderThan(lastSweep, allocationTime)) {
+                    final long objectSize = current.objectSize;
                     final long threadId = current.threadId;
                     final long stackTraceId = current.stackTraceId;
                     final long heapUsedAtLastGC = current.heapUsedAtLastGC;
                     final int arrayLength = current.arrayLength;
-                    effects.emit(obj, timestamp, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+                    effects.emit(obj, timestamp, objectSize, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
                 }
             }
 

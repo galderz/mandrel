@@ -35,6 +35,7 @@ final class OldObject {
 
     WeakReference<?> reference;
     long span;
+    long objectSize;
     long allocationTime; // nanoseconds
     long threadId;
     long stackTraceId;
@@ -46,6 +47,7 @@ final class OldObject {
     void set(WeakReference<?> ref, long allocatedSize, long allocatedTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength) {
         this.reference = ref;
         this.span = allocatedSize;
+        this.objectSize = allocatedSize;
         this.allocationTime = allocatedTime;
         this.threadId = threadId;
         this.stackTraceId = stackTraceId;
@@ -57,6 +59,7 @@ final class OldObject {
     void clear() {
         this.reference = null;
         this.span = 0L;
+        this.objectSize = 0L;
         this.allocationTime = 0L;
         this.threadId = 0L;
         this.stackTraceId = 0L;
