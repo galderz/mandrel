@@ -27,6 +27,7 @@
 package com.oracle.svm.test.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.jdk.UninterruptibleUtils;
 import com.oracle.svm.core.jfr.oldobject.OldObjectEffects;
 import com.oracle.svm.core.jfr.oldobject.OldObjectProfiler;
 import org.junit.Assert;
@@ -54,35 +55,38 @@ public class TestOldObjectProfiler {
 
     @Test
     public void testSampleAfterEmit() {
-        final int size = 8;
+        final int size = 10;
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                if (ticks <= 29) {
-                    return true;
+                final int value = (int) ref.get();
+                if (value < 10) {
+                    return isAlive.get();
                 }
-                final Object obj = ref.get();
-                return obj != null && ((int) ref.get()) >= 11;
+                return true;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
-            profiler.sample(new WeakReference<>(i), i * 100, -1);
+            profiler.sample(new WeakReference<>(i), (i + 1) * 100, -1);
         }
 
         profiler.emit(0, Long.MAX_VALUE);
-        assertStreamEquals(IntStream.rangeClosed(0, 7).boxed(), effects.objects());
-
-        for (int i = 1; i <= size / 2; i++) {
-            profiler.sample(new WeakReference<>(10 + i), i * 1000, -1);
-        }
+        assertStreamEquals(IntStream.rangeClosed(0, 9).boxed(), effects.objects());
 
         // Clear accumulated samples and see what gets emitted now.
         effects.clearSamples();
+        // Set is-alive check for samples in first round to be false
+        effects.isAlive.set(false);
+
+        for (int i = 0; i < size; i++) {
+            profiler.sample(new WeakReference<>(10 + i), (i + 1) * 10_000, -1);
+        }
+
         profiler.emit(0, Long.MAX_VALUE);
-        assertStreamEquals(IntStream.rangeClosed(11, 14).boxed(), effects.objects());
+        assertStreamEquals(IntStream.rangeClosed(10, 19).boxed(), effects.objects());
     }
 
     @Test
@@ -267,9 +271,9 @@ public class TestOldObjectProfiler {
         Assert.assertEquals(21, testSample.timestamp);
         Assert.assertEquals(10, testSample.objectSize);
         Assert.assertEquals(20, testSample.allocationTime);
-        Assert.assertEquals(1, testSample.threadId);
+        Assert.assertEquals(50, testSample.threadId);
         Assert.assertEquals(40, testSample.stackTraceId);
-        Assert.assertEquals(50, testSample.heapUsedAtLastGC);
+        Assert.assertEquals(60, testSample.heapUsedAtLastGC);
         Assert.assertEquals(-1, testSample.arrayLength);
         Assert.assertEquals(1, effects.sizeSamples());
     }
@@ -286,7 +290,8 @@ public class TestOldObjectProfiler {
         private final TestSample[] testSamples;
         private int head = 0;
         private int tail = 0;
-        long ticks;
+        private long ticks;
+        final MutableBoolean isAlive = new MutableBoolean(true);
 
         TestEffects(long initialTicks, int size) {
             this.ticks = initialTicks;
@@ -305,7 +310,7 @@ public class TestOldObjectProfiler {
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public boolean isAlive(WeakReference<?> ref) {
-            return true;
+                return isAlive.get();
         }
 
         @Override
@@ -322,8 +327,14 @@ public class TestOldObjectProfiler {
 
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
-        public long getHeapUsedAtLastGC() {
+        public long getThreadId(Thread thread) {
             return 50;
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation profiler.")
+        public long getHeapUsedAtLastGC() {
+            return 60;
         }
 
         TestSample peekLastSample() {
@@ -379,6 +390,23 @@ public class TestOldObjectProfiler {
 
         Object getObject() {
             return obj;
+        }
+    }
+
+    private static final class MutableBoolean {
+        private boolean value;
+
+        public MutableBoolean(boolean value) {
+            this.value = value;
+        }
+
+        void set(boolean newValue) {
+            value = newValue;
+        }
+
+        @Uninterruptible(reason = "Accesses allocation profiler.")
+        boolean get() {
+            return value;
         }
     }
 }

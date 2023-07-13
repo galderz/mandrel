@@ -49,5 +49,8 @@ public interface OldObjectEffects {
     long getStackTraceId();
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
+    long getThreadId(Thread thread);
+
+    @Uninterruptible(reason = "Accesses allocation profiler.")
     long getHeapUsedAtLastGC();
 }

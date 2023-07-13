@@ -133,7 +133,7 @@ final class OldObjectSampler {
         }
 
         final long stackTraceId = effects.getStackTraceId();
-        final long threadId = JavaThreads.getThreadId(thread);
+        final long threadId = effects.getThreadId(thread);
         return queue.push(ref, allocatedSize, allocatedTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
     }
 

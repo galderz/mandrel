@@ -33,6 +33,7 @@ import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.jfr.SubstrateJVM;
 import com.oracle.svm.core.jfr.events.OldObjectSampleEvent;
 import com.oracle.svm.core.thread.JavaSpinLockUtils;
+import com.oracle.svm.core.thread.JavaThreads;
 import jdk.internal.misc.Unsafe;
 import jdk.jfr.internal.LogLevel;
 import jdk.jfr.internal.LogTag;
@@ -125,6 +126,12 @@ public final class JfrOldObjectProfiler {
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public long getStackTraceId() {
             return SubstrateJVM.get().getStackTraceId(JfrEvent.OldObjectSample, 0);
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation profiler.")
+        public long getThreadId(Thread thread) {
+            return JavaThreads.getThreadId(thread);
         }
 
         @Override
