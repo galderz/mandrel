@@ -67,7 +67,8 @@ public class TestOldObjectProfiler {
             profiler.sample(new WeakReference<>(10 + i), (i + 1) * 100, -1);
         }
 
-        // Make sure that lower-span objects are inserted as a result of scavenging higher-span objects,
+        // Make sure that lower-span objects are inserted as a result of scavenging higher-span
+        // objects,
         // and not as a result of checking that high-span objects are not alive at emit time.
         effects.isAlive.set(true);
 
@@ -345,7 +346,7 @@ public class TestOldObjectProfiler {
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public boolean isAlive(WeakReference<?> ref) {
-                return isAlive.get();
+            return isAlive.get();
         }
 
         @Override
