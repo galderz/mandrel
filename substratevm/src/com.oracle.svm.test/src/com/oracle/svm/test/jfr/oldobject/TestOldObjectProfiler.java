@@ -86,7 +86,7 @@ public class TestOldObjectProfiler {
     }
 
     @Test
-    public void testScavengeMiddle() {
+    public void testEmitSkippingMiddle() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
@@ -106,7 +106,7 @@ public class TestOldObjectProfiler {
     }
 
     @Test
-    public void testScavengeYoungest() {
+    public void testEmitSkippingYoungest() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
@@ -126,7 +126,7 @@ public class TestOldObjectProfiler {
     }
 
     @Test
-    public void testScavengeOldest() {
+    public void testEmitSkippingOldest() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
@@ -146,7 +146,7 @@ public class TestOldObjectProfiler {
     }
 
     @Test
-    public void testScavengeAll() {
+    public void testEmitSkippingAll() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
