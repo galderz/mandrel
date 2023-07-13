@@ -27,7 +27,6 @@
 package com.oracle.svm.test.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.jdk.UninterruptibleUtils;
 import com.oracle.svm.core.jfr.oldobject.OldObjectEffects;
 import com.oracle.svm.core.jfr.oldobject.OldObjectProfiler;
 import org.junit.Assert;
@@ -40,6 +39,42 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 public class TestOldObjectProfiler {
+    @Test
+    public void testScavenge() {
+        final int size = 10;
+        final TestEffects effects = new TestEffects(20L, size) {
+            @Override
+            @Uninterruptible(reason = "Accesses allocation profiler.")
+            public boolean isAlive(WeakReference<?> ref) {
+                final int value = (int) ref.get();
+                if (value < 10) {
+                    return isAlive.get();
+                }
+                return true;
+            }
+        };
+        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+
+        for (int i = 0; i < size; i++) {
+            profiler.sample(new WeakReference<>(i), (i + 1) * 10_000, -1);
+        }
+
+        // Set is-alive check for samples in first round to be false.
+        // Scavenging should kick in when lower-span objects are sampled.
+        effects.isAlive.set(false);
+
+        for (int i = 0; i < size; i++) {
+            profiler.sample(new WeakReference<>(10 + i), (i + 1) * 100, -1);
+        }
+
+        // Make sure that lower-span objects are inserted as a result of scavenging higher-span objects,
+        // and not as a result of checking that high-span objects are not alive at emit time.
+        effects.isAlive.set(true);
+
+        profiler.emit(0, Long.MAX_VALUE);
+        assertStreamEquals(IntStream.rangeClosed(10, 19).boxed(), effects.objects());
+    }
+
     @Test
     public void testDoNotEmitEventsNewerThanLastSweep() {
         final int size = 8;

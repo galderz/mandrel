@@ -77,7 +77,7 @@ final class OldObjectSampler {
         while (current != null) {
             OldObject next = current.previous;
             final WeakReference<?> ref = current.reference;
-            if (ref.get() == null) {
+            if (effects.isDead(ref)) {
                 remove(current);
                 numDead++;
             }
