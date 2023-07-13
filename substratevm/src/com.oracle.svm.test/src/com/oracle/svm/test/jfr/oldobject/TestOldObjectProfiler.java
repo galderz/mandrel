@@ -431,7 +431,7 @@ public class TestOldObjectProfiler {
     private static final class MutableBoolean {
         private boolean value;
 
-        public MutableBoolean(boolean value) {
+        MutableBoolean(boolean value) {
             this.value = value;
         }
 

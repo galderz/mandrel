@@ -27,7 +27,6 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.thread.JavaThreads;
 
 import java.lang.ref.WeakReference;
 
