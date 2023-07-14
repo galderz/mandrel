@@ -35,7 +35,11 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.function.Predicate;
 
 import org.graalvm.collections.EconomicMap;
@@ -71,6 +75,7 @@ import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
 
 import jdk.internal.misc.Unsafe;
+import org.graalvm.nativeimage.ProcessProperties;
 
 public class SubstrateOptions {
 
@@ -824,6 +829,9 @@ public class SubstrateOptions {
             return getValueOrDefault(values.getMap());
         }
     };
+
+    @Option(help = "Dump heap to file when java.lang.OutOfMemoryError is thrown.")//
+    public static final RuntimeOptionKey<Boolean> HeapDumpOnOutOfMemoryError = new RuntimeOptionKey<>(false, Immutable);
 
     @Option(help = "The path (filename or directory) where heap dumps are created (defaults to the working directory).")//
     public static final RuntimeOptionKey<String> HeapDumpPath = new RuntimeOptionKey<>("", Immutable);

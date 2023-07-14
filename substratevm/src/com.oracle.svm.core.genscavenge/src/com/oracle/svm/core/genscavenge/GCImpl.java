@@ -27,14 +27,21 @@ package com.oracle.svm.core.genscavenge;
 import static com.oracle.svm.core.snippets.KnownIntrinsics.readCallerStackPointer;
 import static com.oracle.svm.core.snippets.KnownIntrinsics.readReturnAddress;
 
+import java.io.IOException;
 import java.lang.ref.Reference;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.nativeimage.ProcessProperties;
 import org.graalvm.nativeimage.StackValue;
+import org.graalvm.nativeimage.VMRuntime;
 import org.graalvm.nativeimage.c.function.CodePointer;
 import org.graalvm.nativeimage.c.struct.RawField;
 import org.graalvm.nativeimage.c.struct.RawStructure;
@@ -150,8 +157,23 @@ public final class GCImpl implements GC {
             outOfMemory = collectWithoutAllocating(GenScavengeGCCause.OnAllocation, false);
         }
         if (outOfMemory) {
-            throw OutOfMemoryUtil.heapSizeExceeded();
+            heapSizeExceeded();
         }
+    }
+
+    private static void heapSizeExceeded() {
+        if (SubstrateOptions.HeapDumpOnOutOfMemoryError.getValue()) {
+            try {
+                // final String fileName = "svm-heapdump-" + ProcessProperties.getProcessID();
+                final String fileName = "svm-heapdump-tmp";
+                // final String path = SubstrateOptions.getHeapDumpPath(fileName);
+                final String path = ".";
+                VMRuntime.dumpHeap(path, true);
+            } catch (IOException e) {
+                Log.log().string("IOException during dumpHeap: ").string(e.getMessage()).newline();
+            }
+        }
+        throw OutOfMemoryUtil.heapSizeExceeded();
     }
 
     @Override
@@ -165,7 +187,7 @@ public final class GCImpl implements GC {
         if (!hasNeverCollectPolicy()) {
             boolean outOfMemory = collectWithoutAllocating(cause, forceFullGC);
             if (outOfMemory) {
-                throw OutOfMemoryUtil.heapSizeExceeded();
+                heapSizeExceeded();
             }
         }
     }
