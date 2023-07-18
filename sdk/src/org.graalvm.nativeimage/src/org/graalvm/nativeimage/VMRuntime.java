@@ -92,6 +92,13 @@ public final class VMRuntime {
         ImageSingletons.lookup(HeapDumpSupport.class).dumpHeap(outputFile, live);
     }
 
+    public static void dumpHeapOnOutOfMemoryError() {
+        if (!ImageSingletons.contains(HeapDumpSupport.class)) {
+            throw new UnsupportedOperationException();
+        }
+        ImageSingletons.lookup(HeapDumpSupport.class).dumpHeapOnOutOfMemoryError();
+    }
+
     private VMRuntime() {
     }
 }

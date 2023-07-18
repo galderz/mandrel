@@ -25,6 +25,7 @@
 package com.oracle.svm.core.heapdump;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 import org.graalvm.nativeimage.impl.HeapDumpSupport;
 
@@ -35,5 +36,15 @@ public class HeapDumpSupportImpl implements HeapDumpSupport {
         try (FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
             com.oracle.svm.core.heapdump.HeapDumpWriter.singleton().writeHeapTo(fileOutputStream, live);
         }
+    }
+
+    @Override
+    public void dumpHeapOnOutOfMemoryError() {
+        // No-op
+    }
+
+    @Override
+    public void initHeapDumpOnOutOfMemoryErrorPath() {
+        // No-op
     }
 }
