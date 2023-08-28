@@ -38,7 +38,7 @@ public class TestRecordingArrayLeak extends JfrOldObjectTest {
 
         Object[] node = new Object[3];
         leak = node;
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 1_000; i++) {
             Object[] value = new Object[100];
             node[0] = value;
             Object[] left = new Object[3];
