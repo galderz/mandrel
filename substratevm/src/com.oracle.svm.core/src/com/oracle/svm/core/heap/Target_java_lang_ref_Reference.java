@@ -29,7 +29,6 @@ import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.util.function.BooleanSupplier;
 
-import com.oracle.svm.core.annotate.AnnotateOriginal;
 import org.graalvm.compiler.nodes.java.ReachabilityFenceNode;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
