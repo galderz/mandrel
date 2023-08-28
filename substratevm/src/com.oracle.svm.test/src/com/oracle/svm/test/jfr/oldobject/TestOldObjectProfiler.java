@@ -46,12 +46,13 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                final int value = (int) getWeakReferent(ref);
+            public Object getWeakReferent(WeakReference<?> ref) {
+                final int value = (int) TestEffects.getWeakReferent0(ref);
                 if (value < 10) {
-                    return isAlive.get();
+                    return isAlive.get() ? value : null;
                 }
-                return true;
+
+                return value;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -96,12 +97,13 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                final int value = (int) getWeakReferent(ref);
+            public Object getWeakReferent(WeakReference<?> ref) {
+                final int value = (int) TestEffects.getWeakReferent0(ref);
                 if (value < 10) {
-                    return isAlive.get();
+                    return isAlive.get() ? value : null;
                 }
-                return true;
+
+                return value;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -132,8 +134,9 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                return !"4".equals(getWeakReferent(ref));
+            public Object getWeakReferent(WeakReference<?> ref) {
+                final Object value = super.getWeakReferent(ref);
+                return !"4".equals(value) ? value : null;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -152,8 +155,9 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                return !"7".equals(getWeakReferent(ref));
+            public Object getWeakReferent(WeakReference<?> ref) {
+                final Object value = super.getWeakReferent(ref);
+                return !"7".equals(value) ? value : null;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -172,8 +176,9 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                return !"0".equals(getWeakReferent(ref));
+            public Object getWeakReferent(WeakReference<?> ref) {
+                final Object value = super.getWeakReferent(ref);
+                return !"0".equals(value) ? value : null;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -192,8 +197,8 @@ public class TestOldObjectProfiler {
         final TestEffects effects = new TestEffects(20L, size) {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
-            public boolean isAlive(WeakReference<?> ref) {
-                return false;
+            public Object getWeakReferent(WeakReference<?> ref) {
+                return null;
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -347,11 +352,15 @@ public class TestOldObjectProfiler {
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public Object getWeakReferent(WeakReference<?> ref) {
-            return getWeakReferent0(ref);
+            if (isAlive.get()) {
+                return getWeakReferent0(ref);
+            }
+
+            return null;
         }
 
         @Uninterruptible(reason = "Accesses allocation profiler.", calleeMustBe = false)
-        private static Object getWeakReferent0(WeakReference<?> ref) {
+        static Object getWeakReferent0(WeakReference<?> ref) {
             try {
                 return ReferenceInternals.getReferent(ref);
             } catch (ClassCastException e) {
@@ -359,12 +368,6 @@ public class TestOldObjectProfiler {
                 // Fallback to a mechanism that works in that environment.
                 return ref.get();
             }
-        }
-
-        @Override
-        @Uninterruptible(reason = "Accesses allocation profiler.")
-        public boolean isAlive(WeakReference<?> ref) {
-            return isAlive.get();
         }
 
         @Override
