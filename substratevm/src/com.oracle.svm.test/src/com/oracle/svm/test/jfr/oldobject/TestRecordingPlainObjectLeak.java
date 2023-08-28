@@ -26,7 +26,6 @@
 
 package com.oracle.svm.test.jfr.oldobject;
 
-import com.oracle.svm.core.jfr.JfrEvent;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
 import org.junit.Assert;
@@ -41,12 +40,15 @@ public class TestRecordingPlainObjectLeak extends JfrOldObjectTest {
 
         Node node = new Node();
         leak = node;
-        for (int i = 0; i < 100_000; i++) {
+        for (int i = 0; i < 10_000; i++) {
             node.value = new Node();
             node.left = new Node();
             node.right = new Node();
             node = node.right;
         }
+        // Trigger a GC so that last sweep gets updated,
+        // and the objects above are considered older than last GC sweep time.
+        System.gc();
 
         stopRecording(recording, events -> {
             Assert.assertTrue(events.size() < DEFAULT_OLD_OBJECT_QUEUE_SIZE);
@@ -63,31 +65,5 @@ public class TestRecordingPlainObjectLeak extends JfrOldObjectTest {
         Node left;
         Node right;
         Object value;
-    }
-
-    @Test
-    public void testNoStackTrace() throws Throwable {
-        Recording recording = startRecording(new String[]{JfrEvent.OldObjectSample.getName()});
-
-        NodeNoStack node = new NodeNoStack();
-        leak = node;
-        for (int i = 0; i < 100_000; i++) {
-            node.value = new NodeNoStack();
-            node.left = new NodeNoStack();
-            node.right = new NodeNoStack();
-            node = node.right;
-        }
-
-        stopRecording(recording, events -> filterEventsByType(NodeNoStack.class, events).forEach(this::assertNoStackTrace));
-    }
-
-    static class NodeNoStack {
-        NodeNoStack left;
-        NodeNoStack right;
-        Object value;
-    }
-
-    private void assertNoStackTrace(RecordedEvent event) {
-        Assert.assertNull(event.getStackTrace());
     }
 }

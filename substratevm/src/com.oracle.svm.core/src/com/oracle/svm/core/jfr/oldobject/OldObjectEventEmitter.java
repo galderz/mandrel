@@ -27,6 +27,7 @@
 package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.heap.ReferenceInternals;
 
 final class OldObjectEventEmitter {
     private final OldObjectList list;
@@ -54,15 +55,16 @@ final class OldObjectEventEmitter {
         OldObject current = list.head();
         while (current != null) {
             if (current.reference != null) {
-                final Object obj = current.reference.get();
                 final long allocationTime = current.allocationTime;
+                // TODO make it so that current.reference.get() is only invoked once.
+                //      e.g. get the weak referent only (this means unit tests need to change to override that)
                 if (effects.isAlive(current.reference) && isOlderThan(lastSweep, allocationTime)) {
                     final long objectSize = current.objectSize;
                     final long threadId = current.threadId;
                     final long stackTraceId = current.stackTraceId;
                     final long heapUsedAtLastGC = current.heapUsedAtLastGC;
                     final int arrayLength = current.arrayLength;
-                    effects.emit(obj, timestamp, objectSize, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
+                    effects.emit(effects.getWeakReferent(current.reference), timestamp, objectSize, allocationTime, threadId, stackTraceId, heapUsedAtLastGC, arrayLength);
                 }
             }
 

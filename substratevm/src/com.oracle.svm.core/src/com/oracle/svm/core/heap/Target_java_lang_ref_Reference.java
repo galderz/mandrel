@@ -121,8 +121,6 @@ public final class Target_java_lang_ref_Reference<T> {
     }
 
     @KeepOriginal
-    @AnnotateOriginal
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     native T get();
 
     @Substitute

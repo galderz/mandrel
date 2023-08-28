@@ -27,6 +27,7 @@
 package com.oracle.svm.test.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
+import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.jfr.oldobject.OldObjectEffects;
 import com.oracle.svm.core.jfr.oldobject.OldObjectProfiler;
 import org.junit.Assert;
@@ -46,7 +47,7 @@ public class TestOldObjectProfiler {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                final int value = (int) ref.get();
+                final int value = (int) getWeakReferent(ref);
                 if (value < 10) {
                     return isAlive.get();
                 }
@@ -96,7 +97,7 @@ public class TestOldObjectProfiler {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                final int value = (int) ref.get();
+                final int value = (int) getWeakReferent(ref);
                 if (value < 10) {
                     return isAlive.get();
                 }
@@ -132,7 +133,7 @@ public class TestOldObjectProfiler {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                return !"4".equals(ref.get());
+                return !"4".equals(getWeakReferent(ref));
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -152,7 +153,7 @@ public class TestOldObjectProfiler {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                return !"7".equals(ref.get());
+                return !"7".equals(getWeakReferent(ref));
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -172,7 +173,7 @@ public class TestOldObjectProfiler {
             @Override
             @Uninterruptible(reason = "Accesses allocation profiler.")
             public boolean isAlive(WeakReference<?> ref) {
-                return !"0".equals(ref.get());
+                return !"0".equals(getWeakReferent(ref));
             }
         };
         final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
@@ -341,6 +342,23 @@ public class TestOldObjectProfiler {
         @Uninterruptible(reason = "Accesses allocation profiler.")
         public long elapsedTicks() {
             return ticks++;
+        }
+
+        @Override
+        @Uninterruptible(reason = "Accesses allocation profiler.")
+        public Object getWeakReferent(WeakReference<?> ref) {
+            return getWeakReferent0(ref);
+        }
+
+        @Uninterruptible(reason = "Accesses allocation profiler.", calleeMustBe = false)
+        private static Object getWeakReferent0(WeakReference<?> ref) {
+            try {
+                return ReferenceInternals.getReferent(ref);
+            } catch (ClassCastException e) {
+                // A class cast occurs when running this test as a plain Java unit test.
+                // Fallback to a mechanism that works in that environment.
+                return ref.get();
+            }
         }
 
         @Override

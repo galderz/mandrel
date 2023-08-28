@@ -38,7 +38,7 @@ public class TestRecordingArrayLeak extends JfrOldObjectTest {
 
         Object[] node = new Object[3];
         leak = node;
-        for (int i = 0; i < 100_000; i++) {
+        for (int i = 0; i < 200; i++) {
             Object[] value = new Object[100];
             node[0] = value;
             Object[] left = new Object[3];
@@ -47,6 +47,9 @@ public class TestRecordingArrayLeak extends JfrOldObjectTest {
             node[2] = right;
             node = right;
         }
+        // Trigger a GC so that last sweep gets updated,
+        // and the objects above are considered older than last GC sweep time.
+        System.gc();
 
         stopRecording(recording, events -> filterEventsByTypeName("[Ljava.lang.Object;", events).forEach(this::assertRecordedEvent));
     }

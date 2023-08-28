@@ -724,7 +724,7 @@ public final class HeapImpl extends Heap {
     }
 
     private UnsignedWord getUncheckedUsedBytes() {
-        return getOldGeneration().getUncheckedChunkBytes().add(getHeapImpl().getAccounting().getUncheckedYoungUsedBytes());
+        return getOldGeneration().getUncheckedChunkBytes().add(getAccounting().getUncheckedYoungUsedBytes()).add(getAccounting().getSurvivorUsedBytes());
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)

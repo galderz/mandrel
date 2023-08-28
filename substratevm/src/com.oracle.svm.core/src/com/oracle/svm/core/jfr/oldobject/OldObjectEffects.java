@@ -35,7 +35,12 @@ public interface OldObjectEffects {
     long elapsedTicks();
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    boolean isAlive(WeakReference<?> ref);
+    Object getWeakReferent(WeakReference<?> ref);
+
+    @Uninterruptible(reason = "Accesses allocation profiler.")
+    default boolean isAlive(WeakReference<?> ref) {
+        return getWeakReferent(ref) != null;
+    }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
     void emit(Object aliveObject, long timestamp, long allocatedSize, long allocationTime, long threadId, long stackTraceId, long heapUsedAtLastGC, int arrayLength);

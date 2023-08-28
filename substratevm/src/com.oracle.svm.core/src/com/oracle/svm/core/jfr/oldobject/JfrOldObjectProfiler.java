@@ -28,6 +28,7 @@ package com.oracle.svm.core.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.jfr.JfrEvent;
 import com.oracle.svm.core.jfr.JfrTicks;
 import com.oracle.svm.core.jfr.SubstrateJVM;
@@ -111,8 +112,8 @@ public final class JfrOldObjectProfiler {
 
         @Override
         @Uninterruptible(reason = "Accesses allocation profiler.")
-        public boolean isAlive(WeakReference<?> ref) {
-            return ref.get() != null;
+        public Object getWeakReferent(WeakReference<?> ref) {
+            return ReferenceInternals.getReferent(ref);
         }
 
         @Override
