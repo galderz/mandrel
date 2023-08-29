@@ -103,7 +103,6 @@ public class NativeImageDebugInfoStripFeature implements InternalFeature {
                 BuildArtifacts.singleton().add(ArtifactType.DEBUG_INFO, debugInfoFilePath);
                 Path exportedSymbolsPath = createKeepSymbolsListFile(accessImpl);
                 FileUtils.executeCommand(objcopyExe, "--strip-all", "--keep-symbols=" + exportedSymbolsPath, imageFilePath);
-                FileUtils.executeCommand(objcopyExe, "--add-gnu-debuglink=" + debugInfoFilePath, imageFilePath);
             } catch (IOException e) {
                 throw UserError.abort("Generation of separate debuginfo file failed", e);
             } catch (InterruptedException e) {
