@@ -22,7 +22,7 @@ jobs:
     uses: graalvm/mandrel/.github/workflows/base.yml@default
     with:
       quarkus-repo: "galderz/quarkus"
-      quarkus-version: "f526ca93e6a"
+      quarkus-version: "f526ca93e6a6cf1b95d613f6498a28f47062cbd3"
       version: "graal/master"
       build-type: "graal-source"
       jdk: "21/ea"
@@ -34,7 +34,7 @@ jobs:
     uses: graalvm/mandrel/.github/workflows/base.yml@default
     with:
       quarkus-repo: "galderz/quarkus"
-      quarkus-version: "38f4edd4c57"
+      quarkus-version: "38f4edd4c57d7c186942c793c39c833b3d422782"
       version: "graal/master"
       build-type: "graal-source"
       jdk: "21/ea"
