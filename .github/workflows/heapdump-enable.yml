@@ -1,0 +1,43 @@
+name: Heap Dump Enable
+
+on:
+  workflow_dispatch:
+
+# The following aims to reduce CI CPU cycles by:
+# 1. Cancelling any previous builds of this PR when pushing new changes to it
+# 2. Cancelling any previous builds of a branch when pushing new changes to it in a fork
+# 3. Cancelling any pending builds, but not active ones, when pushing to a branch in the main
+#    repository. This prevents us from constantly cancelling CI runs, while being able to skip
+#    intermediate builds. E.g., if we perform two pushes the first one will start a CI job and
+#    the second one will add another one to the queue; if we perform a third push while the
+#    first CI job is still running the previously queued CI job (for the second push) will be
+#    cancelled and a new CI job will be queued for the latest (third) push.
+concurrency:
+  group: "workflow = ${{ github.workflow }}, ref = ${{ github.event.ref }}, pr = ${{ github.event.pull_request.id }}"
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.repository != 'graalvm/mandrel' }}
+
+jobs:
+  heapdum-enable-base:
+    name: "Heap dump enable disabled"
+    uses: graalvm/mandrel/.github/workflows/base.yml@default
+    with:
+      quarkus-repo: "galderz/quarkus"
+      quarkus-version: "f526ca93e6a"
+      version: "graal/master"
+      build-type: "graal-source"
+      jdk: "21/ea"
+      build-stats-tag: "gha-galder-linux-qmain-glatest-jdk21ea-hdbase"
+    secrets:
+      UPLOAD_COLLECTOR_TOKEN: ${{ secrets.UPLOAD_COLLECTOR_TOKEN }}
+  heapdum-enable-on:
+    name: "Heap dump enable on"
+    uses: graalvm/mandrel/.github/workflows/base.yml@default
+    with:
+      quarkus-repo: "galderz/quarkus"
+      quarkus-version: "38f4edd4c57"
+      version: "graal/master"
+      build-type: "graal-source"
+      jdk: "21/ea"
+      build-stats-tag: "gha-galder-linux-qmain-glatest-jdk21ea-hdon"
+    secrets:
+      UPLOAD_COLLECTOR_TOKEN: ${{ secrets.UPLOAD_COLLECTOR_TOKEN }}
