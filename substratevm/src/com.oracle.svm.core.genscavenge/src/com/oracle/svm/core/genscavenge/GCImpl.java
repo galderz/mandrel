@@ -227,7 +227,7 @@ public final class GCImpl implements GC {
         JfrGCHeapSummaryEvent.emit(JfrGCWhen.AFTER_GC);
 
         UnsignedWord sizeAfter = heapAccounting.getUsedBytes();
-        JfrOldObjectSampleEvents.updateLastSweep(heapAccounting.getHeapSizesBeforeGc().totalUsed(), sizeAfter);
+        JfrOldObjectSampler.updateLastSweep(heapAccounting.getHeapSizesBeforeGc().totalUsed(), sizeAfter);
 
         collectionEpoch = collectionEpoch.add(1);
         timers.mutator.open();

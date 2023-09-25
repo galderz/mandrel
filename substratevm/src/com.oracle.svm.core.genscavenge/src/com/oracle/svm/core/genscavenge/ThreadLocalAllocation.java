@@ -221,7 +221,7 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            JfrOldObjectSampleEvents.sample(result, size.rawValue(), Integer.MIN_VALUE);
+            JfrOldObjectSampler.sample(result, size, Integer.MIN_VALUE);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
@@ -287,7 +287,7 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewArrayLikeObject0(hub, length, size, podReferenceMap);
             runSlowPathHooks();
 
-            JfrOldObjectSampleEvents.sample(result, size.rawValue(), length);
+            JfrOldObjectSampler.sample(result, size.rawValue(), length);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
