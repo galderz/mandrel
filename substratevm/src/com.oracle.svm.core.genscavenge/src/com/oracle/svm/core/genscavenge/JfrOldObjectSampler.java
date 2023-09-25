@@ -36,7 +36,7 @@ import org.graalvm.word.UnsignedWord;
 import java.lang.ref.WeakReference;
 
 public class JfrOldObjectSampler {
-    static void sample(Object obj, UnsignedWord allocatedSize, int arrayLength) {
+    static void sample(Object obj, long allocatedSize, int arrayLength) {
         if (HasJfrSupport.get()) {
             // Instantiate weak reference at the last possible time before allocations are not
             // allowed
@@ -45,7 +45,7 @@ public class JfrOldObjectSampler {
     }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
-    public static void sample(WeakReference<Object> result, UnsignedWord allocatedSize, int arrayLength) {
+    public static void sample(WeakReference<Object> result, long allocatedSize, int arrayLength) {
         if (JfrEvent.OldObjectSample.shouldEmit()) {
             SubstrateJVM.getJfrOldObjectProfiler().sample(result, allocatedSize, arrayLength);
         }

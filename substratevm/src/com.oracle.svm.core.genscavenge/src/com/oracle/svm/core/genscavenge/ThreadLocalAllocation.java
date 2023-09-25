@@ -221,7 +221,7 @@ public final class ThreadLocalAllocation {
             Object result = slowPathNewInstanceWithoutAllocating(hub);
             runSlowPathHooks();
 
-            JfrOldObjectSampler.sample(result, size, Integer.MIN_VALUE);
+            JfrOldObjectSampler.sample(result, size.rawValue(), Integer.MIN_VALUE);
             return result;
         } finally {
             StackOverflowCheck.singleton().protectYellowZone();
