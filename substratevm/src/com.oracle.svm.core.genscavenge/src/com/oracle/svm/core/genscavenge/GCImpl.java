@@ -203,7 +203,7 @@ public final class GCImpl implements GC {
         assert VMOperation.isGCInProgress();
         assert getCollectionEpoch().equal(data.getRequestingEpoch()) ||
                         data.getForceFullGC() && GCImpl.getAccounting().getCompleteCollectionCount() == data.getCompleteCollectionCount() : "unnecessary GC?";
-        final HeapAccounting heapAccounting = HeapImpl.getAccounting();
+        HeapAccounting heapAccounting = HeapImpl.getAccounting();
 
         timers.mutator.closeAt(data.getRequestingNanoTime());
         timers.resetAllExceptMutator();
@@ -226,7 +226,7 @@ public final class GCImpl implements GC {
         Heap.getHeap().updateUsedAtGC();
         JfrGCHeapSummaryEvent.emit(JfrGCWhen.AFTER_GC);
 
-        UnsignedWord sizeAfter = heapAccounting.getEdenUsedBytes().add(heapAccounting.getSurvivorUsedBytes()).add(heapAccounting.getOldUsedBytes());
+        UnsignedWord sizeAfter = heapAccounting.getUsedBytes();
         JfrOldObjectSampleEvents.updateLastSweep(heapAccounting.getHeapSizesBeforeGc().totalUsed(), sizeAfter);
 
         collectionEpoch = collectionEpoch.add(1);
