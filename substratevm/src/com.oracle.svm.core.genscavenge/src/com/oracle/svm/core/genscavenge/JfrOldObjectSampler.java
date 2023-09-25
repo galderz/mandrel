@@ -37,18 +37,15 @@ import java.lang.ref.WeakReference;
 
 public class JfrOldObjectSampler {
     static void sample(Object obj, long allocatedSize, int arrayLength) {
-        if (HasJfrSupport.get()) {
-            // Instantiate weak reference at the last possible time before allocations are not
-            // allowed
-            sample(new WeakReference<>(obj), allocatedSize, arrayLength);
+        if (HasJfrSupport.get() && shouldEmitOldObjectSample()) {
+            // Instantiate weak reference at the last possible time before allocations are not allowed
+            SubstrateJVM.getJfrOldObjectProfiler().sample(new WeakReference<>(obj), allocatedSize, arrayLength);
         }
     }
 
-    @Uninterruptible(reason = "Accesses allocation profiler.")
-    public static void sample(WeakReference<Object> result, long allocatedSize, int arrayLength) {
-        if (JfrEvent.OldObjectSample.shouldEmit()) {
-            SubstrateJVM.getJfrOldObjectProfiler().sample(result, allocatedSize, arrayLength);
-        }
+    @Uninterruptible(reason = "Prevent races with VM operations that start/stop recording.")
+    private static boolean shouldEmitOldObjectSample() {
+        return JfrEvent.OldObjectSample.shouldEmit();
     }
 
     static void updateLastSweep(UnsignedWord sizeBefore, UnsignedWord sizeAfter) {
