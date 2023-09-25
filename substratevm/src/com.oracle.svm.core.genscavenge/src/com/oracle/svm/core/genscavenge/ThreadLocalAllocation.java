@@ -209,7 +209,7 @@ public final class ThreadLocalAllocation {
     }
 
     @SubstrateForeignCallTarget(stubCallingConvention = false)
-    private static Object slowPathNewInstance(Word objectHeader, UnsignedWord size) {
+    private static Object slowPathNewInstance(Word objectHeader) {
         /*
          * Avoid stack overflow errors while producing memory chunks, because that could leave the
          * heap in an inconsistent state.
@@ -218,7 +218,8 @@ public final class ThreadLocalAllocation {
         try {
             DynamicHub hub = ObjectHeaderImpl.getObjectHeaderImpl().dynamicHubFromObjectHeader(objectHeader);
 
-            Object result = slowPathNewInstanceWithoutAllocating(hub);
+            UnsignedWord size = LayoutEncoding.getPureInstanceAllocationSize(hub.getLayoutEncoding());
+            Object result = slowPathNewInstanceWithoutAllocating(hub, size);
             runSlowPathHooks();
 
             JfrOldObjectSampler.sample(result, size.rawValue(), Integer.MIN_VALUE);
@@ -229,10 +230,9 @@ public final class ThreadLocalAllocation {
     }
 
     @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate in the implementation of allocation.")
-    private static Object slowPathNewInstanceWithoutAllocating(DynamicHub hub) {
+    private static Object slowPathNewInstanceWithoutAllocating(DynamicHub hub, UnsignedWord size) {
         DeoptTester.disableDeoptTesting();
         long startTicks = JfrTicks.elapsedTicks();
-        UnsignedWord size = LayoutEncoding.getPureInstanceAllocationSize(hub.getLayoutEncoding());
         try {
             HeapImpl.exitIfAllocationDisallowed("ThreadLocalAllocation.slowPathNewInstanceWithoutAllocating", DynamicHub.toClass(hub).getName());
             GCImpl.getGCImpl().maybeCollectOnAllocation(size);

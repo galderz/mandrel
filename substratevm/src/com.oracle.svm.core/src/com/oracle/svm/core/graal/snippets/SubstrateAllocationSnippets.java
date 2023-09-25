@@ -465,8 +465,8 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
     }
 
     @Override
-    protected final Object callNewInstanceStub(Word objectHeader, UnsignedWord size) {
-        return callSlowNewInstance(gcAllocationSupport().getNewInstanceStub(), objectHeader, size);
+    protected final Object callNewInstanceStub(Word objectHeader) {
+        return callSlowNewInstance(gcAllocationSupport().getNewInstanceStub(), objectHeader);
     }
 
     @Override
@@ -480,7 +480,7 @@ public class SubstrateAllocationSnippets extends AllocationSnippets {
     }
 
     @NodeIntrinsic(value = ForeignCallNode.class)
-    private static native Object callSlowNewInstance(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub, UnsignedWord size);
+    private static native Object callSlowNewInstance(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub);
 
     @NodeIntrinsic(value = ForeignCallNode.class)
     private static native Object callSlowNewArray(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word hub, int length);
