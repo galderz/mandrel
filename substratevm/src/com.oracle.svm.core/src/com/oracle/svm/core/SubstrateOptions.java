@@ -905,7 +905,7 @@ public class SubstrateOptions {
     @Option(help = "file:doc-files/FlightRecorderLoggingHelp.txt")//
     public static final RuntimeOptionKey<String> FlightRecorderLogging = new RuntimeOptionKey<>("all=warning", Immutable);
 
-    @Option(help = "Flight Recorder options")//
+    @Option(help = "file:doc-files/FlightRecorderOptionsHelp.txt")//
     public static final RuntimeOptionKey<String> FlightRecorderOptions = new RuntimeOptionKey<>("", Immutable);
 
     public static String reportsPath() {
