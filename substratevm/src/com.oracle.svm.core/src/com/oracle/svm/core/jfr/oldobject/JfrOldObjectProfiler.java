@@ -56,10 +56,15 @@ public final class JfrOldObjectProfiler {
 
     private int queueSize;
     private long lastSweep = Long.MAX_VALUE;
-    private OldObjectProfiler profiler;
+    private OldObjectSampler sampler;
+    private OldObjectEventEmitter eventEmitter;
 
     @Platforms(Platform.HOSTED_ONLY.class)
     public JfrOldObjectProfiler() {
+    }
+
+    public JfrOldObjectProfiler(int queueSize, OldObjectEffects effects) {
+        initialize(queueSize, new DefaultEffects());
     }
 
     public void configure(int oldObjectQueueSize) {
@@ -70,8 +75,13 @@ public final class JfrOldObjectProfiler {
         if (Logger.shouldLog(LogTag.JFR, LogLevel.DEBUG)) {
             Logger.log(LogTag.JFR, LogLevel.DEBUG, "Initialize old object sampler: old-object-queue-size=" + queueSize);
         }
-        final OldObjectEffects effects = new DefaultEffects();
-        this.profiler = new OldObjectProfiler(queueSize, effects);
+        initialize(queueSize, new DefaultEffects());
+    }
+
+    public void initialize(int queueSize, OldObjectEffects effects) {
+        final OldObjectList list = new OldObjectList();
+        this.sampler = new OldObjectSampler(queueSize, list, effects);
+        this.eventEmitter = new OldObjectEventEmitter(list, effects);
     }
 
     @Uninterruptible(reason = "Accesses allocation profiler.")
@@ -82,7 +92,7 @@ public final class JfrOldObjectProfiler {
         }
 
         try {
-            profiler.sample(ref, allocatedSize, arrayLength);
+            sampler.sample(ref, allocatedSize, arrayLength);
         } finally {
             JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }
@@ -93,7 +103,7 @@ public final class JfrOldObjectProfiler {
         JavaSpinLockUtils.lockNoTransition(this, LOCK_OFFSET);
 
         try {
-            profiler.emit(cutoff, emitAll ? Long.MAX_VALUE : lastSweep);
+            eventEmitter.emit(cutoff, emitAll ? Long.MAX_VALUE : lastSweep);
         } finally {
             JavaSpinLockUtils.unlock(this, LOCK_OFFSET);
         }

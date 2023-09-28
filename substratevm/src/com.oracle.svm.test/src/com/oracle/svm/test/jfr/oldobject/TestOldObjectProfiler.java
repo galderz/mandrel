@@ -28,6 +28,7 @@ package com.oracle.svm.test.jfr.oldobject;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.ReferenceInternals;
+import com.oracle.svm.core.jfr.oldobject.JfrOldObjectProfiler;
 import com.oracle.svm.core.jfr.oldobject.OldObjectEffects;
 import com.oracle.svm.core.jfr.oldobject.OldObjectProfiler;
 import org.junit.Assert;
@@ -55,7 +56,7 @@ public class TestOldObjectProfiler {
                 return value;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(i), (i + 1) * 10_000, -1);
@@ -74,20 +75,27 @@ public class TestOldObjectProfiler {
         // and not as a result of checking that high-span objects are not alive at emit time.
         effects.isAlive.set(true);
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertStreamEquals(IntStream.rangeClosed(10, 19).boxed(), effects.objects());
+    }
+
+    private static JfrOldObjectProfiler createProfiler(int size, TestEffects effects) {
+        final JfrOldObjectProfiler profiler = new JfrOldObjectProfiler(size, effects);
+//        profiler.initialize(size, effects);
+        return profiler;
     }
 
     @Test
     public void testDoNotEmitEventsNewerThanLastSweep() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, 10);
+        profiler.setLastSweep(10);
+        profiler.emit(0, false);
         Assert.assertEquals(0, effects.sizeSamples());
     }
 
@@ -106,13 +114,13 @@ public class TestOldObjectProfiler {
                 return value;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(i), (i + 1) * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertStreamEquals(IntStream.rangeClosed(0, 9).boxed(), effects.objects());
 
         // Clear accumulated samples and see what gets emitted now.
@@ -124,7 +132,7 @@ public class TestOldObjectProfiler {
             profiler.sample(new WeakReference<>(10 + i), (i + 1) * 10_000, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertStreamEquals(IntStream.rangeClosed(10, 19).boxed(), effects.objects());
     }
 
@@ -139,13 +147,13 @@ public class TestOldObjectProfiler {
                 return !"4".equals(value) ? value : null;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.concat(LongStream.rangeClosed(20L, 23L), LongStream.rangeClosed(25L, 27L)), effects.allocationTimes());
     }
 
@@ -160,13 +168,13 @@ public class TestOldObjectProfiler {
                 return !"7".equals(value) ? value : null;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.rangeClosed(20L, 26L), effects.allocationTimes());
     }
 
@@ -181,13 +189,13 @@ public class TestOldObjectProfiler {
                 return !"0".equals(value) ? value : null;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.rangeClosed(21L, 27L), effects.allocationTimes());
     }
 
@@ -201,13 +209,13 @@ public class TestOldObjectProfiler {
                 return null;
             }
         };
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         Assert.assertEquals(0, effects.sizeSamples());
     }
 
@@ -215,13 +223,13 @@ public class TestOldObjectProfiler {
     public void testSampleManyEmitQueueSize() {
         final int size = 256;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < 1_000_000; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         Assert.assertEquals(256, effects.sizeSamples());
     }
 
@@ -229,7 +237,7 @@ public class TestOldObjectProfiler {
     public void testSampleOverflowEvictYoungest() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size + 1; i++) {
             // Evict youngest because that's the one with the lowest span.
@@ -237,7 +245,7 @@ public class TestOldObjectProfiler {
             profiler.sample(new WeakReference<>(String.valueOf(i)), allocatedSize, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.concat(LongStream.rangeClosed(20L, 26L), LongStream.rangeClosed(28L, 28L)), effects.allocationTimes());
     }
 
@@ -245,7 +253,7 @@ public class TestOldObjectProfiler {
     public void testSampleOverflowEvictMiddle() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size + 1; i++) {
             // Evict middle because that's the one with the lowest span.
@@ -253,7 +261,7 @@ public class TestOldObjectProfiler {
             profiler.sample(new WeakReference<>(String.valueOf(i)), allocatedSize, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.concat(LongStream.rangeClosed(20L, 23L), LongStream.rangeClosed(25L, 28L)), effects.allocationTimes());
     }
 
@@ -261,14 +269,14 @@ public class TestOldObjectProfiler {
     public void testSampleOverflowEvictOldest() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size + 1; i++) {
             // Evict oldest because that's the one with the lowest span.
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.rangeClosed(21L, 28L), effects.allocationTimes());
     }
 
@@ -276,13 +284,13 @@ public class TestOldObjectProfiler {
     public void testSampleFullEmit() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.rangeClosed(20L, 27L), effects.allocationTimes());
     }
 
@@ -290,13 +298,13 @@ public class TestOldObjectProfiler {
     public void testSampleNotFullEmit() {
         final int size = 8;
         final TestEffects effects = new TestEffects(20L, size);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
 
         for (int i = 0; i < size - 1; i++) {
             profiler.sample(new WeakReference<>(String.valueOf(i)), i * 100, -1);
         }
 
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         assertLongStreamEquals(LongStream.rangeClosed(20L, 26L), effects.allocationTimes());
     }
 
@@ -304,9 +312,9 @@ public class TestOldObjectProfiler {
     public void testSingleSample() {
         final int size = 3;
         final TestEffects effects = new TestEffects(20L, 3);
-        final OldObjectProfiler profiler = new OldObjectProfiler(size, effects);
+        final JfrOldObjectProfiler profiler = createProfiler(size, effects);
         profiler.sample(new WeakReference<>("a-sample"), 10, -1);
-        profiler.emit(0, Long.MAX_VALUE);
+        profiler.emit(0, true);
         final TestSample testSample = effects.peekLastSample();
         Assert.assertNotNull(testSample);
         Assert.assertEquals("a-sample", testSample.obj);

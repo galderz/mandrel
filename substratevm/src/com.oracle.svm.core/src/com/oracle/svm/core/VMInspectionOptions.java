@@ -151,6 +151,7 @@ public final class VMInspectionOptions {
         return hasAllOrKeywordMonitoringSupport(MONITORING_JMXCLIENT_NAME) && !Platform.includedIn(WINDOWS.class);
     }
 
+
     @Option(help = "Dumps all runtime compiled methods on SIGUSR2.", type = OptionType.User) //
     public static final HostedOptionKey<Boolean> DumpRuntimeCompilationOnSignal = new HostedOptionKey<>(false);
 
