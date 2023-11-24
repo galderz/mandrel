@@ -1046,6 +1046,17 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
              */
             return loopScope;
         }
+
+        if (callTarget.targetMethod().getName().contains("charAt")
+                && methodScope.method.getName().contains("validateHeaderName0")
+        ) {
+            System.out.printf("[%s] Try inline: %s -> %s%n"
+                    , this.getClass().getName()
+                    , methodScope.method.getName()
+                    , callTarget.targetMethod().getName()
+            );
+        }
+
         final LoopScope inlineLoopScope = tryInline(methodScope, loopScope, invokeData, callTarget);
         if (inlineLoopScope != null) {
             /*

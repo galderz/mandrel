@@ -111,6 +111,13 @@ public class InlineBeforeAnalysisPolicyUtils {
     public static boolean inliningAllowed(SVMHost hostVM, GraphBuilderContext b, ResolvedJavaMethod method) {
         AnalysisMethod caller = (AnalysisMethod) b.getMethod();
         AnalysisMethod callee = (AnalysisMethod) method;
+
+//        if (callee.getName().contains("charAt")
+//                && caller.getName().contains("validateHeaderName0")
+//        ) {
+//            System.out.println("Stop here");
+//        }
+
         if (hostVM.neverInlineTrivial(caller, callee)) {
             return false;
         }

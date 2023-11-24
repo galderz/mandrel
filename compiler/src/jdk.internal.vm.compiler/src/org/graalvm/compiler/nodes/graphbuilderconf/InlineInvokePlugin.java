@@ -134,6 +134,7 @@ public interface InlineInvokePlugin extends GraphBuilderPlugin {
      * @param methodToInline the inlined method
      */
     default void notifyBeforeInline(ResolvedJavaMethod methodToInline) {
+        // System.out.println("Before inline: " + methodToInline.getName());
     }
 
     /**
@@ -142,6 +143,7 @@ public interface InlineInvokePlugin extends GraphBuilderPlugin {
      * @param methodToInline the inlined method
      */
     default void notifyAfterInline(ResolvedJavaMethod methodToInline) {
+        // System.out.println("After inline: " + methodToInline.getName());
     }
 
     /**
@@ -153,5 +155,14 @@ public interface InlineInvokePlugin extends GraphBuilderPlugin {
      * @param invoke the invoke node created for the call to {@code method}
      */
     default void notifyNotInlined(GraphBuilderContext b, ResolvedJavaMethod method, Invoke invoke) {
+        if (method.getName().contains("charAt")
+                && b.getMethod().getName().contains("validateHeaderName0")
+        ) {
+            System.out.printf("[%s] Not inlined: %s -> %s%n"
+                    , this.getClass().getName()
+                    , b.getMethod().getName()
+                    , method.getName()
+            );
+        }
     }
 }

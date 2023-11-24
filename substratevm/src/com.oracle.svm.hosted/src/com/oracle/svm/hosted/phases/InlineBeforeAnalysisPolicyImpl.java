@@ -66,6 +66,12 @@ public class InlineBeforeAnalysisPolicyImpl extends InlineBeforeAnalysisPolicy {
 
     @Override
     protected boolean shouldInlineInvoke(GraphBuilderContext b, ResolvedJavaMethod method, ValueNode[] args) {
+//        if (method.getName().contains("charAt")
+//                // && method.getDeclaringClass().getName().contains("StringLatin1")
+//        ) {
+//            System.out.println("Caller for chartAt: " + b.getMethod().getName());
+//        }
+
         if (inliningUtils.alwaysInlineInvoke((AnalysisMetaAccess) b.getMetaAccess(), method)) {
             return true;
         }
