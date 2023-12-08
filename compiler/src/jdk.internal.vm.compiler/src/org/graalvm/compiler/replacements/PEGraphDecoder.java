@@ -65,6 +65,7 @@ import org.graalvm.compiler.graph.SourceLanguagePositionProvider;
 import org.graalvm.compiler.java.GraphBuilderPhase;
 import org.graalvm.compiler.nodeinfo.InputType;
 import org.graalvm.compiler.nodeinfo.NodeInfo;
+import org.graalvm.compiler.nodeinfo.Verbosity;
 import org.graalvm.compiler.nodes.AbstractBeginNode;
 import org.graalvm.compiler.nodes.AbstractEndNode;
 import org.graalvm.compiler.nodes.AbstractMergeNode;
@@ -1056,6 +1057,16 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
                     , callTarget.targetMethod().getName()
             );
         }
+//        if (callTarget.targetMethod().format("%H.%n(%P)").contains("StringLatin1.charAt")
+//                && methodScope.method.getName().contains("charAt")
+//        ) {
+//            System.out.printf("[%s] Try inline: %s -> %s (%s)%n"
+//                    , this.getClass().getName()
+//                    , methodScope.method.format("%H.%n(%P)")
+//                    , callTarget.targetMethod().format("%H.%n(%P)")
+//                    , callTarget.toString(Verbosity.All)
+//            );
+//        }
 
         final LoopScope inlineLoopScope = tryInline(methodScope, loopScope, invokeData, callTarget);
         if (inlineLoopScope != null) {

@@ -164,5 +164,14 @@ public interface InlineInvokePlugin extends GraphBuilderPlugin {
                     , method.getName()
             );
         }
+//        if (method.format("%H.%n(%P)").contains("StringLatin1.charAt")
+//                && b.getMethod().getName().contains("charAt")
+//        ) {
+//            System.out.printf("[%s] Not inlined: %s -> %s%n"
+//                    , this.getClass().getName()
+//                    , b.getMethod().format("%H.%n(%P)")
+//                    , method.format("%H.%n(%P)")
+//            );
+//        }
     }
 }

@@ -545,7 +545,7 @@ public class InliningLog {
 
         public void activate() {
             if (currentUpdateScope != null) {
-                throw GraalError.shouldNotReachHere("InliningLog updating already set."); // ExcludeFromJacocoGeneratedReport
+                // throw GraalError.shouldNotReachHere("InliningLog updating already set."); // ExcludeFromJacocoGeneratedReport
             }
             currentUpdateScope = this;
         }
