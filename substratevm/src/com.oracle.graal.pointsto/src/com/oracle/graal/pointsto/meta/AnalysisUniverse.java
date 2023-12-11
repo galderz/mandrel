@@ -522,6 +522,10 @@ public class AnalysisUniverse implements Universe {
         if (constant == null || constant.isNull() || constant.getJavaKind().isPrimitive()) {
             return constant;
         }
+        final String str = JavaConstant.toString(constant);
+        if (str.contains("com.fasterxml.jackson.databind.ext.DOMSerialize")) {
+            System.out.printf("[AU] shadow heap lookup: %s%n", constant);
+        }
         return heapScanner.createImageHeapConstant(lookup(constant), ObjectScanner.OtherReason.UNKNOWN);
     }
 

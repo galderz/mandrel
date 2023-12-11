@@ -196,7 +196,13 @@ public abstract class ImageHeapScanner {
         Object existingTask = imageHeap.getSnapshot(javaConstant);
         if (existingTask == null) {
             AnalysisFuture<ImageHeapConstant> newTask = new AnalysisFuture<>(() -> {
+                if (javaConstant.toString().contains("com.fasterxml.jackson.databind.ext.DOMSerialize")) {
+                    System.out.printf("[IH] before convert to image heap constant: %s%n", javaConstant);
+                }
                 ImageHeapConstant imageHeapConstant = createImageHeapObject(javaConstant, nonNullReason);
+                if (javaConstant.toString().contains("com.fasterxml.jackson.databind.ext.DOMSerialize")) {
+                    System.out.printf("[IH] after convert to image heap constant: %s%n", imageHeapConstant);
+                }
                 /* When the image heap object is created replace the future in the map. */
                 imageHeap.setValue(javaConstant, imageHeapConstant);
                 return imageHeapConstant;

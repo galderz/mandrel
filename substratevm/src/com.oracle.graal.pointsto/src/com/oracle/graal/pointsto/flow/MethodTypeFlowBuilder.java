@@ -192,6 +192,9 @@ public class MethodTypeFlowBuilder {
         if (analysisParsedGraph.getEncodedGraph() == null) {
             return false;
         }
+        if (reason.toString().contains("com.fasterxml.jackson.databind.ser.BasicSerializerFactory.findOptionalStdSerializer(BasicSerializerFactory.java:496")) {
+            System.out.printf("[MTFB] Potential for finding dom deserializer constructor...%n");
+        }
         graph = InlineBeforeAnalysis.decodeGraph(bb, method, analysisParsedGraph);
 
         try (DebugContext.Scope s = graph.getDebug().scope("MethodTypeFlowBuilder", graph)) {

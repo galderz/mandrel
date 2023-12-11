@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.util.function.Consumer;
 
+import com.oracle.svm.core.meta.DirectSubstrateObjectConstant;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.core.common.type.TypedConstant;
@@ -110,6 +111,11 @@ public class SVMImageHeapScanner extends ImageHeapScanner {
     @Override
     protected ImageHeapConstant getOrCreateImageHeapConstant(JavaConstant javaConstant, ScanReason reason) {
         VMError.guarantee(javaConstant instanceof TypedConstant, "Not a substrate constant: %s", javaConstant);
+        if (javaConstant instanceof DirectSubstrateObjectConstant dsc) {
+            if (dsc.getObject().toString().contains("com.fasterxml.jackson.databind.ext.DOMSerializer()")) {
+                System.out.printf("[SIH] create image heap contanst for dom serializer constructor: %s%n", dsc);
+            }
+        }
         return super.getOrCreateImageHeapConstant(javaConstant, reason);
     }
 

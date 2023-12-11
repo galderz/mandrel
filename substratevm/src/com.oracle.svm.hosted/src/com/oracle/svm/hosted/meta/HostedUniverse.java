@@ -448,6 +448,7 @@ public class HostedUniverse implements Universe {
             return constant;
         }
         VMError.guarantee(constant instanceof ImageHeapConstant);
+        System.out.printf("[HU] return: %s", JavaConstant.toString(constant));
         return constant;
     }
 
