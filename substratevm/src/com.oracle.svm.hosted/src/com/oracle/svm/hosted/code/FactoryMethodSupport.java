@@ -65,6 +65,17 @@ public class FactoryMethodSupport {
              * modifications, like to make lambda names unique, are incorporated in the name.
              */
             String name = SubstrateUtil.uniqueStubName(aConstructor);
+
+            if (name.contains("DOMSerializer_constructor")) {
+                System.out.printf("[FMS] Creating dom serializer factory method for %s...%n", name);
+                Thread.dumpStack();
+            }
+
+            if (name.contains("AliceSerializer_constructor") || name.contains("BobSerializer_constructor")) {
+                System.out.printf("[FMS] Creating dummy serializer factory method for %s...%n", name);
+                Thread.dumpStack();
+            }
+
             /*
              * Computing the signature types via the analysis universe ensures that we have all
              * substitutions applied and all types already resolved.

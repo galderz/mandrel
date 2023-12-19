@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import jdk.graal.compiler.nodes.java.LoadFieldNode;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
@@ -934,6 +935,10 @@ public class GraphDecoder {
             } else if (node instanceof ReturnNode || node instanceof UnwindNode) {
                 methodScope.returnAndUnwindNodes.add((ControlSinkNode) node);
             } else {
+                if (graph.toString().contains("DefaultSerializerFactory") && node.toString().contains("LoadField#modifiers")) {
+                    System.out.printf("[GD] Load field node for constructor modifiers for instantiate%n");
+                }
+
                 handleFixedNode(methodScope, loopScope, nodeOrderId, node);
             }
             if (DUMP_DURING_FIXED_NODE_PROCESSING) {
