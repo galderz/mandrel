@@ -1434,6 +1434,39 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
             plugin.notifyAfterInline(inlineMethod);
         }
 
+        final String methodScopeId = methodScope.method.format("%H.%n(%p)");
+        if ("java.lang.String.charAt(int)".equals(methodScopeId))
+        {
+            System.out.printf(
+                    "[%s][PEGraphDecoder.finishInlining] [%s] inline call target %s%n"
+                    , Thread.currentThread().getName()
+                    , methodScopeId
+                    , invokeData.callTarget.targetMethod().format("%H.%n(%p)")
+            );
+        }
+
+//        if (methodScope.toString().contains("java.lang.String.charAt"))
+//        {
+//            System.out.printf(
+//                "[PEGraphDecoder.finishInlining] [%s] inline call target %s%n"
+//                , methodScope.method.format("%H.%n(%p)")
+//                , invokeData.callTarget.targetMethod().format("%H.%n(%p)")
+//            );
+//        }
+
+//        if (inlineMethod != null)
+//        {
+//            final String str = inlineMethod.toString();
+//            if (str.contains("StringLatin1.charAt")
+//                || str.contains("StringUTF16.charAt"))
+//            {
+//                System.out.printf(
+//                        "[PEGraphDecoder.finishInlining] %s, reason: inlined during decoding%n"
+//                        , inlineMethod
+//                );
+//            }
+//        }
+
         if (methodScope.inliningLog != null) {
             assert inlineScope.inliningLog != null : "all inlinees should have an inlining log if the root requires it";
             methodScope.inliningLog.inlineByTransfer(invoke, invokeData.callTarget, inlineScope.inliningLog, "PEGraphDecoder",

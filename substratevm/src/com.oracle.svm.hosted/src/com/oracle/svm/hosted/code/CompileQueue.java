@@ -693,8 +693,26 @@ public class CompileQueue {
         });
     }
 
-    private static boolean checkNewlyTrivial(HostedMethod method, StructuredGraph graph) {
-        return !method.compilationInfo.isTrivialMethod() && method.canBeInlined() && InliningUtilities.isTrivialMethod(graph);
+    private static boolean checkNewlyTrivial(HostedMethod method, StructuredGraph graph, CompileReason reason) {
+        final boolean canNewlyTrivial = !method.compilationInfo.isTrivialMethod();
+        final boolean canBeInlined = method.canBeInlined();
+        final boolean isTrivialMethod = InliningUtilities.isTrivialMethod(graph, reason);
+
+        final String methodId = graph.method().format("%h.%n(%p)");
+        if (InliningUtilities.isDebug(methodId, reason))
+        {
+            System.out.printf(
+                    "[%s][CompileQueue.checkNewlyTrivial][%s->%s] canNewlyTrivial? %b, canBeInlined? %b, isTrivialMethod? %b%n"
+                    , Thread.currentThread().getName()
+                    , reason == null ? "()" : reason.toString()
+                    , methodId
+                    , canNewlyTrivial
+                    , canBeInlined
+                    , isTrivialMethod
+            );
+        }
+
+        return canNewlyTrivial && canBeInlined && isTrivialMethod;
     }
 
     @SuppressWarnings("try")
@@ -704,6 +722,13 @@ public class CompileQueue {
             ProgressReporter.singleton().reportStageProgress();
             inliningProgress = false;
             round++;
+
+            System.out.printf(
+                    "[%s] Trivial inlining round %d%n"
+                    , Thread.currentThread().getName()
+                    , round
+            );
+
             try (Indent ignored = debug.logAndIndent("==== Trivial Inlining  round %d%n", round)) {
                 runOnExecutor(() -> {
                     universe.getMethods().forEach(method -> {
@@ -838,7 +863,7 @@ public class CompileQueue {
                      * non-deterministic. This is why we are saving graphs to be published at the
                      * end of each round.
                      */
-                    unpublishedTrivialMethods.put(method, new UnpublishedTrivialMethods(CompilationGraph.encode(graph), checkNewlyTrivial(method, graph)));
+                    unpublishedTrivialMethods.put(method, new UnpublishedTrivialMethods(CompilationGraph.encode(graph), checkNewlyTrivial(method, graph, null)));
                 }
             }
         } catch (Throwable ex) {
@@ -847,25 +872,91 @@ public class CompileQueue {
     }
 
     private boolean makeInlineDecision(HostedMethod method, HostedMethod callee) {
-        // GR-57832 this will be removed
+        final String methodId = method.format("%h.%n(%p)");
+        if (InliningUtilities.isCallerMethod(methodId))
+        {
+            System.out.printf(
+                    "[%s][CompileQueue.makeInlineDecision][%s->%s] make inline decision%n"
+                    , Thread.currentThread().getName()
+                    , methodId
+                    , callee.format("%H.%n(%p)")
+            );
+        }
+
+            // GR-57832 this will be removed
         if (callee.compilationInfo.getCompilationGraph() == null) {
             /*
              * We have compiled this method in a prior layer, but don't have the graph available
              * here.
              */
             assert callee.isCompiledInPriorLayer() : method;
+
+            if (InliningUtilities.isCallerMethod(methodId))
+            {
+                System.out.printf(
+                        "[%s][CompileQueue.makeInlineDecision][%s->%s] negative decision because graph is not available%n"
+                        , Thread.currentThread().getName()
+                        , methodId
+                        , callee.format("%H.%n(%p)")
+                );
+            }
+
             return false;
         }
 
         if (universe.hostVM().neverInlineTrivial(method.getWrapped(), callee.getWrapped())) {
+
+            if (InliningUtilities.isCallerMethod(methodId))
+            {
+                System.out.printf(
+                        "[%s][CompileQueue.makeInlineDecision][%s->%s] negative decision because is marked as @NeverInlineTrivial (annotation or handler)%n"
+                        , Thread.currentThread().getName()
+                        , methodId
+                        , callee.format("%H.%n(%p)")
+                );
+            }
+
             return false;
         }
         if (callee.shouldBeInlined()) {
+
+            if (InliningUtilities.isCallerMethod(methodId))
+            {
+                System.out.printf(
+                        "[%s][CompileQueue.makeInlineDecision][%s->%s] positive decision because is annotated with @AlwaysInline or @ForceInline%n"
+                        , Thread.currentThread().getName()
+                        , methodId
+                        , callee.format("%H.%n(%p)")
+                );
+            }
+
             return true;
         }
         if (optionAOTTrivialInline && callee.compilationInfo.isTrivialMethod() && !method.compilationInfo.isTrivialInliningDisabled()) {
+
+            if (InliningUtilities.isCallerMethod(methodId))
+            {
+                System.out.printf(
+                        "[%s][CompileQueue.makeInlineDecision][%s->%s] positive decision because callee is considered trivial method%n"
+                        , Thread.currentThread().getName()
+                        , methodId
+                        , callee.format("%H.%n(%p)")
+                );
+            }
+
             return true;
         }
+
+        if (InliningUtilities.isCallerMethod(methodId))
+        {
+            System.out.printf(
+                    "[%s][CompileQueue.makeInlineDecision][%s->%s] negative decision as fallback%n"
+                    , Thread.currentThread().getName()
+                    , methodId
+                    , callee.format("%H.%n(%p)")
+            );
+        }
+
         return false;
     }
 
@@ -1064,7 +1155,7 @@ public class CompileQueue {
                 notifyBeforeEncode(method, graph);
                 assert GraphOrder.assertSchedulableGraph(graph);
                 method.compilationInfo.encodeGraph(graph);
-                if (checkNewlyTrivial(method, graph)) {
+                if (checkNewlyTrivial(method, graph, reason)) {
                     method.compilationInfo.setTrivialMethod();
                 }
             } catch (Throwable ex) {

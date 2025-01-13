@@ -356,6 +356,22 @@ public class InlineBeforeAnalysisGraphDecoder extends PEGraphDecoder {
         reason = reason == null ? graph.method() : reason;
         ((AnalysisMethod) invokeData.callTarget.targetMethod()).registerAsInlined(reason);
 
+//        final AnalysisMethod analysisMethod = (AnalysisMethod) invokeData.callTarget.targetMethod();
+//        if (analysisMethod != null)
+//        {
+//            final String str = analysisMethod.toString();
+//            if (str.contains("StringLatin1.charAt")
+//                    || str.contains("StringUTF16.charAt"))
+//            {
+//                System.out.printf(
+//                        "[InlineBeforeAnalysisGraphDecoder.finishInlining] %s, reason: %s%n"
+//                        , analysisMethod
+//                        , reason
+//                );
+//            }
+//        }
+
+
         super.finishInlining(inlineScope);
     }
 
