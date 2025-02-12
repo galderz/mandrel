@@ -266,6 +266,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Formatter;
 import java.util.List;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.graalvm.collections.EconomicMap;
@@ -5675,6 +5676,33 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
     public final void processBytecode(int bci, int opcode) {
         int cpi;
 
+        // BytecodeCounters.INSTANCE.increment(opcode);
+
+        if (ALOAD_0 == opcode) {
+            loadLocal(0, JavaKind.Object);
+            return;
+        }
+
+        if (INVOKEVIRTUAL == opcode) {
+            genInvokeVirtual(stream.readCPI(), INVOKEVIRTUAL);
+            return;
+        }
+
+        if (ALOAD_1 == opcode) {
+            loadLocal(1, JavaKind.Object);
+            return;
+        }
+
+        if (GETFIELD == opcode) {
+            genGetField(stream.readCPI(), GETFIELD);
+            return;
+        }
+
+        if (DUP == opcode) {
+            frameState.stackOp(DUP);
+            return;
+        }
+
         // @formatter:off
         // Checkstyle: stop
         switch (opcode) {
@@ -5720,8 +5748,8 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case DLOAD_1        : // fall through
             case DLOAD_2        : // fall through
             case DLOAD_3        : loadLocal(opcode - DLOAD_0, JavaKind.Double); break;
-            case ALOAD_0        : // fall through
-            case ALOAD_1        : // fall through
+//            case ALOAD_0        : // fall through
+//            case ALOAD_1        : // fall through
             case ALOAD_2        : // fall through
             case ALOAD_3        : loadLocal(opcode - ALOAD_0, JavaKind.Object); break;
             case IALOAD         : genLoadIndexed(JavaKind.Int   ); break;
@@ -5767,7 +5795,7 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case SASTORE        : genStoreIndexed(JavaKind.Short ); break;
             case POP            : // fall through
             case POP2           : // fall through
-            case DUP            : // fall through
+//            case DUP            : // fall through
             case DUP_X1         : // fall through
             case DUP_X2         : // fall through
             case DUP2           : // fall through
@@ -5858,9 +5886,9 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case RETURN         : genReturn(null, JavaKind.Void); break;
             case GETSTATIC      : cpi = stream.readCPI(); genGetStatic(cpi, opcode); break;
             case PUTSTATIC      : cpi = stream.readCPI(); genPutStatic(cpi, opcode); break;
-            case GETFIELD       : cpi = stream.readCPI(); genGetField(cpi, opcode); break;
+//            case GETFIELD       : cpi = stream.readCPI(); genGetField(cpi, opcode); break;
             case PUTFIELD       : cpi = stream.readCPI(); genPutField(cpi, opcode); break;
-            case INVOKEVIRTUAL  : cpi = stream.readCPI(); genInvokeVirtual(cpi, opcode); break;
+//            case INVOKEVIRTUAL  : cpi = stream.readCPI(); genInvokeVirtual(cpi, opcode); break;
             case INVOKESPECIAL  : cpi = stream.readCPI(); genInvokeSpecial(cpi, opcode); break;
             case INVOKESTATIC   : cpi = stream.readCPI(); genInvokeStatic(cpi, opcode); break;
             case INVOKEINTERFACE: cpi = stream.readCPI(); genInvokeInterface(cpi, opcode); break;

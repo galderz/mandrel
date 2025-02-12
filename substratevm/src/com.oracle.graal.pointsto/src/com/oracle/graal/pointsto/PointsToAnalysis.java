@@ -79,6 +79,7 @@ import com.oracle.svm.util.ClassUtil;
 import jdk.graal.compiler.api.replacements.SnippetReflectionProvider;
 import jdk.graal.compiler.debug.DebugContext;
 import jdk.graal.compiler.debug.Indent;
+import jdk.graal.compiler.java.BytecodeCounters;
 import jdk.graal.compiler.options.OptionValues;
 import jdk.graal.compiler.word.WordTypes;
 import jdk.vm.ci.meta.ConstantReflectionProvider;
@@ -293,6 +294,9 @@ public abstract class PointsToAnalysis extends AbstractAnalysisEngine {
         unsafeStores = null;
 
         ConstantObjectsProfiler.constantTypes.clear();
+
+        // Print counters
+        // BytecodeCounters.INSTANCE.print();
     }
 
     public AnalysisType lookup(JavaType type) {
