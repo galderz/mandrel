@@ -266,6 +266,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Formatter;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.graalvm.collections.EconomicMap;
@@ -496,7 +497,224 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 
     protected static final CounterKey EXPLICIT_EXCEPTIONS = DebugContext.counter("ExplicitExceptions");
 
+    private static final BytecodeAction[] bytecodeActions;
+
+    private static final JavaKind[] KINDS = new JavaKind[] {
+            JavaKind.Int
+            , JavaKind.Long
+            , JavaKind.Float
+            , JavaKind.Double
+            , JavaKind.Object
+    };
+
     private boolean bciCanBeDuplicated = false;
+
+    static {
+        // todo trim the array back
+        bytecodeActions = new BytecodeAction[Bytecodes.END];
+//        bytecodeActions[NOP] =             DO_NOP;
+//        bytecodeActions[ACONST_NULL] =     PUSH_CONSTANT;
+//        bytecodeActions[ICONST_M1] =       PUSH_CONSTANT;
+//        bytecodeActions[ICONST_0] =        PUSH_CONSTANT;
+//        bytecodeActions[ICONST_1] =        PUSH_CONSTANT;
+//        bytecodeActions[ICONST_2] =        PUSH_CONSTANT;
+//        bytecodeActions[ICONST_3] =        PUSH_CONSTANT;
+//        bytecodeActions[ICONST_4] =        PUSH_CONSTANT;
+//        bytecodeActions[ICONST_5] =        PUSH_CONSTANT;
+//        bytecodeActions[LCONST_0] =        PUSH_CONSTANT;
+//        bytecodeActions[LCONST_1] =        PUSH_CONSTANT;
+//        bytecodeActions[FCONST_0] =        PUSH_CONSTANT;
+//        bytecodeActions[FCONST_1] =        PUSH_CONSTANT;
+//        bytecodeActions[FCONST_2] =        PUSH_CONSTANT;
+//        bytecodeActions[DCONST_0] =        PUSH_CONSTANT;
+//        bytecodeActions[DCONST_1] =        PUSH_CONSTANT;
+//        bytecodeActions[BIPUSH] =          PUSH_CONSTANT;
+//        bytecodeActions[SIPUSH] =          PUSH_CONSTANT;
+//        bytecodeActions[LDC] =             GEN_LOAD_CONSTANT;
+//        bytecodeActions[LDC_W] =           GEN_LOAD_CONSTANT;
+//        bytecodeActions[LDC2_W] =          GEN_LOAD_CONSTANT;
+//        bytecodeActions[ILOAD] =           LOAD_LOCAL;
+//        bytecodeActions[LLOAD] =           LOAD_LOCAL;
+//        bytecodeActions[FLOAD] =           LOAD_LOCAL;
+//        bytecodeActions[DLOAD] =           LOAD_LOCAL;
+//        bytecodeActions[ALOAD] =           LOAD_LOCAL;
+        bytecodeActions[ILOAD_0] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ILOAD_1] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ILOAD_2] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ILOAD_3] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[LLOAD_0] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[LLOAD_1] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[LLOAD_2] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[LLOAD_3] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[FLOAD_0] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[FLOAD_1] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[FLOAD_2] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[FLOAD_3] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[DLOAD_0] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[DLOAD_1] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[DLOAD_2] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[DLOAD_3] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ALOAD_0] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ALOAD_1] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ALOAD_2] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ALOAD_3] =           BytecodeAction.LOAD_LOCAL;
+//        bytecodeActions[IALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[LALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[FALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[DALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[AALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[BALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[CALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[SALOAD] =          GEN_LOAD_INDEXED;
+//        bytecodeActions[ISTORE] =          STORE_LOCAL;
+//        bytecodeActions[LSTORE] =          STORE_LOCAL;
+//        bytecodeActions[FSTORE] =          STORE_LOCAL;
+//        bytecodeActions[DSTORE] =          STORE_LOCAL;
+//        bytecodeActions[ASTORE] =          STORE_LOCAL;
+        bytecodeActions[ISTORE_0] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ISTORE_1] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ISTORE_2] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ISTORE_3] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[LSTORE_0] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[LSTORE_1] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[LSTORE_2] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[LSTORE_3] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[FSTORE_0] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[FSTORE_1] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[FSTORE_2] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[FSTORE_3] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[DSTORE_0] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[DSTORE_1] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[DSTORE_2] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[DSTORE_3] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ASTORE_0] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ASTORE_1] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ASTORE_2] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ASTORE_3] =          BytecodeAction.STORE_LOCAL;
+//        bytecodeActions[IASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[LASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[FASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[DASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[AASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[BASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[CASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[SASTORE] =         GEN_STORE_INDEXED;
+//        bytecodeActions[POP] =             STACK_OP;
+//        bytecodeActions[POP2] =            STACK_OP;
+//        bytecodeActions[DUP] =             STACK_OP;
+//        bytecodeActions[DUP_X1] =          STACK_OP;
+//        bytecodeActions[DUP_X2] =          STACK_OP;
+//        bytecodeActions[DUP2] =            STACK_OP;
+//        bytecodeActions[DUP2_X1] =         STACK_OP;
+//        bytecodeActions[DUP2_X2] =         STACK_OP;
+//        bytecodeActions[SWAP] =            STACK_OP;
+//        bytecodeActions[IADD] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[ISUB] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[IMUL] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[IDIV] =            GEN_INTEGER_DIV_OP;
+//        bytecodeActions[IREM] =            GEN_INTEGER_DIV_OP;
+//        bytecodeActions[LADD] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[LSUB] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[LMUL] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[LDIV] =            GEN_INTEGER_DIV_OP;
+//        bytecodeActions[LREM] =            GEN_INTEGER_DIV_OP;
+//        bytecodeActions[FADD] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[FSUB] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[FMUL] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[FDIV] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[FREM] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[DADD] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[DSUB] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[DMUL] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[DDIV] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[DREM] =            GEN_ARITHMETIC_OP;
+//        bytecodeActions[INEG] =            GEN_NEGATE_OP;
+//        bytecodeActions[LNEG] =            GEN_NEGATE_OP;
+//        bytecodeActions[FNEG] =            GEN_NEGATE_OP;
+//        bytecodeActions[DNEG] =            GEN_NEGATE_OP;
+//        bytecodeActions[ISHL] =            GEN_SHIFT_OP;
+//        bytecodeActions[ISHR] =            GEN_SHIFT_OP;
+//        bytecodeActions[IUSHR] =           GEN_SHIFT_OP;
+//        bytecodeActions[IAND] =            GEN_SHIFT_OP;
+//        bytecodeActions[IOR] =             GEN_SHIFT_OP;
+//        bytecodeActions[IXOR] =            GEN_SHIFT_OP;
+//        bytecodeActions[LSHL] =            GEN_SHIFT_OP;
+//        bytecodeActions[LSHR] =            GEN_SHIFT_OP;
+//        bytecodeActions[LUSHR] =           GEN_SHIFT_OP;
+//        bytecodeActions[LAND] =            GEN_LOGIC_OP;
+//        bytecodeActions[LOR] =             GEN_LOGIC_OP;
+//        bytecodeActions[LXOR] =            GEN_LOGIC_OP;
+//        bytecodeActions[IINC] =            GEN_INCREMENT;
+//        bytecodeActions[I2F] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[I2D] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[L2F] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[L2D] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[F2I] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[F2L] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[F2D] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[D2I] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[D2L] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[D2F] =             GEN_FLOAT_CONVERT;
+//        bytecodeActions[L2I] =             GEN_NARROW;
+//        bytecodeActions[I2L] =             GEN_SIGN_EXTEND;
+//        bytecodeActions[I2B] =             GEN_SIGN_EXTEND;
+//        bytecodeActions[I2S] =             GEN_SIGN_EXTEND;
+//        bytecodeActions[I2C] =             GEN_ZERO_EXTEND;
+//        bytecodeActions[LCMP] =            GEN_INTEGER_COMPARE_OP;
+//        bytecodeActions[FCMPL] =           GEN_FLOAT_COMPARE_OP;
+//        bytecodeActions[FCMPG] =           GEN_FLOAT_COMPARE_OP;
+//        bytecodeActions[DCMPL] =           GEN_FLOAT_COMPARE_OP;
+//        bytecodeActions[DCMPG] =           GEN_FLOAT_COMPARE_OP;
+//        bytecodeActions[IFEQ] =            GEN_IF_ZERO;
+//        bytecodeActions[IFNE] =            GEN_IF_ZERO;
+//        bytecodeActions[IFLT] =            GEN_IF_ZERO;
+//        bytecodeActions[IFGE] =            GEN_IF_ZERO;
+//        bytecodeActions[IFGT] =            GEN_IF_ZERO;
+//        bytecodeActions[IFLE] =            GEN_IF_ZERO;
+//        bytecodeActions[IF_ICMPEQ] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ICMPNE] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ICMPLT] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ICMPGE] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ICMPGT] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ICMPLE] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ACMPEQ] =       GEN_IF_SAME;
+//        bytecodeActions[IF_ACMPNE] =       GEN_IF_SAME;
+//        bytecodeActions[GOTO] =            GEN_GOTO;
+//        bytecodeActions[JSR] =             GEN_JSR;
+//        bytecodeActions[RET] =             GEN_RET;
+//        bytecodeActions[TABLESWITCH] =     GEN_SWITCH;
+//        bytecodeActions[LOOKUPSWITCH] =    GEN_SWITCH;
+//        bytecodeActions[IRETURN] =         GEN_RETURN;
+//        bytecodeActions[LRETURN] =         GEN_RETURN;
+//        bytecodeActions[FRETURN] =         GEN_RETURN;
+//        bytecodeActions[DRETURN] =         GEN_RETURN;
+//        bytecodeActions[ARETURN] =         GEN_RETURN;
+//        bytecodeActions[RETURN] =          GEN_RETURN;
+//        bytecodeActions[GETSTATIC] =         BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[PUTSTATIC] =         BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[GETFIELD] =          BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[PUTFIELD] =          BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[INVOKEVIRTUAL] =     BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[INVOKESPECIAL] =     BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[INVOKESTATIC] =      BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[INVOKEINTERFACE] =   BytecodeAction.CONSTANT_POOL_GEN;
+//        bytecodeActions[INVOKEDYNAMIC] =   GEN_INVOKE_DYNAMIC;
+//        bytecodeActions[NEW] =             GEN_NEW_INSTANCE;
+//        bytecodeActions[NEWARRAY] =        GEN_NEW_PRIMITIVE_ARRAY;
+//        bytecodeActions[ANEWARRAY] =       GEN_NEW_OBJECT_ARRAY;
+//        bytecodeActions[ARRAYLENGTH] =     GEN_ARRAY_LENGTH;
+//        bytecodeActions[ATHROW] =          GEN_THROW;
+//        bytecodeActions[CHECKCAST] =       GEN_CHECK_CAST;
+//        bytecodeActions[INSTANCEOF] =      GEN_INSTANCE_OF;
+//        bytecodeActions[MONITORENTER] =    GEN_MONITOR_ENTER;
+//        bytecodeActions[MONITOREXIT] =     GEN_MONITOR_EXIT;
+//        bytecodeActions[MULTIANEWARRAY] =  GEN_NEW_MULTI_ARRAY;
+//        bytecodeActions[IFNULL] =          GEN_IF_NULL;
+//        bytecodeActions[IFNONNULL] =       GEN_IF_NULL;
+//        bytecodeActions[GOTO_W] =          GEN_GOTO;
+//        bytecodeActions[JSR_W] =           GEN_JSR;
+        // TODO deal with breakpoint
+    }
 
     @Override
     public FrameState getInvocationPluginReturnState(JavaKind returnKind, ValueNode returnVal) {
@@ -5675,6 +5893,27 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
     public final void processBytecode(int bci, int opcode) {
         int cpi;
 
+//        Object[] params;
+        int base;
+        final BytecodeAction action = bytecodeActions[opcode];
+        if (action != null) {
+            switch (action) {
+//                case PUSH_CONSTANT:
+//                    params = BytecodeAction.lookupPushConstantParams(opcode);
+//                    frameState.push((JavaKind) params[0], appendConstant((JavaConstant) params[1])); break;
+                case LOAD_LOCAL:
+                    base = opcode - ILOAD_0;
+                    loadLocal(base & 3, KINDS[base >>> 2]);
+                    break;
+                case STORE_LOCAL:
+                    base = opcode - ISTORE_0;
+                    storeLocal(KINDS[base >>> 2], base & 3);
+                    break;
+            }
+
+            return;
+        }
+
         // @formatter:off
         // Checkstyle: stop
         switch (opcode) {
@@ -5704,26 +5943,26 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case FLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Float); break;
             case DLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Double); break;
             case ALOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Object); break;
-            case ILOAD_0        : // fall through
-            case ILOAD_1        : // fall through
-            case ILOAD_2        : // fall through
-            case ILOAD_3        : loadLocal(opcode - ILOAD_0, JavaKind.Int); break;
-            case LLOAD_0        : // fall through
-            case LLOAD_1        : // fall through
-            case LLOAD_2        : // fall through
-            case LLOAD_3        : loadLocal(opcode - LLOAD_0, JavaKind.Long); break;
-            case FLOAD_0        : // fall through
-            case FLOAD_1        : // fall through
-            case FLOAD_2        : // fall through
-            case FLOAD_3        : loadLocal(opcode - FLOAD_0, JavaKind.Float); break;
-            case DLOAD_0        : // fall through
-            case DLOAD_1        : // fall through
-            case DLOAD_2        : // fall through
-            case DLOAD_3        : loadLocal(opcode - DLOAD_0, JavaKind.Double); break;
-            case ALOAD_0        : // fall through
-            case ALOAD_1        : // fall through
-            case ALOAD_2        : // fall through
-            case ALOAD_3        : loadLocal(opcode - ALOAD_0, JavaKind.Object); break;
+//            case ILOAD_0        : // fall through
+//            case ILOAD_1        : // fall through
+//            case ILOAD_2        : // fall through
+//            case ILOAD_3        : loadLocal(opcode - ILOAD_0, JavaKind.Int); break;
+//            case LLOAD_0        : // fall through
+//            case LLOAD_1        : // fall through
+//            case LLOAD_2        : // fall through
+//            case LLOAD_3        : loadLocal(opcode - LLOAD_0, JavaKind.Long); break;
+//            case FLOAD_0        : // fall through
+//            case FLOAD_1        : // fall through
+//            case FLOAD_2        : // fall through
+//            case FLOAD_3        : loadLocal(opcode - FLOAD_0, JavaKind.Float); break;
+//            case DLOAD_0        : // fall through
+//            case DLOAD_1        : // fall through
+//            case DLOAD_2        : // fall through
+//            case DLOAD_3        : loadLocal(opcode - DLOAD_0, JavaKind.Double); break;
+//            case ALOAD_0        : // fall through
+//            case ALOAD_1        : // fall through
+//            case ALOAD_2        : // fall through
+//            case ALOAD_3        : loadLocal(opcode - ALOAD_0, JavaKind.Object); break;
             case IALOAD         : genLoadIndexed(JavaKind.Int   ); break;
             case LALOAD         : genLoadIndexed(JavaKind.Long  ); break;
             case FALOAD         : genLoadIndexed(JavaKind.Float ); break;
@@ -5737,26 +5976,26 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case FSTORE         : storeLocal(JavaKind.Float, stream.readLocalIndex()); break;
             case DSTORE         : storeLocal(JavaKind.Double, stream.readLocalIndex()); break;
             case ASTORE         : storeLocal(JavaKind.Object, stream.readLocalIndex()); break;
-            case ISTORE_0       : // fall through
-            case ISTORE_1       : // fall through
-            case ISTORE_2       : // fall through
-            case ISTORE_3       : storeLocal(JavaKind.Int, opcode - ISTORE_0); break;
-            case LSTORE_0       : // fall through
-            case LSTORE_1       : // fall through
-            case LSTORE_2       : // fall through
-            case LSTORE_3       : storeLocal(JavaKind.Long, opcode - LSTORE_0); break;
-            case FSTORE_0       : // fall through
-            case FSTORE_1       : // fall through
-            case FSTORE_2       : // fall through
-            case FSTORE_3       : storeLocal(JavaKind.Float, opcode - FSTORE_0); break;
-            case DSTORE_0       : // fall through
-            case DSTORE_1       : // fall through
-            case DSTORE_2       : // fall through
-            case DSTORE_3       : storeLocal(JavaKind.Double, opcode - DSTORE_0); break;
-            case ASTORE_0       : // fall through
-            case ASTORE_1       : // fall through
-            case ASTORE_2       : // fall through
-            case ASTORE_3       : storeLocal(JavaKind.Object, opcode - ASTORE_0); break;
+//            case ISTORE_0       : // fall through
+//            case ISTORE_1       : // fall through
+//            case ISTORE_2       : // fall through
+//            case ISTORE_3       : storeLocal(JavaKind.Int, opcode - ISTORE_0); break;
+//            case LSTORE_0       : // fall through
+//            case LSTORE_1       : // fall through
+//            case LSTORE_2       : // fall through
+//            case LSTORE_3       : storeLocal(JavaKind.Long, opcode - LSTORE_0); break;
+//            case FSTORE_0       : // fall through
+//            case FSTORE_1       : // fall through
+//            case FSTORE_2       : // fall through
+//            case FSTORE_3       : storeLocal(JavaKind.Float, opcode - FSTORE_0); break;
+//            case DSTORE_0       : // fall through
+//            case DSTORE_1       : // fall through
+//            case DSTORE_2       : // fall through
+//            case DSTORE_3       : storeLocal(JavaKind.Double, opcode - DSTORE_0); break;
+//            case ASTORE_0       : // fall through
+//            case ASTORE_1       : // fall through
+//            case ASTORE_2       : // fall through
+//            case ASTORE_3       : storeLocal(JavaKind.Object, opcode - ASTORE_0); break;
             case IASTORE        : genStoreIndexed(JavaKind.Int   ); break;
             case LASTORE        : genStoreIndexed(JavaKind.Long  ); break;
             case FASTORE        : genStoreIndexed(JavaKind.Float ); break;
@@ -5964,5 +6203,10 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
      */
     protected boolean mustClearNonLiveLocalsAtOSREntry() {
         return true;
+    }
+
+    public enum BytecodeAction {
+        LOAD_LOCAL,
+        STORE_LOCAL,
     }
 }
