@@ -497,21 +497,21 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 
     protected static final CounterKey EXPLICIT_EXCEPTIONS = DebugContext.counter("ExplicitExceptions");
 
-    private static final BytecodeAction[] bytecodeActions;
+    private static final Object[][] bytecodeActions;
 
-    private static final JavaKind[] KINDS = new JavaKind[] {
-            JavaKind.Int
-            , JavaKind.Long
-            , JavaKind.Float
-            , JavaKind.Double
-            , JavaKind.Object
-    };
+//    private static final JavaKind[] KINDS = new JavaKind[] {
+//            JavaKind.Int
+//            , JavaKind.Long
+//            , JavaKind.Float
+//            , JavaKind.Double
+//            , JavaKind.Object
+//    };
 
     private boolean bciCanBeDuplicated = false;
 
     static {
         // todo trim the array back
-        bytecodeActions = new BytecodeAction[Bytecodes.END];
+        bytecodeActions = new Object[Bytecodes.END][];
 //        bytecodeActions[NOP] =             DO_NOP;
 //        bytecodeActions[ACONST_NULL] =     PUSH_CONSTANT;
 //        bytecodeActions[ICONST_M1] =       PUSH_CONSTANT;
@@ -538,26 +538,26 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[FLOAD] =           LOAD_LOCAL;
 //        bytecodeActions[DLOAD] =           LOAD_LOCAL;
 //        bytecodeActions[ALOAD] =           LOAD_LOCAL;
-        bytecodeActions[ILOAD_0] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ILOAD_1] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ILOAD_2] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ILOAD_3] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[LLOAD_0] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[LLOAD_1] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[LLOAD_2] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[LLOAD_3] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[FLOAD_0] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[FLOAD_1] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[FLOAD_2] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[FLOAD_3] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[DLOAD_0] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[DLOAD_1] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[DLOAD_2] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[DLOAD_3] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ALOAD_0] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ALOAD_1] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ALOAD_2] =           BytecodeAction.LOAD_LOCAL;
-        bytecodeActions[ALOAD_3] =           BytecodeAction.LOAD_LOCAL;
+        bytecodeActions[ILOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
+        bytecodeActions[ILOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
+        bytecodeActions[ILOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
+        bytecodeActions[ILOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
+        bytecodeActions[LLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
+        bytecodeActions[LLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
+        bytecodeActions[LLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
+        bytecodeActions[LLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
+        bytecodeActions[FLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
+        bytecodeActions[FLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
+        bytecodeActions[FLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
+        bytecodeActions[FLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
+        bytecodeActions[DLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
+        bytecodeActions[DLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
+        bytecodeActions[DLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
+        bytecodeActions[DLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
+        bytecodeActions[ALOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
+        bytecodeActions[ALOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
+        bytecodeActions[ALOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
+        bytecodeActions[ALOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
 //        bytecodeActions[IALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[LALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[FALOAD] =          GEN_LOAD_INDEXED;
@@ -571,26 +571,26 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[FSTORE] =          STORE_LOCAL;
 //        bytecodeActions[DSTORE] =          STORE_LOCAL;
 //        bytecodeActions[ASTORE] =          STORE_LOCAL;
-        bytecodeActions[ISTORE_0] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ISTORE_1] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ISTORE_2] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ISTORE_3] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[LSTORE_0] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[LSTORE_1] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[LSTORE_2] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[LSTORE_3] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[FSTORE_0] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[FSTORE_1] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[FSTORE_2] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[FSTORE_3] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[DSTORE_0] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[DSTORE_1] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[DSTORE_2] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[DSTORE_3] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ASTORE_0] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ASTORE_1] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ASTORE_2] =          BytecodeAction.STORE_LOCAL;
-        bytecodeActions[ASTORE_3] =          BytecodeAction.STORE_LOCAL;
+        bytecodeActions[ISTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
+        bytecodeActions[ISTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
+        bytecodeActions[ISTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
+        bytecodeActions[ISTORE_3] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
+        bytecodeActions[LSTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Long};
+        bytecodeActions[LSTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Long};
+        bytecodeActions[LSTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Long};
+        bytecodeActions[LSTORE_3] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Long};
+        bytecodeActions[FSTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Float};
+        bytecodeActions[FSTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Float};
+        bytecodeActions[FSTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Float};
+        bytecodeActions[FSTORE_3] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Float};
+        bytecodeActions[DSTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Double};
+        bytecodeActions[DSTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Double};
+        bytecodeActions[DSTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Double};
+        bytecodeActions[DSTORE_3] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Double};
+        bytecodeActions[ASTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Object};
+        bytecodeActions[ASTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Object};
+        bytecodeActions[ASTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Object};
+        bytecodeActions[ASTORE_3] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Object};
 //        bytecodeActions[IASTORE] =         GEN_STORE_INDEXED;
 //        bytecodeActions[LASTORE] =         GEN_STORE_INDEXED;
 //        bytecodeActions[FASTORE] =         GEN_STORE_INDEXED;
@@ -5895,19 +5895,20 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 
 //        Object[] params;
         int base;
-        final BytecodeAction action = bytecodeActions[opcode];
-        if (action != null) {
+        final Object[] actions = bytecodeActions[opcode];
+        if (actions != null) {
+            BytecodeAction action = (BytecodeAction) actions[0];
             switch (action) {
 //                case PUSH_CONSTANT:
 //                    params = BytecodeAction.lookupPushConstantParams(opcode);
 //                    frameState.push((JavaKind) params[0], appendConstant((JavaConstant) params[1])); break;
                 case LOAD_LOCAL:
                     base = opcode - ILOAD_0;
-                    loadLocal(base & 3, KINDS[base >>> 2]);
+                    loadLocal(base & 3, (JavaKind) actions[1]);
                     break;
                 case STORE_LOCAL:
                     base = opcode - ISTORE_0;
-                    storeLocal(KINDS[base >>> 2], base & 3);
+                    storeLocal((JavaKind) actions[1], base & 3);
                     break;
             }
 
