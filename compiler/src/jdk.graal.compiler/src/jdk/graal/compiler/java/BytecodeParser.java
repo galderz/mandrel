@@ -267,6 +267,7 @@ import java.util.Comparator;
 import java.util.Formatter;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.graalvm.collections.EconomicMap;
@@ -533,31 +534,31 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[LDC] =             GEN_LOAD_CONSTANT;
 //        bytecodeActions[LDC_W] =           GEN_LOAD_CONSTANT;
 //        bytecodeActions[LDC2_W] =          GEN_LOAD_CONSTANT;
-//        bytecodeActions[ILOAD] =           LOAD_LOCAL;
-//        bytecodeActions[LLOAD] =           LOAD_LOCAL;
-//        bytecodeActions[FLOAD] =           LOAD_LOCAL;
-//        bytecodeActions[DLOAD] =           LOAD_LOCAL;
-//        bytecodeActions[ALOAD] =           LOAD_LOCAL;
-        bytecodeActions[ILOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
-        bytecodeActions[ILOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
-        bytecodeActions[ILOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
-        bytecodeActions[ILOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int};
-        bytecodeActions[LLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
-        bytecodeActions[LLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
-        bytecodeActions[LLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
-        bytecodeActions[LLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long};
-        bytecodeActions[FLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
-        bytecodeActions[FLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
-        bytecodeActions[FLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
-        bytecodeActions[FLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float};
-        bytecodeActions[DLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
-        bytecodeActions[DLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
-        bytecodeActions[DLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
-        bytecodeActions[DLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double};
-        bytecodeActions[ALOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
-        bytecodeActions[ALOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
-        bytecodeActions[ALOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
-        bytecodeActions[ALOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object};
+        bytecodeActions[ILOAD] =             new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[LLOAD] =             new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[FLOAD] =             new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[DLOAD] =             new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[ALOAD] =             new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[ILOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int, ModuloFour.INSTANCE};
+        bytecodeActions[ILOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int, ModuloFour.INSTANCE};
+        bytecodeActions[ILOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int, ModuloFour.INSTANCE};
+        bytecodeActions[ILOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Int, ModuloFour.INSTANCE};
+        bytecodeActions[LLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long, ModuloFour.INSTANCE};
+        bytecodeActions[LLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long, ModuloFour.INSTANCE};
+        bytecodeActions[LLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long, ModuloFour.INSTANCE};
+        bytecodeActions[LLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Long, ModuloFour.INSTANCE};
+        bytecodeActions[FLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float, ModuloFour.INSTANCE};
+        bytecodeActions[FLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float, ModuloFour.INSTANCE};
+        bytecodeActions[FLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float, ModuloFour.INSTANCE};
+        bytecodeActions[FLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Float, ModuloFour.INSTANCE};
+        bytecodeActions[DLOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double, ModuloFour.INSTANCE};
+        bytecodeActions[DLOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double, ModuloFour.INSTANCE};
+        bytecodeActions[DLOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double, ModuloFour.INSTANCE};
+        bytecodeActions[DLOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Double, ModuloFour.INSTANCE};
+        bytecodeActions[ALOAD_0] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object, ModuloFour.INSTANCE};
+        bytecodeActions[ALOAD_1] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object, ModuloFour.INSTANCE};
+        bytecodeActions[ALOAD_2] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object, ModuloFour.INSTANCE};
+        bytecodeActions[ALOAD_3] =           new Object[]{BytecodeAction.LOAD_LOCAL, JavaKind.Object, ModuloFour.INSTANCE};
 //        bytecodeActions[IALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[LALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[FALOAD] =          GEN_LOAD_INDEXED;
@@ -566,11 +567,11 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[BALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[CALOAD] =          GEN_LOAD_INDEXED;
 //        bytecodeActions[SALOAD] =          GEN_LOAD_INDEXED;
-//        bytecodeActions[ISTORE] =          STORE_LOCAL;
-//        bytecodeActions[LSTORE] =          STORE_LOCAL;
-//        bytecodeActions[FSTORE] =          STORE_LOCAL;
-//        bytecodeActions[DSTORE] =          STORE_LOCAL;
-//        bytecodeActions[ASTORE] =          STORE_LOCAL;
+        bytecodeActions[ISTORE] =            new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[LSTORE] =            new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Long, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[FSTORE] =            new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Float, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[DSTORE] =            new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Double, StreamReadLocalIndex.INSTANCE};
+        bytecodeActions[ASTORE] =            new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Object, StreamReadLocalIndex.INSTANCE};
         bytecodeActions[ISTORE_0] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
         bytecodeActions[ISTORE_1] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
         bytecodeActions[ISTORE_2] =          new Object[]{BytecodeAction.STORE_LOCAL, JavaKind.Int};
@@ -5894,7 +5895,7 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
         int cpi;
 
 //        Object[] params;
-        int base;
+//        int base;
         final Object[] actions = bytecodeActions[opcode];
         if (actions != null) {
             BytecodeAction action = (BytecodeAction) actions[0];
@@ -5903,12 +5904,10 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //                    params = BytecodeAction.lookupPushConstantParams(opcode);
 //                    frameState.push((JavaKind) params[0], appendConstant((JavaConstant) params[1])); break;
                 case LOAD_LOCAL:
-                    base = opcode - ILOAD_0;
-                    loadLocal(base & 3, (JavaKind) actions[1]);
+                    loadLocal(((IntObjectToInt) actions[2]).applyAsInt(opcode - ILOAD_0, stream), (JavaKind) actions[1]);
                     break;
                 case STORE_LOCAL:
-                    base = opcode - ISTORE_0;
-                    storeLocal((JavaKind) actions[1], base & 3);
+                    storeLocal((JavaKind) actions[1], ((IntObjectToInt) actions[2]).applyAsInt(opcode - ISTORE_0, stream));
                     break;
             }
 
@@ -5939,11 +5938,11 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case LDC            : // fall through
             case LDC_W          : // fall through
             case LDC2_W         : genLoadConstant(stream.readCPI(), opcode); break;
-            case ILOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Int); break;
-            case LLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Long); break;
-            case FLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Float); break;
-            case DLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Double); break;
-            case ALOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Object); break;
+//            case ILOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Int); break;
+//            case LLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Long); break;
+//            case FLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Float); break;
+//            case DLOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Double); break;
+//            case ALOAD          : loadLocal(stream.readLocalIndex(), JavaKind.Object); break;
 //            case ILOAD_0        : // fall through
 //            case ILOAD_1        : // fall through
 //            case ILOAD_2        : // fall through
@@ -5972,11 +5971,11 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case BALOAD         : genLoadIndexed(JavaKind.Byte  ); break;
             case CALOAD         : genLoadIndexed(JavaKind.Char  ); break;
             case SALOAD         : genLoadIndexed(JavaKind.Short ); break;
-            case ISTORE         : storeLocal(JavaKind.Int, stream.readLocalIndex()); break;
-            case LSTORE         : storeLocal(JavaKind.Long, stream.readLocalIndex()); break;
-            case FSTORE         : storeLocal(JavaKind.Float, stream.readLocalIndex()); break;
-            case DSTORE         : storeLocal(JavaKind.Double, stream.readLocalIndex()); break;
-            case ASTORE         : storeLocal(JavaKind.Object, stream.readLocalIndex()); break;
+//            case ISTORE         : storeLocal(JavaKind.Int, stream.readLocalIndex()); break;
+//            case LSTORE         : storeLocal(JavaKind.Long, stream.readLocalIndex()); break;
+//            case FSTORE         : storeLocal(JavaKind.Float, stream.readLocalIndex()); break;
+//            case DSTORE         : storeLocal(JavaKind.Double, stream.readLocalIndex()); break;
+//            case ASTORE         : storeLocal(JavaKind.Object, stream.readLocalIndex()); break;
 //            case ISTORE_0       : // fall through
 //            case ISTORE_1       : // fall through
 //            case ISTORE_2       : // fall through
@@ -6206,8 +6205,46 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
         return true;
     }
 
+//    private static int streamReadLocalIndex(BytecodeStream stream) {
+//        return stream.readLocalIndex();
+//    }
+
     public enum BytecodeAction {
         LOAD_LOCAL,
+//        LOAD_LOCAL_STREAM,
         STORE_LOCAL,
+    }
+
+    @FunctionalInterface
+    private interface ObjectToInt {
+        int applyAsInt(Object obj);
+    }
+
+    @FunctionalInterface
+    private interface IntObjectToInt {
+        int applyAsInt(int i, Object obj);
+    }
+
+//    @FunctionalInterface
+//    private interface ObjectToInt<T> {
+//        int applyAsInt(T t);
+//    }
+
+    private enum StreamReadLocalIndex implements IntObjectToInt {
+        INSTANCE;
+
+        @Override
+        public int applyAsInt(int base, Object stream) {
+            return ((BytecodeStream) stream).readLocalIndex();
+        }
+    }
+
+    private enum ModuloFour implements IntObjectToInt {
+        INSTANCE;
+
+        @Override
+        public int applyAsInt(int base, Object stream) {
+            return base & 3;
+        }
     }
 }
