@@ -266,8 +266,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Formatter;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.graalvm.collections.EconomicMap;
@@ -680,8 +679,8 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[IF_ICMPLE] =       GEN_IF_SAME;
 //        bytecodeActions[IF_ACMPEQ] =       GEN_IF_SAME;
 //        bytecodeActions[IF_ACMPNE] =       GEN_IF_SAME;
-//        bytecodeActions[GOTO] =            GEN_GOTO;
-//        bytecodeActions[JSR] =             GEN_JSR;
+        bytecodeActions[GOTO] =              new Object[]{BytecodeAction.GEN_PARSER, GenGoto.INSTANCE};
+        bytecodeActions[JSR] =               new Object[]{BytecodeAction.GEN_OPCODE, GenJsr.INSTANCE};
 //        bytecodeActions[RET] =             GEN_RET;
 //        bytecodeActions[TABLESWITCH] =     GEN_SWITCH;
 //        bytecodeActions[LOOKUPSWITCH] =    GEN_SWITCH;
@@ -691,29 +690,29 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 //        bytecodeActions[DRETURN] =         GEN_RETURN;
 //        bytecodeActions[ARETURN] =         GEN_RETURN;
 //        bytecodeActions[RETURN] =          GEN_RETURN;
-//        bytecodeActions[GETSTATIC] =         BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[PUTSTATIC] =         BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[GETFIELD] =          BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[PUTFIELD] =          BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[INVOKEVIRTUAL] =     BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[INVOKESPECIAL] =     BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[INVOKESTATIC] =      BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[INVOKEINTERFACE] =   BytecodeAction.CONSTANT_POOL_GEN;
-//        bytecodeActions[INVOKEDYNAMIC] =   GEN_INVOKE_DYNAMIC;
-//        bytecodeActions[NEW] =             GEN_NEW_INSTANCE;
-//        bytecodeActions[NEWARRAY] =        GEN_NEW_PRIMITIVE_ARRAY;
-//        bytecodeActions[ANEWARRAY] =       GEN_NEW_OBJECT_ARRAY;
-//        bytecodeActions[ARRAYLENGTH] =     GEN_ARRAY_LENGTH;
-//        bytecodeActions[ATHROW] =          GEN_THROW;
-//        bytecodeActions[CHECKCAST] =       GEN_CHECK_CAST;
-//        bytecodeActions[INSTANCEOF] =      GEN_INSTANCE_OF;
-//        bytecodeActions[MONITORENTER] =    GEN_MONITOR_ENTER;
-//        bytecodeActions[MONITOREXIT] =     GEN_MONITOR_EXIT;
-//        bytecodeActions[MULTIANEWARRAY] =  GEN_NEW_MULTI_ARRAY;
-//        bytecodeActions[IFNULL] =          GEN_IF_NULL;
-//        bytecodeActions[IFNONNULL] =       GEN_IF_NULL;
-//        bytecodeActions[GOTO_W] =          GEN_GOTO;
-//        bytecodeActions[JSR_W] =           GEN_JSR;
+        bytecodeActions[GETSTATIC] =         new Object[]{BytecodeAction.GEN_OPCODE, GenGetStatic.INSTANCE};
+        bytecodeActions[PUTSTATIC] =         new Object[]{BytecodeAction.GEN_OPCODE, GenPutStatic.INSTANCE};
+        bytecodeActions[GETFIELD] =          new Object[]{BytecodeAction.GEN_OPCODE, GenGetField.INSTANCE};
+        bytecodeActions[PUTFIELD] =          new Object[]{BytecodeAction.GEN_OPCODE, GenPutField.INSTANCE};
+        bytecodeActions[INVOKEVIRTUAL] =     new Object[]{BytecodeAction.GEN_OPCODE, GenInvokeVirtual.INSTANCE};
+        bytecodeActions[INVOKESPECIAL] =     new Object[]{BytecodeAction.GEN_OPCODE, GenInvokeSpecial.INSTANCE};
+        bytecodeActions[INVOKESTATIC] =      new Object[]{BytecodeAction.GEN_OPCODE, GenInvokeStatic.INSTANCE};
+        bytecodeActions[INVOKEINTERFACE] =   new Object[]{BytecodeAction.GEN_OPCODE, GenInvokeInterface.INSTANCE};
+        bytecodeActions[INVOKEDYNAMIC] =     new Object[]{BytecodeAction.GEN_OPCODE, GenInvokeDynamic.INSTANCE};
+        bytecodeActions[NEW] =               new Object[]{BytecodeAction.GEN_PARSER, GenNewInstance.INSTANCE};
+        bytecodeActions[NEWARRAY] =          new Object[]{BytecodeAction.GEN_PARSER, GenNewPrimitiveArray.INSTANCE};
+        bytecodeActions[ANEWARRAY] =         new Object[]{BytecodeAction.GEN_PARSER, GenNewObjectArray.INSTANCE};
+        bytecodeActions[ARRAYLENGTH] =       new Object[]{BytecodeAction.GEN_PARSER, GenArrayLength.INSTANCE};
+        bytecodeActions[ATHROW] =            new Object[]{BytecodeAction.GEN_PARSER, GenThrow.INSTANCE};
+        bytecodeActions[CHECKCAST] =         new Object[]{BytecodeAction.GEN_PARSER, GenCheckCast.INSTANCE};
+        bytecodeActions[INSTANCEOF] =        new Object[]{BytecodeAction.GEN_PARSER, GenInstanceOf.INSTANCE};
+        bytecodeActions[MONITORENTER] =      new Object[]{BytecodeAction.GEN_PARSER, GenMonitorEnter.INSTANCE};
+        bytecodeActions[MONITOREXIT] =       new Object[]{BytecodeAction.GEN_PARSER, GenMonitorExit.INSTANCE};
+        bytecodeActions[MULTIANEWARRAY] =    new Object[]{BytecodeAction.GEN_PARSER, GenNewMultiArray.INSTANCE};
+        bytecodeActions[IFNULL] =            new Object[]{BytecodeAction.GEN_PARSER, GenIfNull.INSTANCE};
+        bytecodeActions[IFNONNULL] =         new Object[]{BytecodeAction.GEN_PARSER, GenIfNonNull.INSTANCE};
+        bytecodeActions[GOTO_W] =            new Object[]{BytecodeAction.GEN_PARSER, GenGoto.INSTANCE};
+        bytecodeActions[JSR_W] =             new Object[]{BytecodeAction.GEN_PARSER, GenJsr.INSTANCE};
         // TODO deal with breakpoint
     }
 
@@ -5909,6 +5908,12 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
                 case STORE_LOCAL:
                     storeLocal((JavaKind) actions[1], ((IntObjectToInt) actions[2]).applyAsInt(opcode - ISTORE_0, stream));
                     break;
+                case GEN_OPCODE:
+                    ((IntObjectConsumer) actions[1]).accept(opcode, this);
+                    break;
+                case GEN_PARSER:
+                    ((Consumer<Object>) actions[1]).accept(this);
+                    break;
             }
 
             return;
@@ -6084,8 +6089,8 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case IF_ICMPLE      : genIfSame(JavaKind.Int, Condition.LE); break;
             case IF_ACMPEQ      : genIfSame(JavaKind.Object, Condition.EQ); break;
             case IF_ACMPNE      : genIfSame(JavaKind.Object, Condition.NE); break;
-            case GOTO           : genGoto(); break;
-            case JSR            : genJsr(stream.readBranchDest()); break;
+//            case GOTO           : genGoto(); break;
+//            case JSR            : genJsr(stream.readBranchDest()); break;
             case RET            : genRet(stream.readLocalIndex()); break;
             case TABLESWITCH    : genSwitch(new BytecodeTableSwitch(getStream(), bci())); break;
             case LOOKUPSWITCH   : genSwitch(new BytecodeLookupSwitch(getStream(), bci())); break;
@@ -6095,29 +6100,29 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
             case DRETURN        : genReturn(frameState.pop(JavaKind.Double), JavaKind.Double); break;
             case ARETURN        : genReturn(frameState.pop(JavaKind.Object), JavaKind.Object); break;
             case RETURN         : genReturn(null, JavaKind.Void); break;
-            case GETSTATIC      : cpi = stream.readCPI(); genGetStatic(cpi, opcode); break;
-            case PUTSTATIC      : cpi = stream.readCPI(); genPutStatic(cpi, opcode); break;
-            case GETFIELD       : cpi = stream.readCPI(); genGetField(cpi, opcode); break;
-            case PUTFIELD       : cpi = stream.readCPI(); genPutField(cpi, opcode); break;
-            case INVOKEVIRTUAL  : cpi = stream.readCPI(); genInvokeVirtual(cpi, opcode); break;
-            case INVOKESPECIAL  : cpi = stream.readCPI(); genInvokeSpecial(cpi, opcode); break;
-            case INVOKESTATIC   : cpi = stream.readCPI(); genInvokeStatic(cpi, opcode); break;
-            case INVOKEINTERFACE: cpi = stream.readCPI(); genInvokeInterface(cpi, opcode); break;
-            case INVOKEDYNAMIC  : cpi = stream.readCPI4(); genInvokeDynamic(cpi, opcode); break;
-            case NEW            : genNewInstance(stream.readCPI()); break;
-            case NEWARRAY       : genNewPrimitiveArray(stream.readLocalIndex()); break;
-            case ANEWARRAY      : genNewObjectArray(stream.readCPI()); break;
-            case ARRAYLENGTH    : genArrayLength(); break;
-            case ATHROW         : genThrow(); break;
-            case CHECKCAST      : genCheckCast(stream.readCPI()); break;
-            case INSTANCEOF     : genInstanceOf(stream.readCPI()); break;
-            case MONITORENTER   : genMonitorEnter(frameState.pop(JavaKind.Object), stream.nextBCI()); break;
-            case MONITOREXIT    : genMonitorExit(frameState.pop(JavaKind.Object), null, stream.nextBCI(), false, true); break;
-            case MULTIANEWARRAY : genNewMultiArray(stream.readCPI()); break;
-            case IFNULL         : genIfNull(Condition.EQ); break;
-            case IFNONNULL      : genIfNull(Condition.NE); break;
-            case GOTO_W         : genGoto(); break;
-            case JSR_W          : genJsr(stream.readBranchDest()); break;
+//            case GETSTATIC      : cpi = stream.readCPI(); genGetStatic(cpi, opcode); break;
+//            case PUTSTATIC      : cpi = stream.readCPI(); genPutStatic(cpi, opcode); break;
+//            case GETFIELD       : cpi = stream.readCPI(); genGetField(cpi, opcode); break;
+//            case PUTFIELD       : cpi = stream.readCPI(); genPutField(cpi, opcode); break;
+//            case INVOKEVIRTUAL  : cpi = stream.readCPI(); genInvokeVirtual(cpi, opcode); break;
+//            case INVOKESPECIAL  : cpi = stream.readCPI(); genInvokeSpecial(cpi, opcode); break;
+//            case INVOKESTATIC   : cpi = stream.readCPI(); genInvokeStatic(cpi, opcode); break;
+//            case INVOKEINTERFACE: cpi = stream.readCPI(); genInvokeInterface(cpi, opcode); break;
+//            case INVOKEDYNAMIC  : cpi = stream.readCPI4(); genInvokeDynamic(cpi, opcode); break;
+//            case NEW            : genNewInstance(stream.readCPI()); break;
+//            case NEWARRAY       : genNewPrimitiveArray(stream.readLocalIndex()); break;
+//            case ANEWARRAY      : genNewObjectArray(stream.readCPI()); break;
+//            case ARRAYLENGTH    : genArrayLength(); break;
+//            case ATHROW         : genThrow(); break;
+//            case CHECKCAST      : genCheckCast(stream.readCPI()); break;
+//            case INSTANCEOF     : genInstanceOf(stream.readCPI()); break;
+//            case MONITORENTER   : genMonitorEnter(frameState.pop(JavaKind.Object), stream.nextBCI()); break;
+//            case MONITOREXIT    : genMonitorExit(frameState.pop(JavaKind.Object), null, stream.nextBCI(), false, true); break;
+//            case MULTIANEWARRAY : genNewMultiArray(stream.readCPI()); break;
+//            case IFNULL         : genIfNull(Condition.EQ); break;
+//            case IFNONNULL      : genIfNull(Condition.NE); break;
+//            case GOTO_W         : genGoto(); break;
+//            case JSR_W          : genJsr(stream.readBranchDest()); break;
             case BREAKPOINT     : throw new PermanentBailoutException("concurrent setting of breakpoint");
             default             : throw new PermanentBailoutException("Unsupported opcode %d (%s) [bci=%d]", opcode, nameOf(opcode), bci);
         }
@@ -6211,18 +6216,250 @@ public abstract class BytecodeParser extends CoreProvidersDelegate implements Gr
 
     public enum BytecodeAction {
         LOAD_LOCAL,
-//        LOAD_LOCAL_STREAM,
         STORE_LOCAL,
+        GEN_OPCODE,
+        GEN_PARSER,
     }
 
-    @FunctionalInterface
     private interface ObjectToInt {
         int applyAsInt(Object obj);
     }
 
-    @FunctionalInterface
     private interface IntObjectToInt {
         int applyAsInt(int i, Object obj);
+    }
+
+    private interface IntObjectConsumer {
+        void accept(int i, Object obj);
+    }
+
+    private enum GenGetStatic implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genGetStatic(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenPutStatic implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genPutStatic(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenGetField implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genGetField(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenPutField implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genPutField(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenInvokeVirtual implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInvokeVirtual(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenInvokeSpecial implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInvokeSpecial(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenInvokeStatic implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInvokeStatic(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenInvokeInterface implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInvokeInterface(parser.stream.readCPI(), opcode);
+        }
+    }
+
+    private enum GenInvokeDynamic implements IntObjectConsumer {
+        INSTANCE;
+
+        @Override
+        public void accept(int opcode, Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInvokeDynamic(parser.stream.readCPI4(), opcode);
+        }
+    }
+
+    private enum GenNewInstance implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genNewInstance(parser.stream.readCPI());
+        }
+    }
+
+    private enum GenNewPrimitiveArray implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genNewPrimitiveArray(parser.stream.readLocalIndex());
+        }
+    }
+
+    private enum GenNewObjectArray implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genNewObjectArray(parser.stream.readCPI());
+        }
+    }
+
+    private enum GenArrayLength implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            ((BytecodeParser) obj).genArrayLength();
+        }
+    }
+
+    private enum GenThrow implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            ((BytecodeParser) obj).genThrow();
+        }
+    }
+
+    private enum GenCheckCast implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genCheckCast(parser.stream.readCPI());
+        }
+    }
+
+    private enum GenInstanceOf implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genInstanceOf(parser.stream.readCPI());
+        }
+    }
+
+    private enum GenMonitorEnter implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genMonitorEnter(parser.frameState.pop(JavaKind.Object), parser.stream.nextBCI());
+        }
+    }
+
+    private enum GenMonitorExit implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genMonitorExit(parser.frameState.pop(JavaKind.Object), null, parser.stream.nextBCI(), false, true);
+
+        }
+    }
+
+    private enum GenNewMultiArray implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genNewMultiArray(parser.stream.readCPI());
+        }
+    }
+
+    private enum GenIfNull implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genIfNull(Condition.EQ);
+        }
+    }
+
+    private enum GenIfNonNull implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genIfNull(Condition.NE);
+        }
+    }
+
+    private enum GenGoto implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genGoto();
+        }
+    }
+
+    private enum GenJsr implements Consumer {
+        INSTANCE;
+
+        @Override
+        public void accept(Object obj) {
+            final BytecodeParser parser = (BytecodeParser) obj;
+            parser.genJsr(parser.stream.readBranchDest());
+        }
     }
 
 //    @FunctionalInterface
