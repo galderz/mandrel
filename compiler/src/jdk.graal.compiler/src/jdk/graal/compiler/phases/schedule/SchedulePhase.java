@@ -644,9 +644,9 @@ public final class SchedulePhase extends BasePhase<CoreProviders> {
              * explore more elaborate scheduling policies, like scheduling for reduced register
              * pressure using Sethi-Ullman numbering (GR-34624).
              */
-            for (int i = tempList.size() - 1; i >= 0; i--) {
-                Node input = tempList.get(i);
-                if (nodeMap.get(input) == b && unprocessed.isMarked(input) && input != excludeNode && !(input instanceof PhiNode)) {
+            final List<Node> reversed = tempList.reversed();
+            for (Node input : reversed) {
+                if (input != excludeNode && !(input instanceof PhiNode) && nodeMap.get(input) == b && unprocessed.isMarked(input)) {
                     stack.push(input);
                 }
             }
