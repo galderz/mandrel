@@ -1351,28 +1351,20 @@ public final class NodeClass<T> extends FieldIntrospection<T> {
         long myMask = this.inputs.getIterationMask();
         while (myMask != 0) {
             long offset = (myMask & OFFSET_MASK);
-            if ((myMask & LIST_MASK) == 0) {
-                Node curNode = Edges.getNodeUnsafe(node, offset);
-                if (curNode != null) {
-                    GraalError.guarantee(curNode.isAlive(), "Adding %s to the graph but its input %s is not alive", node, curNode);
-                    curNode.addUsage(node);
+            Object obj = Edges.getUnsafe(node, offset);
+            if (obj instanceof Node curNode) {
+                assert curNode.isAlive() : GraalError.format("failed guarantee: Adding %s to the graph but its input %s is not alive", node, curNode);
+                curNode.addUsage(node);
+            } else if (obj instanceof NodeList list) {
+                for (Node n : (NodeList<Node>) list) {
+                    if (n != null) {
+                        assert n.isAlive() : GraalError.format("failed guarantee: Adding %s to the graph but its input %s is not alive", node, n);
+                        n.addUsage(node);
+                    }
                 }
-            } else {
-                registerAtInputsAsUsageHelper(node, offset);
             }
-            myMask >>>= NEXT_EDGE;
-        }
-    }
 
-    private static void registerAtInputsAsUsageHelper(Node node, long offset) {
-        NodeList<Node> list = Edges.getNodeListUnsafe(node, offset);
-        if (list != null) {
-            for (Node curNode : list) {
-                if (curNode != null) {
-                    GraalError.guarantee(curNode.isAlive(), "Adding %s to the graph but its input %s is not alive", node, curNode);
-                    curNode.addUsage(node);
-                }
-            }
+            myMask >>>= NEXT_EDGE;
         }
     }
 

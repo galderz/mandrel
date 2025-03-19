@@ -105,6 +105,10 @@ public abstract class Edges extends Fields {
         return iterationMask;
     }
 
+    public static Object getUnsafe(Node node, long offset) {
+        return UNSAFE.getReference(node, offset);
+    }
+
     public static Node getNodeUnsafe(Node node, long offset) {
         return (Node) UNSAFE.getReference(node, offset);
     }
