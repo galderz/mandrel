@@ -545,7 +545,7 @@ jobs:
         shell: bash
         run: |
           cd ${QUARKUS_PATH}
-          export QUARKUS_NATIVE_ADDITIONAL_BUILD_ARGS_APPEND=--future-defaults=run-time-initialize-file-system-providers
+          export QUARKUS_NATIVE_ADDITIONAL_BUILD_ARGS_APPEND=--future-defaults=run-time-initialize-file-system-providers,run-time-initialize-security-providers
           if [[ ${{ inputs.builder-image }} == "null" ]]
           then
             export BUILDER_IMAGE="-Dquarkus.native.container-build=false"
