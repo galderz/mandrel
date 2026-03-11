@@ -128,6 +128,7 @@ public class NativeImagePointsToAnalysis extends PointsToAnalysis implements Inf
 
     @Override
     public void onTypeReachable(AnalysisType type) {
+        if (type.toJavaName().startsWith("io.quarkus.runtime.graal.GraalVM$")) {
             type.getInitializeMetaDataTask().ensureDone();
             if (type.isInSharedLayer()) {
                 /*
@@ -158,6 +159,41 @@ public class NativeImagePointsToAnalysis extends PointsToAnalysis implements Inf
                     classInclusionPolicy.includeMethod(classInitializer);
                 }
             }
+            return;
+        }
+
+        postTask(_ -> {
+            type.getInitializeMetaDataTask().ensureDone();
+            if (type.isInSharedLayer()) {
+                /*
+                 * Since the rescanning of the hub is skipped for constants from the base layer to
+                 * avoid deadlocks, the hub needs to be rescanned manually after the metadata is
+                 * initialized.
+                 */
+                HostedImageLayerBuildingSupport.singleton().getLoader().rescanHub(type, ((SVMHost) hostVM).dynamicHub(type));
+            }
+            if (type.isArray() && type.getComponentType().isInSharedLayer()) {
+                /* Rescan the component hub. This will be simplified by GR-60254. */
+                HostedImageLayerBuildingSupport.singleton().getLoader().rescanHub(type.getComponentType(), ((SVMHost) hostVM).dynamicHub(type).getComponentHub());
+            }
+            if (ImageLayerBuildingSupport.buildingSharedLayer()) {
+                /*
+                 * To prevent premature optimizations of fields accesses in open world analysis,
+                 * i.e., like constant-folding their values in the base image, register all fields
+                 * of reachable types as roots, except some fields that should always be folded.
+                 */
+                tryRegisterFieldsInBaseImage(type.getInstanceFields(true));
+                tryRegisterFieldsInBaseImage(type.getStaticFields());
+
+                /*
+                 * Register run time executed class initializers as roots in the base layer.
+                 */
+                AnalysisMethod classInitializer = type.getClassInitializer();
+                if (classInitializer != null && !hostVM.isInitialized(type) && classInitializer.getCode() != null) {
+                    classInclusionPolicy.includeMethod(classInitializer);
+                }
+            }
+        });
     }
 
     private void tryRegisterFieldsInBaseImage(ResolvedJavaField[] fields) {
