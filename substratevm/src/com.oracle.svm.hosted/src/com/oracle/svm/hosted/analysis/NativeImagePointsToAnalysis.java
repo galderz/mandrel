@@ -128,7 +128,6 @@ public class NativeImagePointsToAnalysis extends PointsToAnalysis implements Inf
 
     @Override
     public void onTypeReachable(AnalysisType type) {
-        postTask(_ -> {
             type.getInitializeMetaDataTask().ensureDone();
             if (type.isInSharedLayer()) {
                 /*
@@ -159,7 +158,6 @@ public class NativeImagePointsToAnalysis extends PointsToAnalysis implements Inf
                     classInclusionPolicy.includeMethod(classInitializer);
                 }
             }
-        });
     }
 
     private void tryRegisterFieldsInBaseImage(ResolvedJavaField[] fields) {
