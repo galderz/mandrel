@@ -353,7 +353,11 @@ public class CrossLayerConstantRegistryFeature implements InternalFeature, Cross
     }
 
     public boolean isConstantRegistered(Object obj) {
-        return constantCandidates.containsValue(obj);
+        try {
+            return constantCandidates.containsValue(obj);
+        } catch (ClassCastException e) {
+            return false;
+        }
     }
 
     @Override
