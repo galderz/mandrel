@@ -116,6 +116,24 @@ import jdk.vm.ci.meta.ResolvedJavaType;
 public class ClassInitializationSupport implements JVMCIRuntimeClassInitializationSupport {
 
     /**
+     * Focused tracing for class initialization ordering issue in layered builds.
+     * Enable with -Dsvm.traceClassInit=true
+     *
+     * Traces EmptyByteBuf (triggers PlatformDependent clinit), PlatformDependent (root cause -
+     * its clinit fails because CleanerJava9 was removed from modified netty jar), and
+     * AsciiString (cascade victim - its clinit uses PlatformDependent which is poisoned).
+     */
+    private static final boolean TRACE = Boolean.getBoolean("svm.traceClassInit");
+    private static final java.util.Set<String> TRACED = java.util.Set.of(
+                    "io.netty.buffer.EmptyByteBuf",
+                    "io.netty.util.internal.PlatformDependent",
+                    "io.netty.util.AsciiString");
+
+    private static boolean isTraced(String name) {
+        return TRACE && TRACED.contains(name);
+    }
+
+    /**
      * Setup for class initialization: configured through features and command line input. It
      * represents the user desires about class initialization and helps in finding configuration
      * issues.
@@ -307,8 +325,17 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
              */
             Unsafe.getUnsafe().ensureClassInitialized(clazz);
             loader.watchdog.recordActivity();
+            if (isTraced(clazz.getTypeName())) {
+                System.out.printf("[LAYER-CLINIT] ensureClassInitialized(%s) SUCCEEDED - class is now initialized in the host JVM%n",
+                                clazz.getTypeName());
+            }
             return InitKind.BUILD_TIME;
         } catch (NoClassDefFoundError ex) {
+            if (isTraced(clazz.getTypeName())) {
+                System.out.printf("[LAYER-CLINIT] ensureClassInitialized(%s) FAILED with %s: %s%n",
+                                clazz.getTypeName(), ex.getClass().getSimpleName(), ex.getMessage());
+                ex.printStackTrace(System.out);
+            }
             if (allowErrors || !LinkAtBuildTimeSupport.singleton().linkAtBuildTime(clazz)) {
                 return InitKind.RUN_TIME;
             } else {
@@ -353,6 +380,11 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
     @Override
     public void initializeAtRunTime(Class<?> clazz, String reason) {
         initializeAtRunTime(clazz.getTypeName(), reason, true);
+        if (isTraced(clazz.getTypeName())) {
+            System.out.printf("[LAYER-CLINIT] initializeAtRunTime(%s) - NOW registered as RUN_TIME (reason: %s)%n",
+                    clazz.getTypeName(), reason);
+            System.out.printf("[LAYER-CLINIT]   NOTE: if ensureClassInitialized already ran and failed above, that failure is irreversible in the JVM%n");
+        }
     }
 
     @Override
@@ -560,11 +592,25 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
 
         InitKind result = superResult.max(clazzResult);
 
+        if (isTraced(clazz.getTypeName())) {
+            System.out.printf("[LAYER-CLINIT] computeInitKind(%s): specifiedInitKind=%s, result=%s before ensureClassInitialized, memoize=%s%n",
+                            clazz.getTypeName(), specifiedInitKindFor(clazz), result, memoize);
+        }
+
         if (memoize) {
             if (!(result == InitKind.RUN_TIME)) {
-                result = result.max(ensureClassInitialized(clazz, false));
+                InitKind ensureResult = ensureClassInitialized(clazz, false);
+                if (isTraced(clazz.getTypeName())) {
+                    System.out.printf("[LAYER-CLINIT] computeInitKind(%s): ensureClassInitialized returned %s, result changes from %s to %s%n",
+                                    clazz.getTypeName(), ensureResult, result, result.max(ensureResult));
+                }
+                result = result.max(ensureResult);
             }
 
+            if (isTraced(clazz.getTypeName())) {
+                System.out.printf("[LAYER-CLINIT] computeInitKind(%s): STORED as %s in classInitKinds%n",
+                                clazz.getTypeName(), result);
+            }
             InitKind previous = classInitKinds.putIfAbsent(clazz, result);
             if (previous != null && previous != result) {
                 throw VMError.shouldNotReachHere("Conflicting class initialization kind: " + previous + " != " + result + " for " + clazz);
