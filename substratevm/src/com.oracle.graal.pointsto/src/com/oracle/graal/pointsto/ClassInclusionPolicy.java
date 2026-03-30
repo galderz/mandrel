@@ -66,16 +66,18 @@ public abstract class ClassInclusionPolicy {
      * Includes the given {@code type} in the image.
      */
     public void includeType(ResolvedJavaType type) {
-        AnalysisType aType = asAnalysisType(type);
-        if (type.isAbstract() || type.isInterface() || type.isPrimitive()) {
-            /*
-             * Those types cannot be instantiated. They are instead registered as reachable as they
-             * can still have methods or fields that could be used by an extension image.
-             */
-            aType.registerAsReachable(reason);
-        } else {
-            aType.registerAsInstantiated(reason);
-        }
+        bb.postTask(debug -> {
+            AnalysisType aType = asAnalysisType(type);
+            if (type.isAbstract() || type.isInterface() || type.isPrimitive()) {
+                /*
+                 * Those types cannot be instantiated. They are instead registered as reachable as they
+                 * can still have methods or fields that could be used by an extension image.
+                 */
+                aType.registerAsReachable(reason);
+            } else {
+                aType.registerAsInstantiated(reason);
+            }
+        });
     }
 
     /**
