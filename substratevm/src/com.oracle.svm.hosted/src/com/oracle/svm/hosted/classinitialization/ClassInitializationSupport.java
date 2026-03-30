@@ -127,7 +127,9 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
     private static final java.util.Set<String> TRACED = java.util.Set.of(
                     "io.netty.buffer.EmptyByteBuf",
                     "io.netty.util.internal.PlatformDependent",
-                    "io.netty.util.AsciiString");
+                    "io.netty.util.AsciiString",
+                    "io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder",
+                    "io.netty.handler.codec.CharSequenceValueConverter");
 
     private static boolean isTraced(String name) {
         return TRACE && TRACED.contains(name);
