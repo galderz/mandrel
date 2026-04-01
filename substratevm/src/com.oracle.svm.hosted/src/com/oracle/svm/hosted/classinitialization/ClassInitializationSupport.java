@@ -125,6 +125,7 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
      */
     private static final boolean TRACE = Boolean.getBoolean("svm.traceClassInit");
     private static final java.util.Set<String> TRACED = java.util.Set.of(
+                    "io.quarkus.runner.ApplicationImpl",
                     "io.netty.buffer.EmptyByteBuf",
                     "io.netty.util.internal.PlatformDependent",
                     "io.netty.util.AsciiString",
