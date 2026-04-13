@@ -953,6 +953,24 @@ public class AnnotationSubstitutionProcessor extends SubstitutionProcessor {
         } catch (NoSuchMethodException ex) {
             throw UserError.abort("Could not find target method: %s", annotatedMethod);
         } catch (LinkageError error) {
+            if (Boolean.getBoolean("svm.traceLinkageErrors")) {
+                System.err.println("=== LinkageError diagnostic logging ===");
+                System.err.println("Q1: Why does it try to load " + originalClass.getName() + "." + originalName + "?");
+                System.err.println("  Substitution method: " + annotatedMethod);
+                System.err.println("  Declared in substitution class: " + annotatedMethod.getDeclaringClass().getName());
+                for (java.lang.annotation.Annotation ann : annotatedMethod.getAnnotations()) {
+                    System.err.println("  Annotation on method: " + ann);
+                }
+                System.err.println("  Target class (originalClass): " + originalClass.getName());
+                System.err.println("  Target method name (originalName): " + originalName);
+                System.err.println();
+                System.err.println("Q2: How does " + originalClass.getName() + " depend on " + error.getMessage() + "?");
+                System.err.println("  LinkageError type: " + error.getClass().getName());
+                System.err.println("  LinkageError message: " + error.getMessage());
+                System.err.println("  Full stack trace:");
+                error.printStackTrace(System.err);
+                System.err.println("=== End of LinkageError diagnostic logging ===");
+            }
             throw UserError.abort("Cannot find %s.%s, %s can not be loaded, due to %s not being available in the classpath. Are you missing a dependency in your classpath?",
                             originalClass.getName(), originalName, originalClass.getName(), error.getMessage());
         }

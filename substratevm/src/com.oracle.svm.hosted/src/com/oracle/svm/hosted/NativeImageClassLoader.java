@@ -94,6 +94,9 @@ final class NativeImageClassLoader extends SecureClassLoader {
 
     private final URLClassPath ucp;
 
+    private static final boolean TRACE_CLASS_LOAD = Boolean.getBoolean("svm.traceClassLoad");
+    private static final ThreadLocal<Integer> classLoadDepth = ThreadLocal.withInitial(() -> 0);
+
     /**
      * See {@code jdk.internal.loader.Loader.LoadedModule}.
      */
@@ -430,15 +433,37 @@ final class NativeImageClassLoader extends SecureClassLoader {
         String path = name.replace('.', '/').concat(".class");
         Resource res = ucp.getResource(path);
         if (res != null) {
-            try {
-                result = defineClass(name, res);
-            } catch (IOException e) {
-                throw new ClassNotFoundException(name, e);
-            } catch (ClassFormatError e2) {
-                if (res.getDataError() != null) {
-                    e2.addSuppressed(res.getDataError());
+            if (TRACE_CLASS_LOAD) {
+                int depth = classLoadDepth.get();
+                String indent = "  ".repeat(depth);
+                System.err.println(indent + "[ClassLoadTrace] defineClass depth=" + depth + " class=" + name);
+                classLoadDepth.set(depth + 1);
+                try {
+                    result = defineClass(name, res);
+                } catch (IOException e) {
+                    throw new ClassNotFoundException(name, e);
+                } catch (ClassFormatError e2) {
+                    if (res.getDataError() != null) {
+                        e2.addSuppressed(res.getDataError());
+                    }
+                    throw e2;
+                } catch (NoClassDefFoundError e3) {
+                    System.err.println(indent + "[ClassLoadTrace] FAILED defining class=" + name + " missing=" + e3.getMessage());
+                    throw e3;
+                } finally {
+                    classLoadDepth.set(depth);
                 }
-                throw e2;
+            } else {
+                try {
+                    result = defineClass(name, res);
+                } catch (IOException e) {
+                    throw new ClassNotFoundException(name, e);
+                } catch (ClassFormatError e2) {
+                    if (res.getDataError() != null) {
+                        e2.addSuppressed(res.getDataError());
+                    }
+                    throw e2;
+                }
             }
         } else {
             return null;
