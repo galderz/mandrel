@@ -706,6 +706,15 @@ public class SVMImageLayerLoader extends ImageLayerLoader {
      */
     private void initializeBaseLayerTypeBeforePublishing(AnalysisType type, PersistedAnalysisType.Reader typeData) {
         assert !(type.getWrapped() instanceof BaseLayerType);
+        if (type.isLinked() != typeData.getIsLinked()) {
+            System.err.println("=== initializeBaseLayerTypeBeforePublishing guarantee failure ===");
+            System.err.println("  type: " + type.toJavaName(true));
+            System.err.println("  type.isLinked(): " + type.isLinked());
+            System.err.println("  typeData.getIsLinked(): " + typeData.getIsLinked());
+            System.err.println("  type.getWrapped(): " + type.getWrapped().getClass().getName());
+            new Exception("stack trace").printStackTrace(System.err);
+            System.err.println("=== end ===");
+        }
         VMError.guarantee(type.isLinked() == typeData.getIsLinked());
         /*
          * For types reachable in this layer register the *computed* initialization kind extracted

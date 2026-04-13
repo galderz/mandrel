@@ -490,6 +490,14 @@ public class SVMImageLayerWriter extends ImageLayerWriter {
         builder.setIsFailedSimulation(failedSimulation);
         builder.setIsFailedInitialization(classInitializationSupport.isFailedInitialization(type.getJavaClass()));
         builder.setIsLinked(type.isLinked());
+        if (!type.isLinked() && Boolean.getBoolean("svm.traceLayerTypes")) {
+            System.err.println("[LAYER-WRITE] Persisting unlinked type: " + type.toJavaName(true));
+            try {
+                type.link();
+            } catch (Throwable t) {
+                System.err.println("[LAYER-WRITE]   link failure reason: " + t);
+            }
+        }
         if (type.getSourceFileName() != null) {
             builder.setSourceFileName(type.getSourceFileName());
         }
