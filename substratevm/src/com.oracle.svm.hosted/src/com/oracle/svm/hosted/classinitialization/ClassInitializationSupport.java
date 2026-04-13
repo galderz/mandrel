@@ -130,7 +130,8 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
                     "io.netty.util.internal.PlatformDependent",
                     "io.netty.util.AsciiString",
                     "io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder",
-                    "io.netty.handler.codec.CharSequenceValueConverter");
+                    "io.netty.handler.codec.CharSequenceValueConverter",
+                    "io.netty.channel.socket.nio.NioServerSocketChannel");
 
     private static boolean isTraced(String name) {
         return TRACE && TRACED.contains(name);
@@ -596,8 +597,14 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
         InitKind result = superResult.max(clazzResult);
 
         if (isTraced(clazz.getTypeName())) {
-            System.out.printf("[LAYER-CLINIT] computeInitKind(%s): specifiedInitKind=%s, result=%s before ensureClassInitialized, memoize=%s%n",
-                            clazz.getTypeName(), specifiedInitKindFor(clazz), result, memoize);
+            String reason = classInitializationConfiguration.lookupReason(clazz.getTypeName());
+            System.out.printf("[LAYER-CLINIT] computeInitKind(%s): specifiedInitKind=%s, superResult=%s, clazzResult=%s, result=%s before ensureClassInitialized, memoize=%s%n",
+                            clazz.getTypeName(), specifiedInitKindFor(clazz), superResult, clazzResult, result, memoize);
+            System.out.printf("[LAYER-CLINIT] computeInitKind(%s): reason=%s%n",
+                            clazz.getTypeName(), reason);
+            System.out.printf("[LAYER-CLINIT] computeInitKind(%s): superclass=%s%n",
+                            clazz.getTypeName(), clazz.getSuperclass() != null ? clazz.getSuperclass().getTypeName() : "none");
+            new Exception("[LAYER-CLINIT] stack trace for " + clazz.getTypeName()).printStackTrace(System.out);
         }
 
         if (memoize) {
