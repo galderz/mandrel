@@ -124,6 +124,7 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
      * AsciiString (cascade victim - its clinit uses PlatformDependent which is poisoned).
      */
     private static final boolean TRACE = Boolean.getBoolean("svm.traceClassInit");
+    private static final boolean TRACE_DEMOTIONS = Boolean.getBoolean("svm.traceClassInitDemotions");
     private static final java.util.Set<String> TRACED = java.util.Set.of(
                     "io.quarkus.runner.ApplicationImpl",
                     "io.netty.buffer.EmptyByteBuf",
@@ -341,6 +342,10 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
                 ex.printStackTrace(System.out);
             }
             if (allowErrors || !LinkAtBuildTimeSupport.singleton().linkAtBuildTime(clazz)) {
+                if (TRACE_DEMOTIONS) {
+                    System.err.printf("[CLINIT-DEMOTION] %s demoted to RUN_TIME: %s: %s%n",
+                                    clazz.getTypeName(), ex.getClass().getSimpleName(), ex.getMessage());
+                }
                 return InitKind.RUN_TIME;
             } else {
                 String msg = "Class initialization of " + clazz.getTypeName() + " failed. " +
@@ -350,6 +355,10 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
             }
         } catch (Throwable t) {
             if (allowErrors) {
+                if (TRACE_DEMOTIONS) {
+                    System.err.printf("[CLINIT-DEMOTION] %s demoted to RUN_TIME: %s: %s%n",
+                                    clazz.getTypeName(), t.getClass().getSimpleName(), t.getMessage());
+                }
                 return InitKind.RUN_TIME;
             } else {
                 String msg = "Class initialization of " + clazz.getTypeName() + " failed. " +
@@ -595,6 +604,11 @@ public class ClassInitializationSupport implements JVMCIRuntimeClassInitializati
         }
 
         InitKind result = superResult.max(clazzResult);
+
+        if (TRACE_DEMOTIONS && specifiedInitKindFor(clazz) == InitKind.BUILD_TIME && superResult == InitKind.RUN_TIME) {
+            System.err.printf("[CLINIT-DEMOTION] %s specified as BUILD_TIME but superclass forces RUN_TIME (super=%s)%n",
+                            clazz.getTypeName(), clazz.getSuperclass() != null ? clazz.getSuperclass().getTypeName() : "none");
+        }
 
         if (isTraced(clazz.getTypeName())) {
             String reason = classInitializationConfiguration.lookupReason(clazz.getTypeName());
