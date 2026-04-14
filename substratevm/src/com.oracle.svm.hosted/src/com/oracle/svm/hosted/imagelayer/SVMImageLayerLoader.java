@@ -328,6 +328,22 @@ public class SVMImageLayerLoader extends ImageLayerLoader {
                  * registration will fail. That could mean that we try to register too late.
                  */
                 if (constant.getHostedObject() != null) {
+                    if (Boolean.getBoolean("svm.traceLayerTypes")) {
+                        var fieldConstant = relinking.getFieldConstant();
+                        var fieldData = findField(fieldConstant.getOriginFieldId());
+                        String typeName = constant.getType() != null ? constant.getType().toJavaName(true) : "unknown";
+                        if (typeName.contains("java.util.logging.Level")) {
+                            String fieldName = fieldData.hasName() ? fieldData.getName().toString() : "?";
+                            String fieldClass = fieldData.hasClassName() ? fieldData.getClassName().toString() : "?";
+                            int declaringTypeId = fieldData.getDeclaringTypeId();
+                            var declaringTypeData = findType(declaringTypeId);
+                            String declaringTypeName = declaringTypeData != null && declaringTypeData.hasClassJavaName()
+                                            ? declaringTypeData.getClassJavaName().toString()
+                                            : "typeId=" + declaringTypeId;
+                            System.err.printf("[LAYER-RELINK] constant id=%d type=%s originField=%s.%s (declaringType=%s) hostedValue=%s%n",
+                                            constantData.getId(), typeName, fieldClass, fieldName, declaringTypeName, constant.getHostedObject());
+                        }
+                    }
                     universe.getHeapScanner().registerBaseLayerValue(constant, PERSISTED);
                 }
             }
