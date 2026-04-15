@@ -448,14 +448,18 @@ public final class ReflectionPlugins {
                 return false;
             }
             Throwable e = typeResult.getException();
-            if (Boolean.getBoolean("svm.traceClassForName")) {
-                String layerInfo = ImageLayerBuildingSupport.buildingImageLayer()
-                                ? (ImageLayerBuildingSupport.buildingExtensionLayer() ? "extension layer" : (ImageLayerBuildingSupport.buildingSharedLayer() ? "shared layer" : "initial layer"))
-                                : "non-layered";
-                System.err.printf("[CLASS-FORNAME] Synthesizing %s for Class.forName(\"%s\") during %s build. Caller: %s%n",
-                                e.getClass().getSimpleName(), className, layerInfo, b.getMethod().format("%H.%n(%p)"));
-                new Exception("[CLASS-FORNAME] stack trace").printStackTrace(System.err);
-                System.err.flush();
+            if (ImageLayerBuildingSupport.buildingSharedLayer()) {
+                if (Boolean.getBoolean("svm.traceClassForName")) {
+                    String layerInfo = ImageLayerBuildingSupport.buildingImageLayer()
+                            ? (ImageLayerBuildingSupport.buildingExtensionLayer() ? "extension layer" : (ImageLayerBuildingSupport.buildingSharedLayer() ? "shared layer" : "initial layer"))
+                            : "non-layered";
+                    System.err.printf("[CLASS-FORNAME] Synthesizing %s for Class.forName(\"%s\") during %s build. Caller: %s%n",
+                            e.getClass().getSimpleName(), className, layerInfo, b.getMethod().format("%H.%n(%p)"));
+                    new Exception("[CLASS-FORNAME] stack trace").printStackTrace(System.err);
+                    System.err.flush();
+                }
+                /* The class might be present in an extension layer. */
+                return false;
             }
             return throwException(b, targetMethod, null, arguments, e.getClass(), e.getMessage(), true);
         }
