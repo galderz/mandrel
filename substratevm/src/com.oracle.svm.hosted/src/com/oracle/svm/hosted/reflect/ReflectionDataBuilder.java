@@ -221,6 +221,11 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
     public void register(AccessCondition condition, boolean preserved, Class<?> clazz) {
         abortIfSealed();
         Objects.requireNonNull(clazz, () -> nullErrorMessage("class", "reflection"));
+        if (Boolean.getBoolean("svm.traceLayerTypes") && (clazz.getName().contains("Log4JLogger") || clazz.getName().contains("ReferenceCountedOpenSslContext"))) {
+            System.err.printf("[REFLECTION-REG] Registering %s for reflection (condition=%s, preserved=%s)%n", clazz.getName(), condition, preserved);
+            new Exception("[REFLECTION-REG] registration origin for " + clazz.getName()).printStackTrace(System.err);
+            System.err.flush();
+        }
         registerClass(condition, ACCESSED, GuestAccess.get().lookupType(clazz), preserved);
     }
 
@@ -288,6 +293,11 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
     }
 
     private void registerClass(AccessCondition condition, ConfigurationMemberAccessibility accessibility, ResolvedJavaType type, boolean preserved) {
+        if (Boolean.getBoolean("svm.traceLayerTypes") && (type.getName().contains("Log4JLogger") || type.getName().contains("ReferenceCountedOpenSslContext"))) {
+            System.err.printf("[REFLECTION-REG-INTERNAL] registerClass(%s, %s, preserved=%s)%n", type.toJavaName(true), accessibility, preserved);
+            new Exception("[REFLECTION-REG-INTERNAL] stack trace").printStackTrace(System.err);
+            System.err.flush();
+        }
         runConditionalTask(condition, cnd -> {
             AnalysisType analysisType = reflectivityFilter.getFilteredAnalysisType(type);
             if (analysisType == null || shouldExcludeClass(analysisType, accessibility)) {
@@ -365,6 +375,12 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
         try {
             type.link();
         } catch (LinkageError e) {
+            if (Boolean.getBoolean("svm.traceLayerTypes")) {
+                System.err.printf("[REFLECTION-LINK] Failed to link %s for reflection: %s: %s%n",
+                                type.toJavaName(true), e.getClass().getSimpleName(), e.getMessage());
+                new Exception("[REFLECTION-LINK] registration stack trace for " + type.toJavaName(true)).printStackTrace(System.err);
+                System.err.flush();
+            }
             if (LinkAtBuildTimeSupport.singleton().linkAtBuildTime(type)) {
                 throw e;
             }
@@ -386,6 +402,11 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
     public void registerClassLookup(AccessCondition condition, boolean preserved, String typeName) {
         abortIfSealed();
         Objects.requireNonNull(typeName, () -> nullErrorMessage("class name", "reflection lookup"));
+        if (Boolean.getBoolean("svm.traceLayerTypes") && typeName.contains("ReferenceCountedOpenSslContext")) {
+            System.err.printf("[REFLECTION-REG] registerClassLookup %s (condition=%s, preserved=%s)%n", typeName, condition, preserved);
+            new Exception("[REFLECTION-REG] lookup origin for " + typeName).printStackTrace(System.err);
+            System.err.flush();
+        }
         runConditionalTask(condition, (cnd) -> {
             TypeResult<ResolvedJavaType> type = ClassAccess.typeForName(typeName);
             if (type.isPresent()) {
