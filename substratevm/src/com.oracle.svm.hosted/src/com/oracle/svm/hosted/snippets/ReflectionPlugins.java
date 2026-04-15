@@ -57,6 +57,7 @@ import com.oracle.svm.core.hub.PredefinedClassesSupport;
 import com.oracle.svm.core.hub.RuntimeClassLoading;
 import com.oracle.svm.core.hub.registry.ClassRegistries;
 import com.oracle.svm.core.jdk.StackTraceUtils;
+import com.oracle.svm.core.imagelayer.ImageLayerBuildingSupport;
 import com.oracle.svm.hosted.ExceptionSynthesizer;
 import com.oracle.svm.hosted.ImageClassLoader;
 import com.oracle.svm.hosted.NativeImageSystemClassLoader;
@@ -447,6 +448,15 @@ public final class ReflectionPlugins {
                 return false;
             }
             Throwable e = typeResult.getException();
+            if (Boolean.getBoolean("svm.traceClassForName")) {
+                String layerInfo = ImageLayerBuildingSupport.buildingImageLayer()
+                                ? (ImageLayerBuildingSupport.buildingExtensionLayer() ? "extension layer" : (ImageLayerBuildingSupport.buildingSharedLayer() ? "shared layer" : "initial layer"))
+                                : "non-layered";
+                System.err.printf("[CLASS-FORNAME] Synthesizing %s for Class.forName(\"%s\") during %s build. Caller: %s%n",
+                                e.getClass().getSimpleName(), className, layerInfo, b.getMethod().format("%H.%n(%p)"));
+                new Exception("[CLASS-FORNAME] stack trace").printStackTrace(System.err);
+                System.err.flush();
+            }
             return throwException(b, targetMethod, null, arguments, e.getClass(), e.getMessage(), true);
         }
         Class<?> clazz = typeResult.get();
