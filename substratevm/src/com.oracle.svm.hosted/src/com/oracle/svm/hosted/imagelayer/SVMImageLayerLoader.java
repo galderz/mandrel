@@ -770,13 +770,19 @@ public class SVMImageLayerLoader extends ImageLayerLoader {
              */
             classInitializationSupport.withUnsealedConfiguration(() -> classInitializationSupport.initializeAtBuildTime(type, "computed in a previous layer"));
             VMError.guarantee(classInitializationSupport.isFailedInitialization(type), "Expected the initialization to fail for %s, as it has failed in a previous layer.", type);
-        } else if (typeData.getIsSuccessfulSimulation() || typeData.getIsFailedSimulation()) {
+        } else if (typeData.getIsSuccessfulSimulation()) {
             /*
-             * Simulation for this type was tried in a previous layer, and regardless whether it
-             * succeeded or failed there's nothing to do here. We'll record the result in the
-             * simulation registry when its simulation state is queried. We can do this lazily since
-             * there is no API to modify simulation state, unlike for initialization.
+             * Simulation for this type succeeded in a previous layer. We'll record the result in
+             * the simulation registry when its simulation state is queried. We can do this lazily
+             * since there is no API to modify simulation state, unlike for initialization.
              */
+        } else if (typeData.getIsFailedSimulation()) {
+            /*
+             * Simulation for this type failed in a previous layer — the class could not be
+             * initialized at build time. Register it as run-time initialized so that any
+             * build-time configuration from features in this layer does not override it.
+             */
+            classInitializationSupport.withUnsealedConfiguration(() -> classInitializationSupport.initializeAtRunTime(type, "computed in a previous layer"));
         } else {
             classInitializationSupport.withUnsealedConfiguration(() -> classInitializationSupport.initializeAtRunTime(type, "computed in a previous layer"));
         }

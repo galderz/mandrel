@@ -25,6 +25,7 @@
 package com.oracle.svm.core.methodhandles;
 
 import java.lang.invoke.MethodType;
+import java.lang.invoke.WrongMethodTypeException;
 
 import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.RecomputeFieldValue;
@@ -54,6 +55,21 @@ final class Target_java_lang_invoke_MethodType {
 
 @TargetClass(className = "java.lang.invoke.Invokers")
 final class Target_java_lang_invoke_Invokers {
+
+    @Alias
+    static native WrongMethodTypeException newWrongMethodTypeException(MethodType targetType, MethodType callSiteType);
+
+    /**
+     * Use equals() instead of != for MethodType comparison to support layered native images where
+     * MethodType objects from different layers may not be identity-equal despite representing the
+     * same type signature.
+     */
+    @Substitute
+    static void checkExactType(Target_java_lang_invoke_MethodHandle mh, MethodType expected) {
+        MethodType targetType = mh.type;
+        if (!targetType.equals(expected))
+            throw newWrongMethodTypeException(targetType, expected);
+    }
 
     /**
      * Substitute to remove the {@code @DontInline} from the original method.

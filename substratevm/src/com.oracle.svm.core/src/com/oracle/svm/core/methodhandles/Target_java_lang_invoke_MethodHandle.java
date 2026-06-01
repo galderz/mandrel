@@ -266,13 +266,70 @@ final class Util_java_lang_invoke_MethodHandle {
             } else if (refKind == Target_java_lang_invoke_MethodHandleNatives_Constants.REF_newInvokeSpecial) {
                 convertArgs(args, methodType);
                 SubstrateConstructorAccessor constructor = asConstructor(memberName);
+                if (memberName.getDeclaringClass().getName().contains("$$CMImpl") && args.length == 1) {
+                    Object ctx = args[0];
+                    try {
+                        Class<?> nsClass = Class.forName("io.smallrye.config.ConfigMapping$NamingStrategy");
+                        java.lang.reflect.Field kebabField = nsClass.getField("KEBAB_CASE");
+                        Object kebab = kebabField.get(null);
+                        System.err.println("DEBUG NamingStrategy.KEBAB_CASE = " + kebab + " (null? " + (kebab == null) + ")");
+
+                        Class<?> bsgClass = Class.forName("io.smallrye.config.ConfigMapping$BeanStyleGetters");
+                        java.lang.reflect.Field disabledField = bsgClass.getField("DISABLED");
+                        Object disabled = disabledField.get(null);
+                        System.err.println("DEBUG BeanStyleGetters.DISABLED = " + disabled + " (null? " + (disabled == null) + ")");
+
+                        System.err.println("DEBUG ConfigMappingContext class: " + ctx.getClass().getName());
+                        System.err.println("DEBUG ConfigMappingContext declared methods:");
+                        for (Method mm : ctx.getClass().getDeclaredMethods()) {
+                            System.err.println("DEBUG   " + mm.getName() + " " + java.util.Arrays.toString(mm.getParameterTypes()));
+                        }
+
+                        System.err.println("DEBUG Trying applyNamingStrategy via MethodHandle...");
+                        java.lang.invoke.MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.privateLookupIn(ctx.getClass(), java.lang.invoke.MethodHandles.lookup());
+                        java.lang.invoke.MethodHandle mh = lookup.findVirtual(ctx.getClass(), "applyNamingStrategy",
+                            java.lang.invoke.MethodType.methodType(void.class, nsClass));
+                        mh.invoke(ctx, kebab);
+                        System.err.println("DEBUG applyNamingStrategy via MethodHandle OK");
+                    } catch (Throwable ex) {
+                        System.err.println("DEBUG pre-constructor diagnostics FAILED: " + ex);
+                        ex.printStackTrace(System.err);
+                    }
+                }
                 return constructor.newInstance(args);
             } else {
                 throw VMError.shouldNotReachHere("Unknown method handle reference kind: " + refKind);
             }
         } catch (InvocationTargetException e) {
-            /* Exceptions are thrown unchanged from method handles */
-            throw e.getCause();
+            Throwable cause = e.getCause();
+            if (cause instanceof NullPointerException) {
+                System.err.println("DEBUG NPE via InvocationTargetException for " + memberName.getDeclaringClass().getName());
+                System.err.println("DEBUG   methodType: " + methodType);
+                System.err.println("DEBUG   args.length: " + args.length);
+                for (int i = 0; i < args.length; i++) {
+                    System.err.println("DEBUG   args[" + i + "]: " + (args[i] == null ? "null" : args[i].getClass().getName()));
+                }
+                try {
+                    Class<?> targetClass = memberName.getDeclaringClass();
+                    Class<?>[] paramTypes = new Class<?>[methodType.parameterCount()];
+                    for (int i = 0; i < paramTypes.length; i++) {
+                        paramTypes[i] = methodType.parameterType(i);
+                    }
+                    java.lang.reflect.Constructor<?> ctor = targetClass.getDeclaredConstructor(paramTypes);
+                    ctor.setAccessible(true);
+                    System.err.println("DEBUG   Trying direct Constructor.newInstance...");
+                    Object result = ctor.newInstance(args);
+                    System.err.println("DEBUG   Direct call SUCCEEDED! result=" + result.getClass().getName());
+                } catch (Exception ex) {
+                    System.err.println("DEBUG   Direct call failed: " + ex);
+                    if (ex.getCause() != null) {
+                        System.err.println("DEBUG   Cause: " + ex.getCause());
+                        ex.getCause().printStackTrace(System.err);
+                    }
+                }
+                cause.printStackTrace(System.err);
+            }
+            throw cause;
         }
     }
 

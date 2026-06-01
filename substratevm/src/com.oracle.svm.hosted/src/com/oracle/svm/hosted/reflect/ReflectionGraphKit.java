@@ -34,6 +34,7 @@ import java.util.Map;
 
 import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.svm.core.graal.nodes.LoweredDeadEndNode;
+import com.oracle.svm.core.imagelayer.ImageLayerBuildingSupport;
 import com.oracle.svm.core.reflect.ReflectionAccessorHolder;
 import com.oracle.svm.shared.util.VMError;
 import com.oracle.svm.hosted.code.FactoryMethodSupport;
@@ -232,7 +233,7 @@ public class ReflectionGraphKit extends HostedGraphKit {
             JavaKind argKind = asKind(argType);
             if (argKind.isPrimitive()) {
                 arg = unboxPrimitive(arg, argKind);
-            } else {
+            } else if (!ImageLayerBuildingSupport.buildingSharedLayer()) {
                 arg = startInstanceOf(arg, argType, false, true);
                 elsePart();
                 branchToIllegalArgumentException();

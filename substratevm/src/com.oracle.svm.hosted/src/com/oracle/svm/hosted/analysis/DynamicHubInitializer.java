@@ -253,6 +253,20 @@ public class DynamicHubInitializer {
         ClassInitializationInfo info;
         if (type.getWrapped() instanceof BaseLayerType) {
             info = layerLoader.getClassInitializationInfo(type);
+        } else if (type.isInSharedLayer()) {
+            ClassInitializationInfo baseLayerInfo = layerLoader.getClassInitializationInfo(type);
+            if (baseLayerInfo != null) {
+                info = baseLayerInfo;
+            } else {
+                boolean hasInitializer = type.getClassInitializer() != null;
+                boolean typeReachedTracked = ClassInitializationSupport.singleton().requiresInitializationNodeForTypeReached(type);
+                boolean initializedOrSimulated = SimulateClassInitializerSupport.singleton().trySimulateClassInitializer(bb, type);
+                if (initializedOrSimulated) {
+                    info = ClassInitializationInfo.forBuildTimeInitializedClass(FullyInitialized, hasInitializer, typeReachedTracked);
+                } else {
+                    info = buildRuntimeInitializationInfo(type, hasInitializer, typeReachedTracked);
+                }
+            }
         } else {
             boolean hasInitializer = type.getClassInitializer() != null;
             boolean typeReachedTracked = ClassInitializationSupport.singleton().requiresInitializationNodeForTypeReached(type);
@@ -263,7 +277,6 @@ public class DynamicHubInitializer {
             } else {
                 info = buildRuntimeInitializationInfo(type, hasInitializer, typeReachedTracked);
             }
-            VMError.guarantee(!type.isInSharedLayer() || layerLoader.isInitializationInfoStable(type, info));
         }
         hub.setClassInitializationInfo(info);
         if (rescan) {

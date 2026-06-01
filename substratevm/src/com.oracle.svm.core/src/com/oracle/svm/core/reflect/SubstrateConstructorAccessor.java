@@ -28,6 +28,7 @@ import java.lang.reflect.Executable;
 
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.nativeimage.c.function.CFunctionPointer;
 
 import com.oracle.svm.core.classinitialization.EnsureClassInitializedNode;
 import com.oracle.svm.core.hub.DynamicHub;
@@ -63,7 +64,15 @@ public final class SubstrateConstructorAccessor extends SubstrateAccessor implem
         if (initializeBeforeInvoke != null) {
             EnsureClassInitializedNode.ensureClassInitialized(DynamicHub.toClass(initializeBeforeInvoke));
         }
-        return ((MethodInvokeFunctionPointer) getExpandSignature()).invoke(null, args, getCodePointer(factoryMethodTarget));
+        CFunctionPointer expandSig = getExpandSignature();
+        CFunctionPointer factoryPtr = getCodePointer(factoryMethodTarget);
+        if (factoryPtr.isNull()) {
+            throw new RuntimeException("DEBUG: factoryMethodTarget code pointer is null for constructor accessor");
+        }
+        if (expandSig.isNull()) {
+            throw new RuntimeException("DEBUG: expandSignature code pointer is null");
+        }
+        return ((MethodInvokeFunctionPointer) expandSig).invoke(null, args, factoryPtr);
     }
 
     @Override
