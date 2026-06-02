@@ -425,6 +425,9 @@ public class MethodHandleFeature implements InternalFeature {
 
     public void registerHeapMethodType(MethodType methodType) {
         try {
+            if (Boolean.getBoolean("svm.traceMethodTypeInterning")) {
+                System.out.println("[MH-INTERN] Registering MethodType: " + methodType + " (identity=" + System.identityHashCode(methodType) + ")");
+            }
             referencedKeySetAdd.invoke(runtimeMethodTypeInternTable, methodType);
         } catch (ReflectiveOperationException e) {
             throw VMError.shouldNotReachHere(e);

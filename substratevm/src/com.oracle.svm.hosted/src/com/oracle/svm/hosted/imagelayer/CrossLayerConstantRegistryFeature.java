@@ -353,7 +353,15 @@ public class CrossLayerConstantRegistryFeature implements InternalFeature, Cross
     }
 
     public boolean isConstantRegistered(Object obj) {
-        return constantCandidates.containsValue(obj);
+        // GR-XXXXX: Use identity comparison instead of equals() to avoid ClassCastException
+        // from broken equals() implementations (e.g., CharInfo$CharKey) when containsValue()
+        // iterates over values of mixed types.
+        for (Object value : constantCandidates.values()) {
+            if (value == obj) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
