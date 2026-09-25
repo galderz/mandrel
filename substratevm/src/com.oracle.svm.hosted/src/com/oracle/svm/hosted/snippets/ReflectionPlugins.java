@@ -58,6 +58,7 @@ import com.oracle.svm.core.ParsingReason;
 import com.oracle.svm.core.hub.PredefinedClassesSupport;
 import com.oracle.svm.core.hub.RuntimeClassLoading;
 import com.oracle.svm.core.hub.registry.ClassRegistries;
+import com.oracle.svm.core.imagelayer.ImageLayerBuildingSupport;
 import com.oracle.svm.core.jdk.StackTraceUtils;
 import com.oracle.svm.hosted.ExceptionSynthesizer;
 import com.oracle.svm.hosted.ImageClassLoader;
@@ -447,6 +448,10 @@ public final class ReflectionPlugins {
         TypeResult<Class<?>> typeResult = ImageClassLoader.findClass(className, false, loader);
         if (!typeResult.isPresent()) {
             if (RuntimeClassLoading.isSupported()) {
+                return false;
+            }
+            if (ImageLayerBuildingSupport.buildingSharedLayer()) {
+                /* The class might be present in an extension layer. */
                 return false;
             }
             Throwable e = typeResult.getException();
