@@ -466,6 +466,10 @@ public final class ReflectionPlugins {
                 }
                 return false;
             }
+            if (ImageLayerBuildingSupport.buildingSharedLayer()) {
+                /* The class might be present in an extension layer. */
+                return false;
+            }
             Throwable e = typeResult.getException();
             return throwException(b, targetMethod, null, arguments, e.getClass(), e.getMessage(), true);
         }
