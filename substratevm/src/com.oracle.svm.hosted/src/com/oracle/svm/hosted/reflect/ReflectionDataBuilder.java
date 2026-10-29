@@ -337,7 +337,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 ConfigurationMemberAccessibility previous = typeData.registerAs(accessibility);
                 if (previous == null) {
                     registerTypesForHeapType(analysisType);
-                    typeData.registerLinkageError(linkType(analysisType));
+                    typeData.registerLinkageError(linkType(analysisType, preserved));
                 }
 
                 if (accessibility == NONE) {
@@ -395,11 +395,11 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
      * (https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html), which we do to limit the
      * size of the runtime metadata.
      */
-    private static LinkageError linkType(AnalysisType type) {
+    private static LinkageError linkType(AnalysisType type, boolean preserved) {
         try {
             type.link();
         } catch (LinkageError e) {
-            if (LinkAtBuildTimeSupport.singleton().linkAtBuildTime(type)) {
+            if (!preserved && LinkAtBuildTimeSupport.singleton().linkAtBuildTime(type)) {
                 throw e;
             }
             return e;
@@ -408,7 +408,11 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
     }
 
     private void registerLinkageError(AnalysisType type, AnalysisType activeType, TypeData activeTypeData, LinkageError error, BiConsumer<TypeData, LinkageError> register) {
-        if (LinkAtBuildTimeSupport.singleton().linkAtBuildTime(type)) {
+        registerLinkageError(type, activeType, activeTypeData, error, register, false);
+    }
+
+    private void registerLinkageError(AnalysisType type, AnalysisType activeType, TypeData activeTypeData, LinkageError error, BiConsumer<TypeData, LinkageError> register, boolean preserved) {
+        if (!preserved && LinkAtBuildTimeSupport.singleton().linkAtBuildTime(type)) {
             throw error;
         }
         TypeData data = activeTypeData != null && type.equals(activeType) ? activeTypeData : types.computeIfAbsent(type, _ -> new TypeData());
@@ -534,7 +538,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                     }
                 }
             } catch (LinkageError e) {
-                registerLinkageError(t, type, activeTypeData, e, TypeData::registerPublicMethodLookupError);
+                registerLinkageError(t, type, activeTypeData, e, TypeData::registerPublicMethodLookupError, preserved);
             }
         });
     }
@@ -551,7 +555,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 registerMethod(unconditional(), QUERIED, preserved, method);
             }
         } catch (LinkageError e) {
-            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredMethodLookupError);
+            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredMethodLookupError, preserved);
         }
     }
 
@@ -565,7 +569,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 }
             }
         } catch (LinkageError e) {
-            registerLinkageError(type, type, activeTypeData, e, TypeData::registerPublicConstructorLookupError);
+            registerLinkageError(type, type, activeTypeData, e, TypeData::registerPublicConstructorLookupError, preserved);
         }
     }
 
@@ -581,7 +585,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 registerMethod(unconditional(), QUERIED, preserved, constructor);
             }
         } catch (LinkageError e) {
-            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredConstructorLookupError);
+            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredConstructorLookupError, preserved);
         }
     }
 
@@ -722,7 +726,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                     }
                 });
             } catch (LinkageError e) {
-                registerLinkageError(t, type, activeTypeData, e, TypeData::registerPublicFieldLookupError);
+                registerLinkageError(t, type, activeTypeData, e, TypeData::registerPublicFieldLookupError, preserved);
             }
         });
     }
@@ -739,7 +743,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 registerField(unconditional(), accessibility, preserved, field);
             });
         } catch (LinkageError e) {
-            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredFieldLookupError);
+            registerLinkageError(type, type, activeTypeData, e, TypeData::registerDeclaredFieldLookupError, preserved);
         }
     }
 

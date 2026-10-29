@@ -338,8 +338,8 @@ public class PreserveOptionsSupport extends IncludeOptionsSupport {
 
     public static void registerType(BigBang bb, RuntimeReflectionSupport reflection, Class<?> c) {
         AccessCondition always = AccessCondition.unconditional();
-        reflection.register(always, true, c);
         try {
+            reflection.register(always, true, c);
             reflection.register(always, false, true, c.getDeclaredFields());
             Method[] declaredMethods = c.getDeclaredMethods();
             reflection.register(always, true, declaredMethods);
@@ -348,7 +348,7 @@ public class PreserveOptionsSupport extends IncludeOptionsSupport {
             }
             reflection.register(always, true, c.getDeclaredConstructors());
         } catch (LinkageError e) {
-            /* If we can't link we can not register fields and methods */
+            /* If we can't link we can not register for reflection */
         }
     }
 
