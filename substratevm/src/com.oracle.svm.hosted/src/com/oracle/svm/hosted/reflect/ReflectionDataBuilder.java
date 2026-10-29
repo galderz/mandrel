@@ -246,6 +246,13 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
     public void register(AccessCondition condition, boolean preserved, Class<?> clazz) {
         abortIfSealed();
         Objects.requireNonNull(clazz, () -> nullErrorMessage("class", "reflection"));
+        // DEBUG: trace reflection registration for specific classes
+        // Enable with -Dsvm.debug.reflectTrace=<substring> e.g. -Dsvm.debug.reflectTrace=Log4j
+        String traceFilter = System.getProperty("svm.debug.reflectTrace");
+        if (traceFilter != null && clazz.getName().contains(traceFilter)) {
+            System.err.println("REFLECT_REG: register(" + clazz.getName() + ", preserved=" + preserved + ")");
+            new Exception("REFLECT_REG caller").printStackTrace(System.err);
+        }
         registerClass(condition, ACCESSED, GuestAccess.get().lookupType(clazz), preserved);
     }
 
